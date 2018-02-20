@@ -2,8 +2,8 @@
 #define COMMON_H_
 
 // customizable options
-// OSC Port 
-#define _OSCPORT "7770"
+// OSC base port (will also use port+1)
+#define _OSCPORT "7771"
 
 // start/stop editor with engine
 #define _BUNDLE
@@ -27,11 +27,16 @@
 // not customizable options ----------------------------------
 // amount of parameters per patch
 #define _PARACOUNT 139
+#define _CHOICECOUNT 18
+#define _EGCOUNT 7
+
+// Voices
+#define _MULTITEMP 8
 
 // how many additional settings per sound in multi to store
 #define _MULTISETTINGS 6
 
 // the version number as string
-#define _VERSION "1.41"
+#define _VERSION "1.4a"
 
 #endif

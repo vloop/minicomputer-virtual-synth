@@ -31,6 +31,7 @@
 #include <FL/Fl_Input_Choice.H>
 #include <FL/Fl_Light_Button.H>
 #include <FL/Fl_Menu_Button.H>
+#include <FL/Fl_Toggle_Button.H>
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Tabs.H>
@@ -56,6 +57,11 @@
 #include "../common.h"
 extern lo_address t;
 extern Memory Speicher;
+
+// Original color 246
+#define _BGCOLOR 246
+#define _BTNLBLCOLOR1 186
+#define _BTNLBLCOLOR2 1
 
 /*
 class Fl_SteinerKnob:public Fl_Dial
@@ -84,7 +90,7 @@ class Fenster:public Fl_Double_Window
 
 class UserInterface {
 public:
-  Fenster* make_window();
+  Fenster* make_window(const char *title);
   void changeMulti(int pgm);
   void changeSound(int channel,int pgm);
   static Fl_Menu_Item menu_pitch[];
@@ -112,11 +118,24 @@ public:
   static Fl_Menu_Item menu_amod[];
   static Fl_Menu_Item menu_fmod[];
   static Fl_Menu_Item menu_wave[];
-  Fl_Input*  soundchoice[8];
- Fl_Input*  multichoice;
-   private:
+  Fl_Input* soundchoice[_MULTITEMP];
+  Fl_Input* multichoice;
+private:
   string tablabel[9];
 };
+
+// Fl_Widget* Knob[8][_PARACOUNT];
+int EG_draw(int voice, int EGnum, int stage);
+void EG_draw_all();
+void replace_color (unsigned char * bits, int pixcount, unsigned char r1, unsigned char g1, unsigned char b1, unsigned char r2, unsigned char g2, unsigned char b2);
+
+char *strnrtrim(char *dest, const char*source, size_t len);
+
+extern Fl_Roller *multiRoller;
+extern Fl_Value_Output *multiDisplay;
+extern Fl_Input* Multichoice;
+extern bool sense;
+
 // the logo image
 static unsigned char idata_miniMini[] =
 {190,218,255,190,218,255,190,218,255,190,218,255,190,218,255,190,218,255,

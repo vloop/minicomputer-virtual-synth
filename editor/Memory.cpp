@@ -56,7 +56,7 @@ Memory::Memory()
 			{
 				sprintf(kommand,"mkdir %s",folder);
 				system(kommand);
-		        	cout<<kommand<<endl;
+					cout<<kommand<<endl;
 			}
 		}
 		#ifdef _DEBUG
@@ -121,7 +121,7 @@ unsigned int Memory::getChoice(unsigned int voice)
 void Memory::save()
 {
 char kommand[1200];
-	    /*ofstream ofs("minicomputerMemory.mcm", std::ios::binary);
+		/*ofstream ofs("minicomputerMemory.mcm", std::ios::binary);
   //boost::archive::text_oarchive oa(ofs);
 	for (int i=0;i<139;i++)
 	{
@@ -135,8 +135,8 @@ char kommand[1200];
 #ifdef _BINFILE
 FILE *fh; // file handle
 
-    system("mv minicomputerMemory.mcm minicomputerMemory.bak");// make a backup
-    if ((fh=fopen("minicomputerMemory.mcm","wb")) ==NULL)
+	system("mv minicomputerMemory.mcm minicomputerMemory.bak");// make a backup
+	if ((fh=fopen("minicomputerMemory.mcm","wb")) ==NULL)
 	{
 		printf("cant open file minicomputerMemory.mcm\n");
 		
@@ -147,14 +147,14 @@ FILE *fh; // file handle
 	{
 		if ((fwrite(&sounds[i],sizeof(patch),1,fh)) == -1)
 			{
-         		printf("cant write into minicomputerMemory.mcm\n");
-         		break;
+		 		printf("cant write into minicomputerMemory.mcm\n");
+		 		break;
 			}
 			fseek(fh,0,SEEK_END);
 	}
 	fclose(fh);
 	}
-#endif	
+#endif
 // *************************************************************
 // new fileoutput as textfile with a certain coding which is
 // documented in the docs
@@ -172,7 +172,7 @@ for (int i=0;i<512;++i)
 		for (j=0;j<2;++j)
 			File<< "<"<< p << ";" << j << ":" <<sounds[i].freq[p][j]<<">"<<endl;
 	}
-	for (p=0;p<17;++p)
+	for (p=0;p<_CHOICECOUNT;++p)
 		File<< "{"<< p << ":"<<sounds[i].choice[p]<<"}"<<endl;
 	for (p=0;p<_PARACOUNT;++p)// write the remaining parameters
 		File<< "("<< p << ":"<<sounds[i].parameter[p]<<")"<<endl;
@@ -183,14 +183,14 @@ File.close();
 	if (access(kommand, R_OK) == 0) // check if there a previous file which need to be backed up
 	{
 		sprintf(kommand,"mv %s/minicomputerMemory.txt %s/minicomputerMemory.txt.bak",folder,folder);
-  		system(kommand);// make a backup
+		system(kommand);// make a backup
 	}
 	sprintf(kommand,"mv %s/minicomputerMemory.temp %s/minicomputerMemory.txt",folder,folder);
-  	system(kommand);// commit the file finally
+	system(kommand);// commit the file finally
 }
 
 /**
- * load the soundmemory from disk
+ * load the soundmemory (i.e. all preset definitions) from disk
  * supports the depricated binary and textformat.
  * @see Memory::save()
  */
@@ -212,7 +212,7 @@ void Memory::load()
 // the depricated binary format, enabled with the _BINFILE parameter in common.h
 #ifdef _BINFILE
 	FILE *fh; // file handle
-    if ((fh=fopen("minicomputerMemory.mcm","rb")) ==NULL)
+	if ((fh=fopen("minicomputerMemory.mcm","rb")) ==NULL)
 	{
 		printf("cant open file minicomputerMemory.mcm\n");
 		
@@ -223,8 +223,8 @@ void Memory::load()
 	{
 		if ((fread(&sounds[i],sizeof(patch),1,fh)) == -1)
 			{
-         		printf("cant read  minicomputerMemory.mcm\n");
-         		break;
+		 		printf("cant read  minicomputerMemory.mcm\n");
+		 		break;
 			}
 			
 			//if (fseek(fh,sizeof(patch),SEEK_CUR)==-1)
@@ -286,13 +286,11 @@ while (File)
 				sounds[current].name[j-1] = str[j];
 				++j;
 			}
-			if (j<128) // fill the rest with blanks to clear the string
+			// printf("Preset # %u : \"%s\"\n", current, sounds[current].name);
+			while (j<128) // fill the rest with blanks to clear the string
 			{
-				while (j<128)
-				{
-					sounds[current].name[j-1]=' ';
-					++j;
-				}
+				sounds[current].name[j-1]=' ';
+				++j;
 			}
 		}
 		break;
@@ -307,7 +305,7 @@ while (File)
 
 	}
 
-	getline(File,str);// get the next line of the file
+	getline(File, str);// get the next line of the file
 /*
 for (int i=0;i<512;++i)
 	{
@@ -345,7 +343,7 @@ int p,j;
 		for (j=0;j<2;++j)
 			File<< "<"<< p << ";" << j << ":" <<sounds[current].freq[p][j]<<">"<<endl;
 	}
-	for (p=0;p<17;++p)
+	for (p=0;p<_CHOICECOUNT;++p)
 		File<< "{"<< p << ":"<<sounds[current].choice[p]<<"}"<<endl;
 	for (p=0;p<_PARACOUNT;++p)// write the remaining parameters
 		File<< "("<< p << ":"<<sounds[current].parameter[p]<<")"<<endl;
@@ -439,8 +437,8 @@ save();
 void Memory::saveMulti()
 {
 	char kommand[1200];
-      int i;
-      //************* the binary depricated fileformat
+	  int i;
+	  //************* the binary depricated fileformat
 #ifdef _BINFILE      
 	FILE *fh; // file handle
   	system("minicomputerMulti.mcm minicomputerMulti.bak");
@@ -455,8 +453,8 @@ void Memory::saveMulti()
 	{
 		if ((fwrite(&multis[i],sizeof(multi),1,fh)) == -1)
 			{
-         		printf("cant write into minicomputerMulti.mcm\n");
-         		break;
+		 		printf("cant write into minicomputerMulti.mcm\n");
+		 		break;
 			}
 			fseek(fh,0,SEEK_END);
 	}
@@ -507,7 +505,7 @@ void Memory::loadMulti()
 #ifdef _BINFILE
 int i;
 FILE *fh; // file handle
-    if ((fh=fopen("minicomputerMulti.mcm","rb")) ==NULL)
+	if ((fh=fopen("minicomputerMulti.mcm","rb")) ==NULL)
 	{
 		printf("cant open file minicomputerMulti.mcm\n");
 		
@@ -518,8 +516,8 @@ FILE *fh; // file handle
 	{
 		if ((fread(&multis[i],sizeof(multi),1,fh)) == -1)
 			{
-         		printf("cant read  minicomputerMulti.mcm\n");
-         		break;
+		 		printf("cant read  minicomputerMulti.mcm\n");
+		 		break;
 			}
 			
 			/*if (fseek(fh,sizeof(patch),SEEK_CUR)==-1)
@@ -566,6 +564,7 @@ while (File)// as long there is anything in the file
 				multis[current].name[j-1] = str[j];
 				++j;
 			}
+			// printf("Multi # %u : \"%s\"\n", current, multis[current].name);
 			if (j<128) // fill the rest with blanks to clear the string
 			{
 				while (j<128)

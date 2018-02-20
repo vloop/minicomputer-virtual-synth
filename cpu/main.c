@@ -19,7 +19,7 @@
 //  gcc -o synthesizer synth2.c -ljack -ffast-math -O3 -march=k8 -mtune=k8 -funit-at-a-time -fpeel-loops -ftracer -funswitch-loops -llo -lasound
 
 #include <jack/jack.h>
-//#include <jack/midiport.h> // later we use the jack midi ports to, but not this time
+//#include <jack/midiport.h> // later we use the jack midi ports too, but not this time
 #include <signal.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -34,11 +34,15 @@
 // defines
 #define _MODCOUNT 32
 #define _WAVECOUNT 32
-#define _CHOICEMAX 16
-#define _MULTITEMP 8
+// define _CHOICEMAX 16 // Replaced by _CHOICECOUNT
+
+// Table size must be a power of 2 so that we can use & instead of %
 #define TableSize 4096
 #define tabM 4095
 #define tabF 4096.f
+#define itabF 4096
+
+//#define _DEBUG
 
 // variables
 float delayBuffer[_MULTITEMP][96000] __attribute__((aligned (16)));
@@ -49,14 +53,20 @@ float midi2freq [128],midif[_MULTITEMP] __attribute__((aligned (16)));
 float EG[_MULTITEMP][8][8] __attribute__((aligned (16))); // 7 8
 float EGFaktor[_MULTITEMP][8] __attribute__((aligned (16)));
 float phase[_MULTITEMP][4] __attribute__((aligned (16)));//=0.f;
-unsigned int choice[_MULTITEMP][_CHOICEMAX] __attribute__((aligned (16)));
+unsigned int choice[_MULTITEMP][_CHOICECOUNT] __attribute__((aligned (16)));
 int EGrepeat[_MULTITEMP][8] __attribute__((aligned (16)));
 unsigned int EGtrigger[_MULTITEMP][8] __attribute__((aligned (16)));
 unsigned int EGstate[_MULTITEMP][8] __attribute__((aligned (16)));
 float high[_MULTITEMP][4],band[_MULTITEMP][4],low[_MULTITEMP][4],f[_MULTITEMP][4],q[_MULTITEMP][4],v[_MULTITEMP][4],faktor[_MULTITEMP][4];
 jack_port_t   *port[_MULTITEMP + 4]; // _multitemp * ports + 2 mix and 2 aux
 unsigned int lastnote[_MULTITEMP];
+unsigned int hold[_MULTITEMP];
+unsigned int heldnote[_MULTITEMP];
+float glide[_MULTITEMP];
 int delayI[_MULTITEMP],delayJ[_MULTITEMP];
+lo_address t;
+float sub[_MULTITEMP];
+int subMSB[_MULTITEMP];
 
 char jackName[64]="Minicomputer";// signifier for audio and midiconnections, to be filled with OSC port number
 snd_seq_t *open_seq();
@@ -107,47 +117,47 @@ snd_seq_t *open_seq() {
   if (snd_seq_open(&seq_handle, "hw", SND_SEQ_OPEN_INPUT,SND_SEQ_NONBLOCK) < 0) 
 #endif
  {
-    fprintf(stderr, "Error opening ALSA sequencer.\n");
-    exit(1);
+	fprintf(stderr, "Error opening ALSA sequencer.\n");
+	exit(1);
  }
   snd_seq_set_client_name(seq_handle, jackName);
   if ((portid = snd_seq_create_simple_port(seq_handle, jackName,
-            SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE,
-            SND_SEQ_PORT_TYPE_APPLICATION)) < 0) {
-    fprintf(stderr, "Error creating sequencer port.\n");
-    exit(1);
+			SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE,
+			SND_SEQ_PORT_TYPE_APPLICATION)) < 0) {
+	fprintf(stderr, "Error creating sequencer port.\n");
+	exit(1);
   }
 // filter out mididata which is not processed anyway, thanks to Karsten Wiese for the hint
- 	snd_seq_client_info_t * info;	 
+	snd_seq_client_info_t * info;	 
 
 
 	snd_seq_client_info_malloc(&info);
 	if ( snd_seq_get_client_info	( seq_handle,
 info) != 0){
-	
-    fprintf(stderr, "Error getting info for eventfiltersetup.\n");
-    exit(1);
+
+	fprintf(stderr, "Error getting info for eventfiltersetup.\n");
+	exit(1);
 }
 // its a bit strange, you set what you want to get, not what you want filtered out...
 // actually Karsten told me so but I got misguided by the term filter
-	
-// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_SYSEX);	
-// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_TICK);	
 
- snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_NOTEON);	
- snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_NOTEOFF);	
- snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_PITCHBEND);	
- snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CONTROLLER);	
- snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CHANPRESS);	
+// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_SYSEX);
+// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_TICK);
 
-// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CLOCK);	
-// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_SONGPOS);	
-// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_QFRAME);	
+ snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_NOTEON);
+ snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_NOTEOFF);
+ snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_PITCHBEND);
+ snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CONTROLLER);
+ snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CHANPRESS);
+
+// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CLOCK);
+// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_SONGPOS);
+// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_QFRAME);
 	if ( snd_seq_set_client_info	( seq_handle,
 info) != 0){
-	
-    fprintf(stderr, "Error setting info for eventfiltersetup.\n");
-    exit(1);
+
+	fprintf(stderr, "Error setting info for eventfiltersetup.\n");
+	exit(1);
 }	
  snd_seq_client_info_free(info);
 
@@ -159,31 +169,32 @@ static inline void error(int num, const char *m, const char *path);
 static inline int generic_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data); 
 static inline int foo_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data); 
 static inline int quit_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
+static inline int midi_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
 
 
 /* inlined manually
 static inline float Oscillator(float frequency,int wave,float *phase)
 {
-    int i = (int) *phase ;// float to int, cost some cycles
+	int i = (int) *phase ;// float to int, cost some cycles
 
 	i=i&tabM;//i%=TableSize;
 	//if (i>tabM) i=tabM;
 	if (i<0) i=tabM;
-    *phase += tabX * frequency;
+	*phase += tabX * frequency;
 
-    if(*phase >= tabF)
-    {
+	if(*phase >= tabF)
+	{
    		 *phase -= tabF;
 		// if (*phase>=tabF) *phase = 0; //just in case of extreme fm
-    }
+	}
 
 
-        if(*phase < 0.f)
-                {
-                	*phase += tabF;
-        	//	if(*phase < 0.f) *phase = tabF-1;
-                }
-        return table[wave][i] ;
+		if(*phase < 0.f)
+				{
+					*phase += tabF;
+			//	if(*phase < 0.f) *phase = tabF-1;
+				}
+		return table[wave][i] ;
 }
 */
 //inline float filter (float input,float f, float q)
@@ -203,10 +214,11 @@ static inline void egStart (const unsigned int voice,const unsigned int number)
 	EGtrigger[voice][number]=1;
 	EG[voice][number][0] = 1.f; // triggerd
 	EG[voice][number][5] = 1.f; // target
-        EG[voice][number][7] = 0.0f;// state
-        EGstate[voice][number] = 0;// state  
+	EG[voice][number][7] = 0.0f;// state ? keep value, retrigger
+	EGstate[voice][number] = 0;// state  
 	EGFaktor[voice][number] = 0.f;
-		 //printf("start %i", voice);
+	lo_send(t, "/Minicomputer/EG", "iii", voice, number, 1);
+	//printf("start %i", voice);
 }
 /**
  * set the envelope to release mode
@@ -219,6 +231,10 @@ static inline void egStop (const unsigned int voice,const unsigned int number)
 	// if (EGrepeat[voice][number] == 0) 
 	EGtrigger[voice][number] = 0; // triggerd
 	EGstate[voice][number] = 0; // target
+	if(EG[voice][number][6]>0.0f)
+	  lo_send(t, "/Minicomputer/EG", "iii", voice, number, 4);
+	else
+	  lo_send(t, "/Minicomputer/EG", "iii", voice, number, 0);
 	// printf("stop %i", voice);
 }
 /**
@@ -226,85 +242,88 @@ static inline void egStop (const unsigned int voice,const unsigned int number)
  * @param the voice number
  * @param the number of envelope generator
 */
-static inline float egCalc (const unsigned int voice,const unsigned int number)
+static inline float egCalc (const unsigned int voice, const unsigned int number)
 {
 	/* EG[x] x:
-	 * 0 = trigger
-	 * 1 = attack
-	 * 2 = decay
-	 * 3 = sustain
-	 * 4 = release
+	 * 0 = trigger (0 or 1)
+	 * 1 = attack rate
+	 * 2 = decay rate
+	 * 3 = sustain level
+	 * 4 = release rate
 	 * 5 = target
-	 * 6 = state
+	 * 6 = state (value between 0.0 and 1.0)
+	 * EGstate - 1:Attack 2:Decay 3:Sustain 0:Release 4:Idle
+	 * OSC messages - 0:Idle 1:Attack 2:Sustain 3:Decay 4:Release
 	 */
-	if (EGtrigger[voice][number] != 1)
+	if (EGtrigger[voice][number] != 1) 
 	{
 	int i = EGstate[voice][number]; 
 		if (i == 1){ // attack
-		         if (EGFaktor[voice][number]<1.00f) EGFaktor[voice][number] += 0.002f;
+			if (EGFaktor[voice][number]<1.00f) EGFaktor[voice][number] += 0.002f;
 			
-			 EG[voice][number][6] += EG[voice][number][1]*srDivisor*EGFaktor[voice][number];
+			EG[voice][number][6] += EG[voice][number][1]*srDivisor*EGFaktor[voice][number];
 
-			 if (EG[voice][number][6]>=1.0f)// Attackphase is finished
-			 {
-			 	EG[voice][number][6]=1.0f;
-			 	EGstate[voice][number]=2;
-					EGFaktor[voice][number] = 1.f; // triggerd
-
-			 }
-		}
-		else if (i == 2)
-		{ // decay
-			if (EG[voice][number][6]>EG[voice][number][3])
+			if (EG[voice][number][6]>=1.0f)// Attack phase is finished
 			{
-				 EG[voice][number][6] -= EG[voice][number][2]*srDivisor*EGFaktor[voice][number];
+				EG[voice][number][6]=1.0f;
+				EGstate[voice][number]=2;
+				EGFaktor[voice][number] = 1.f; // triggerd
+				lo_send(t, "/Minicomputer/EG", "iii", voice, number, 2);
 			}
-			else 
+		}
+		else if (i == 2){ // decay
+			if (EG[voice][number][6]>EG[voice][number][3]) // Sustain level not reached
+			{
+				EG[voice][number][6] -= EG[voice][number][2]*srDivisor*EGFaktor[voice][number];
+			}
+			else // Sustain level reached (may be 0)
 			{
 				if (EGrepeat[voice][number]==0)
 				{
 					EGstate[voice][number]=3; // stay on sustain
+					lo_send(t, "/Minicomputer/EG", "iii", voice, number, 3);
 				}
-				else
+				else // Repeat ON
 				{
 					EGFaktor[voice][number] = 1.f; // triggerd
-					egStop(voice,number);// continue to release
+					egStop(voice,number); // continue to release
 				}
 			}
 			// what happens if sustain = 0? envelope should go in stop mode when decay reached ground
 			if (EG[voice][number][6]<0.0f) 
-		    	{	
-		    		EG[voice][number][6]=0.0f;
-		    		if (EGrepeat[voice][number]==0)
+			{	
+				EG[voice][number][6]=0.0f;
+				if (EGrepeat[voice][number]==0)
 				{
 					EGstate[voice][number]=4; // released
+					lo_send(t, "/Minicomputer/EG", "iii", voice, number, 0);
 				}
 				else
 				{
-					egStart(voice,number);// repeat
+					egStart(voice, number); // repeat
 				}
-		    	}
-
+			}
 		} // end of decay
 		else if ((i == 0) && (EG[voice][number][6]>0.0f))
 		{
-		    /* release */
-		    
-		    if (EGFaktor[voice][number]>0.025f) EGFaktor[voice][number] -= 0.002f;
-		    EG[voice][number][6] -= EG[voice][number][4]*srDivisor*EGFaktor[voice][number];//*EG[number][6];
+			/* release */
+			
+			if (EGFaktor[voice][number]>0.025f) EGFaktor[voice][number] -= 0.002f;
+			EG[voice][number][6] -= EG[voice][number][4]*srDivisor*EGFaktor[voice][number];
 
-		    if (EG[voice][number][6]<0.0f) 
-		    {	
-		    	EG[voice][number][6]=0.0f;
-		    	if (EGrepeat[voice][number]==0)
+			if (EG[voice][number][6]<0.0f) 
+			{	
+				EG[voice][number][6]=0.0f;
+				if (EGrepeat[voice][number]==0)
 				{
 					EGstate[voice][number]=4; // released
+					lo_send(t, "/Minicomputer/EG", "iii", voice, number, 0);
 				}
 				else
 				{
-					egStart(voice,number);// repeat
+					egStart(voice, number);// repeat
 				}
-		    }
+			}
 		}
 //		if (EG[number][5] == 1.0f){
 //		    /* attack */
@@ -325,7 +344,7 @@ static inline float egCalc (const unsigned int voice,const unsigned int number)
 //		}
 	}
 	else
-	{
+	{ // EGtrigger is 1
 	//	if (EGtrigger[voice][number] == 1) // declick ramp down processing
 	//	{
 			
@@ -336,8 +355,8 @@ static inline float egCalc (const unsigned int voice,const unsigned int number)
 				{
 			   	 EG[voice][number][7] += EG[voice][number][1]*(1.0f - EG[voice][number][7]);
 				}
-			    else
-			    {*/
+				else
+				{*/
 					EGtrigger[voice][number] = 0;
 				//	EGstate[voice][number] = 1;
 		/*	    }
@@ -350,7 +369,8 @@ static inline float egCalc (const unsigned int voice,const unsigned int number)
 			
 		EG[voice][number][0] = 1.f; // triggerd
 		EGstate[voice][number] = 1; // target
-            //EG[voice][number][6] = 0.0f;// state
+		lo_send(t, "/Minicomputer/EG", "iii", voice, number, 1);
+			//EG[voice][number][6] = 0.0f;// state
 	//	}
 		
 	}
@@ -372,7 +392,7 @@ static inline float egCalc (const unsigned int voice,const unsigned int number)
 int process(jack_nframes_t nframes, void *arg) {
 
 	float tf,tf1,tf2,tf3,ta1,ta2,ta3,morph,mo,mf,result,tdelay,clib1,clib2;
-	float osc1,osc2,delayMod;
+	float osc1, osc2, delayMod, pan;
 
 	// an union for a nice float to int casting trick which should be fast
 	typedef union
@@ -386,7 +406,8 @@ int process(jack_nframes_t nframes, void *arg) {
 	INTORFLOAT bias; // the magic number
 	bias.i = (23 +127) << 23;// generating the magic number
 
-	int iP1=0,iP2=0,iP3=0;
+	// Integer phase for each oscillator, 0..tabM
+	int iP1=0, iP2=0 ,iP3=0, iPsub=0;
 
 	#ifdef _VECTOR
 		union f4vector g __attribute__((aligned (16)));
@@ -398,6 +419,8 @@ int process(jack_nframes_t nframes, void *arg) {
 		i.f[0]=1.f; i.f[1] = srate; i.f[2] = srate; i.f[3] = srate; 
 		h.f[0]=1.f; h.f[1] = 0.1472725f; h.f[2] = 0.1472725f; h.f[3] = 0.1472725f;
 	#endif
+	/* this function returns a pointer to the buffer where 
+	 * we can write our frames samples */
 	float *bufferMixLeft = (float*) jack_port_get_buffer(port[8], nframes);
 	float *bufferMixRight = (float*) jack_port_get_buffer(port[9], nframes);
 	float *bufferAux1 = (float*) jack_port_get_buffer(port[10], nframes);
@@ -419,12 +442,9 @@ int process(jack_nframes_t nframes, void *arg) {
 
 	/* main loop */
 	register unsigned int index;
-	for (index = 0; index < nframes; ++index) 
+	for (index = 0; index < nframes; ++index) // for each sample 
 	{
-	/* this function returns a pointer to the buffer where 
-     * we can write our frames samples */
 
-		
 	bufferMixLeft[index]=0.f;
 	bufferMixRight[index]=0.f;
 	bufferAux1[index]=0.f;
@@ -435,24 +455,20 @@ int process(jack_nframes_t nframes, void *arg) {
 	 */
 	register unsigned int currentvoice;
 	for (currentvoice=0;currentvoice<_MULTITEMP;++currentvoice) // for each voice
-	{		
-//	float *buffer = (float*) jack_port_get_buffer(port[currentvoice], nframes);
-//		buffer[index]=0.0f;
+	{
 
-	// calc the modulators
-	float * mod = modulator [currentvoice];
+		// calc the modulators
+		float * mod = modulator [currentvoice];
 		mod[8] =1.f-egCalc(currentvoice,1);
 		mod[9] =1.f-egCalc(currentvoice,2);
 		mod[10]=1.f-egCalc(currentvoice,3);
 		mod[11]=1.f-egCalc(currentvoice,4);
 		mod[12]=1.f-egCalc(currentvoice,5);
 		mod[13]=1.f-egCalc(currentvoice,6);
-	//}
-	/**
-	 * calc the main audio signal
-	 */
-	//for (currentvoice=0;currentvoice<_MULTITEMP;++currentvoice) // for each voice
-	//{
+
+		/**
+		 * calc the main audio signal
+		 */
 		// get the parameter settings
 		float * param = parameter[currentvoice];
 		// casting floats to int for indexing the 3 oscillator wavetables with custom typecaster
@@ -465,25 +481,27 @@ int process(jack_nframes_t nframes, void *arg) {
 		P1.i -= bias.i;
 		P2.i -= bias.i;
 		P3.i -= bias.i;
-		iP1=P1.i&tabM;//i%=TableSize;
-		iP2=P2.i&tabM;//i%=TableSize;
-		iP3=P3.i&tabM;//i%=TableSize;
-/*
-int iP1 = (int) phase[currentvoice][1];// float to int, cost some cycles
-int iP2 = (int) phase[currentvoice][2];// hopefully this got optimized by compiler
-int iP3 = (int) phase[currentvoice][3];// hopefully this got optimized by compiler
+		// tabM is a power of 2 minus one
+		// We can use bitwise & instead of modulus  
+		iP1=P1.i&tabM;
+		iP2=P2.i&tabM;
+		iP3=P3.i&tabM;
+		/*
+		int iP1 = (int) phase[currentvoice][1];// float to int, cost some cycles
+		int iP2 = (int) phase[currentvoice][2];// hopefully this got optimized by compiler
+		int iP3 = (int) phase[currentvoice][3];// hopefully this got optimized by compiler
 
-	iP1=iP1&tabM;//i%=TableSize;
-	iP2=iP2&tabM;//i%=TableSize;
-	iP3=iP3&tabM;//i%=TableSize;
-	*/
-	//if (i>tabM) i=tabM;
+		iP1=iP1&tabM;//i%=TableSize;
+		iP2=iP2&tabM;//i%=TableSize;
+		iP3=iP3&tabM;//i%=TableSize;
+		*/
+		//if (i>tabM) i=tabM;
 	
 		if (iP1<0) iP1=tabM;
 		if (iP2<0) iP2=tabM;
 		if (iP3<0) iP3=tabM;
 
-	// create the next oscillator phase step for osc 3
+// --------------- create the next oscillator phase step for osc 3
 		phase[currentvoice][3]+= tabX * param[90];
 		#ifdef _PREFETCH
 		__builtin_prefetch(&param[1],0,0);
@@ -501,21 +519,30 @@ int iP3 = (int) phase[currentvoice][3];// hopefully this got optimized by compil
 		// if (*phase>=tabF) *phase = 0; //just in case of extreme fm
 		}
 		if(phase[currentvoice][3]< 0.f)
-                {
-                	phase[currentvoice][3]+= tabF;
-        	//	if(*phase < 0.f) *phase = tabF-1;
-                }
+				{
+					phase[currentvoice][3]+= tabF;
+			//	if(*phase < 0.f) *phase = tabF-1;
+				}
 
 		unsigned int * choi = choice[currentvoice];
-//modulator [currentvoice][14]=Oscillator(parameter[currentvoice][90],choice[currentvoice][12],&phase[currentvoice][3]);
-// write the oscillator 3 output to modulators
+		//modulator [currentvoice][14]=Oscillator(parameter[currentvoice][90],choice[currentvoice][12],&phase[currentvoice][3]);
+		// write the oscillator 3 output to modulators
 		mod[14] = table[choi[12]][iP3] ;
 
 // --------------- calculate the parameters and modulations of main oscillators 1 and 2
+		glide[currentvoice]*=param[116]; // *srDivisor? what about denorm ??
+		// guard values
 		tf = param[1];
 		tf *=param[2];
+		// osc1 first ampmod
 		ta1 = param[9];
-		ta1 *= mod[choi[2]]; // osc1 first ampmod
+		ta1 *= mod[choi[2]];
+		// osc1 second ampmod
+		if(param[118]){
+			ta1*= param[11]*mod[choi[3]];
+		}else{
+			ta1+= param[11]*mod[choi[3]];
+		}
 
 		#ifdef _PREFETCH
 		__builtin_prefetch(&phase[currentvoice][1],0,2);
@@ -524,35 +551,43 @@ int iP3 = (int) phase[currentvoice][3];// hopefully this got optimized by compil
 
 		//tf+=(midif[currentvoice]*parameter[currentvoice][2]*parameter[currentvoice][3]);
 		tf+=(midif[currentvoice]*(1.0f-param[2])*param[3]);
-		ta1+= param[11]*mod[choi[3]];// osc1 second ampmod
-		tf+=(param[4]*param[5])*mod[choi[0]];
-		tf+=param[7]*mod[choi[1]];
-		//tf/=3.f;		
-		//ta/=2.f;
+		// tf+=(param[4]*param[5])*mod[choi[0]];
+		tf-=glide[currentvoice];
+		if(param[117]){
+			tf+=(param[4]*param[5])*mod[choi[0]]*param[7]*mod[choi[1]];
+		}else{
+			tf+=(param[4]*param[5])*mod[choi[0]]+(param[7]*mod[choi[1]]);
+		}
+
 		//static inline float Oscillator(float frequency,int wave,float *phase)
-//{
- /*   int iP1 = (int) phase[currentvoice][1];// float to int, cost some cycles
-    int iP2 = (int) phase[currentvoice][2];// hopefully this got optimized by compiler
+		//{
+		/*   int iP1 = (int) phase[currentvoice][1];// float to int, cost some cycles
+		int iP2 = (int) phase[currentvoice][2];// hopefully this got optimized by compiler
 
-	iP1=iP1&tabM;//i%=TableSize;
-	iP2=iP2&tabM;//i%=TableSize;*/
-	//if (i>tabM) i=tabM;
+		iP1=iP1&tabM;//i%=TableSize;
+		iP2=iP2&tabM;//i%=TableSize;*/
+		//if (i>tabM) i=tabM;
 
-// generate phase of oscillator 1
+// --------------- generate phase of oscillator 1 and sub
 		phase[currentvoice][1]+= tabX * tf;
-	
-//	if (iP1<0) iP1=tabM;
-//	if (iP2<0) iP2=tabM;
 
+		//	if (iP1<0) iP1=tabM;
+		//	if (iP2<0) iP2=tabM;
+
+		iPsub=subMSB[currentvoice]+(iP1>>1); // 0..tabM
+		// sub[currentvoice]=(4.f*iPsub/tabF)-1.f; // Ramp up -1..+1 (beware of int to float)
+		sub[currentvoice] = table[choi[15]][iPsub] ;
 		if(phase[currentvoice][1]  >= tabF)
-    		{
-   			phase[currentvoice][1]-= tabF;
-	   		  //if (param[115]>0.f) phase[currentvoice][2]= 0; // sync osc2 to 1
-			  // branchless sync:
+		{
+			phase[currentvoice][1]-= tabF;
+	   		// if (param[115]>0.f) phase[currentvoice][2]= 0; // sync osc2 to 1
+			// branchless sync (param[115] is 0 or 1):
 			phase[currentvoice][2]-= phase[currentvoice][2]*param[115];
-
-		// if (*phase>=tabF) *phase = 0; //just in case of extreme fm
-    		}
+			// sub[currentvoice]=-sub[currentvoice]; // Square
+			// sub[currentvoice]=(4.f*subMSB[currentvoice]/tabF)-1.f; // Alt square, OK
+			subMSB[currentvoice]^=itabF>>1; // Halfway through table
+			// if (*phase>=tabF) *phase = 0; //just in case of extreme fm
+		}
 
 		#ifdef _PREFETCH
 			__builtin_prefetch(&param[15],0,0);
@@ -569,11 +604,11 @@ int iP3 = (int) phase[currentvoice][3];// hopefully this got optimized by compil
 		#endif
 	
 		if(phase[currentvoice][1]< 0.f)
-                {
-                	phase[currentvoice][1]+= tabF;
-        	//	if(*phase < 0.f) *phase = tabF-1;
-                }
-	        osc1 = table[choi[4]][iP1] ;
+				{
+					phase[currentvoice][1]+= tabF;
+			//	if(*phase < 0.f) *phase = tabF-1;
+				}
+			osc1 = table[choi[4]][iP1] ;
 //}
 //osc1 = Oscillator(tf,choice[currentvoice][4],&phase[currentvoice][1]);
 		mod[3]=osc1*(param[13]*(1.f+ta1));//+parameter[currentvoice][13]*ta1);
@@ -582,15 +617,30 @@ int iP3 = (int) phase[currentvoice][3];// hopefully this got optimized by compil
 // first the modulations and frequencys
 		tf2 = param[16];
 		tf2 *=param[17];
+		// osc2 first amp mod
 		ta2 = param[23];
-		ta2 *=mod[choi[8]]; // osc2 first amp mod
+		ta2 *=mod[choi[8]];
+		// osc2 second ampmod for FM only ???
+		/*
+		if(param[118]){
+			ta2*= param[11]*mod[choi[25]];
+		}else{
+			ta2+= param[11]*mod[choi[25]];
+		}
+		*/
 		//tf2+=(midif[currentvoice]*parameter[currentvoice][17]*parameter[currentvoice][18]);
 		tf2+=(midif[currentvoice]*(1.0f-param[17])*param[18]);
 		ta3 = param[25];
-		ta3 *=mod[choi[9]];// osc2 second amp mod
-		tf2+=param[15]*param[19]*mod[choi[6]];
-		tf2+=param[21]*mod[choi[7]];
-		//tf/=3.f;		
+		ta3 *=mod[choi[9]];
+		tf2-=glide[currentvoice];
+		// tf2+=param[15]*param[19]*mod[choi[6]];
+		// tf2+=param[21]*mod[choi[7]];
+		if(param[119]){
+			tf2+=(param[15]*param[19])*mod[choi[6]]*param[21]*mod[choi[7]];
+		}else{
+			tf2+=(param[15]*param[19])*mod[choi[6]]+(param[21]*mod[choi[7]]);
+		}
+		//tf/=3.f;
 		//ta/=2.f;
 		mod[4] = (param[28]+param[28]*(1.f-ta3));// osc2 fm out
 
@@ -610,26 +660,33 @@ int iP3 = (int) phase[currentvoice][3];// hopefully this got optimized by compil
 			__builtin_prefetch(&param[56],0,0);
 		#endif
 
-        	if(phase[currentvoice][2]< 0.f)
-                {
-                	phase[currentvoice][2]+= tabF;
-        	//	if(*phase < 0.f) *phase = tabF-1;
-                }
-	        osc2 = table[choi[5]][iP2] ;
+			if(phase[currentvoice][2]< 0.f)
+				{
+					phase[currentvoice][2]+= tabF;
+			//	if(*phase < 0.f) *phase = tabF-1;
+				}
+			osc2 = table[choi[5]][iP2] ;
 		//osc2 = Oscillator(tf2,choice[currentvoice][5],&phase[currentvoice][2]);
 		mod[4] *= osc2;// osc2 fm out
 
-		// ------------------------------------- mix the 2 oscillators pre filter
+// ------------------------------------- mix the 2 oscillators pre filter
 		//temp=(parameter[currentvoice][14]-parameter[currentvoice][14]*ta1);
+		// TODO Why 1.f-tax
 		temp=(param[14]*(1.f-ta1));
 		temp*=osc1;
 		temp+=osc2*(param[29]*(1.f-ta2));
-		temp*=0.5f;// get the volume of the sum into a normal range	
-		temp+=anti_denormal;
+		temp+=sub[currentvoice]*param[121];
+		temp*=0.333f; // 0.5f;// get the volume of the sum into a normal range	
+		temp+=anti_denormal; // Does this really work in all cases?
 
 // ------------- calculate the filter settings ------------------------------
 		mf =  (1.f-(param[38]*mod[ choi[10]]));
-		mf+= (1.f-(param[48]*mod[ choi[11]]));
+		// mf+= (1.f-(param[48]*mod[ choi[11]]));
+		if(param[120]){
+			mf*=param[48]*mod[ choi[11]];
+		}else{
+			mf+=1.f-(param[48]*mod[ choi[11]]);
+		}
 		mo = param[56]*mf;
 
 
@@ -837,7 +894,7 @@ int iP3 = (int) phase[currentvoice][3];// hopefully this got optimized by compil
 		if( delayI[currentvoice] >= delayBufferSize )
 		{
 			delayI[currentvoice] = 0;
-    
+	
 			//printf("clear %d : %d : %d\n",currentvoice,delayI[currentvoice],delayJ[currentvoice]);
 		}
 		delayMod = 1.f-(param[110]* mod[choi[14]]);
@@ -877,12 +934,16 @@ int iP3 = (int) phase[currentvoice][3];// hopefully this got optimized by compil
 		bufferAux1[index] += result * param[108];
 		bufferAux2[index] += result * param[109];
 		result *= param[106]; // mix volume
-		bufferMixLeft[index] += result * (1.f-param[107]);
-		bufferMixRight[index] += result * param[107];
+		// pan=param[107];
+		pan=(param[122]*mod[choi[16]])+param[107];
+		if (pan<0.f) pan=0.f;
+		if (pan>1.f) pan=1.f;
+		bufferMixLeft[index] += result * (1.f-pan);
+		bufferMixRight[index] += result * pan;
 
 		//buffer[index] = Oscillator(50.2f,&phase1) * 0.5f;
 		//Initialization done here is the oscillator loop
-                
+				
 		}
 	}
 	return 0;// thanks to Sean Bolton who was the first pointing to a bug when I returned 1
@@ -904,20 +965,21 @@ void signalled(int signal) {
  */
 void init ()
 {
-	unsigned int i,k;
+	unsigned int i, k;
 	for (k=0;k<_MULTITEMP;k++)// k is here the voice number
 	{
 		for (i=0;i<8;i++) // i is the number of envelope
 		{
-		EG[k][i][1]=0.01f;
-		EG[k][i][2]=0.01f;
-		EG[k][i][3]=1.0f;
-		EG[k][i][4]=0.0001f;
-		EGtrigger[k][i]=0;
-  
-		EGrepeat[k][i]=0;
-		EGstate[k][i]=4; // released
+			EG[k][i][1]=0.01f;
+			EG[k][i][2]=0.01f;
+			EG[k][i][3]=1.0f;
+			EG[k][i][4]=0.0001f;
+			EGrepeat[k][i]=0;
+
+			EGtrigger[k][i]=0;
+			EGstate[k][i]=4; // released
 		}
+		// Will these not be set by gui?
 		parameter[k][30]=100.f;
 		parameter[k][31]=0.5f;
 		parameter[k][33]=100.f; 
@@ -931,6 +993,8 @@ void init ()
 		parameter[k][53]=100.f; 
 		parameter[k][54]=0.5f;
 		modulator[k][0] =0.f;// the none modulator, doing nothing
+
+		sub[k]=1.0f;
 		for (i=0;i<3;++i) 
 		{
 			low[k][i]=0;
@@ -1032,6 +1096,48 @@ void init ()
 
 } // end of initialization
 
+inline doNoteOn(int c, int n, int v){
+	if (c <_MULTITEMP){
+		if (v>0){
+			heldnote[c]=0;
+			lastnote[c]=n;
+			glide[c]+=midi2freq[n]-midif[c]; // Span between previous and new note
+			if(EGstate[c][0]==4){
+				glide[c]=0; // Don't glide from finished note
+				// printf('no glide\n');
+			}else{
+				// printf('glide\n');
+			}
+				
+			midif[c]=midi2freq[n];// lookup the frequency
+			modulator[c][19]=n*0.007874f;// fill the value in as normalized modulator
+			modulator[c][1]=(float)1.f-(v*0.007874f);// fill in the velocity as modulator
+			egStart(c,0);// start the engines!
+			// Maybe optionally restart repeatable envelopes too, i.e free-run boutton?
+			if (EGrepeat[c][1] == 0) egStart(c,1);
+			if (EGrepeat[c][2] == 0) egStart(c,2);
+			if (EGrepeat[c][3] == 0) egStart(c,3);
+			if (EGrepeat[c][4] == 0) egStart(c,4);
+			if (EGrepeat[c][5] == 0) egStart(c,5);
+			if (EGrepeat[c][6] == 0) egStart(c,6);
+		}else{ // if velo == 0 it should be handled as noteoff...
+			if(n==lastnote[c]){ // Ignore release for old notes
+				if(hold[c]){
+					heldnote[c]=n;
+				}else{
+					egStop(c,0);  
+					if (EGrepeat[c][1] == 0) egStop(c,1);  
+					if (EGrepeat[c][2] == 0) egStop(c,2); 
+					if (EGrepeat[c][3] == 0) egStop(c,3); 
+					if (EGrepeat[c][4] == 0) egStop(c,4);  
+					if (EGrepeat[c][5] == 0) egStop(c,5);  
+					if (EGrepeat[c][6] == 0) egStop(c,6);                                
+				}
+			}
+		}
+	}
+}
+
 /** @brief handling the midi messages in an extra thread
  *
  * @param pointer/handle of alsa midi
@@ -1111,6 +1217,22 @@ static void *midiprocessor(void *handle) {
 					else 
 					if  (ev->data.control.param==17)   
 						modulator[c][ 27]=ev->data.control.value*0.007874f;// /127.f;
+					else 
+					if  (ev->data.control.param==64){ // Hold
+		 				if (c<_MULTITEMP){
+							if(ev->data.control.value>63){ // Hold on
+								hold[c]=1;
+							}else{ // Hold off
+								hold[c]=0;
+								if (heldnote[c]){
+								// note is held if note_off occurs while hold is on
+								// There is no attempt at polyphonic keyboard handling
+									doNoteOn(c, heldnote[c], 0); // Do a note_off
+									heldnote[c]=0;
+								}
+							}
+						}
+					}
 				}
 				break;
 			}
@@ -1143,53 +1265,21 @@ static void *midiprocessor(void *handle) {
 			#ifdef _DEBUG      
 				fprintf(stderr, "Note On event on Channel %2d: %5d       \r",
 				c, ev->data.note.note);
-			#endif		
-				if (c <_MULTITEMP)
-				{
-					if (ev->data.note.velocity>0)
-					{
-						lastnote[c]=ev->data.note.note;	
-						midif[c]=midi2freq[ev->data.note.note];// lookup the frequency
-						modulator[c][19]=ev->data.note.note*0.007874f;// fill the value in as normalized modulator
-						modulator[c][1]=(float)1.f-(ev->data.note.velocity*0.007874f);// fill in the velocity as modulator
-						egStart(c,0);// start the engines!
-						if (EGrepeat[c][1] == 0)egStart(c,1);
-						if (EGrepeat[c][2] == 0)egStart(c,2);
-						if (EGrepeat[c][3] == 0)egStart(c,3);
-						if (EGrepeat[c][4] == 0) egStart(c,4);
-						if (EGrepeat[c][5] == 0) egStart(c,5);
-						if (EGrepeat[c][6] == 0) egStart(c,6);
-               
-						break;// not the best method but it breaks only when a note on is
-					}// if velo == 0 it should be handled as noteoff...
-				}
+			#endif
+				fprintf(stderr, "Note On event %u \r",EGstate[c][0]);
+				doNoteOn(c, ev->data.note.note, ev->data.note.velocity);
+				break;
 			}      
-			// ...so its necessary that here follow the noteoff routine
 			case SND_SEQ_EVENT_NOTEOFF: 
 			{
-				c = ev->data.note.channel;
-				#ifdef _DEBUG      
-					fprintf(stderr, "Note Off event on Channel %2d: %5d      \r",         
-					c, ev->data.note.note);
-				#endif		
-				if  (c <_MULTITEMP)
-					if (lastnote[c]==ev->data.note.note)
-               				{
-	       					egStop(c,0);  
-               					if (EGrepeat[c][1] == 0) egStop(c,1);  
-						if (EGrepeat[c][2] == 0) egStop(c,2); 
-						if (EGrepeat[c][3] == 0) egStop(c,3); 
-						if (EGrepeat[c][4] == 0) egStop(c,4);  
-						if (EGrepeat[c][5] == 0) egStop(c,5);  
-						if (EGrepeat[c][6] == 0) egStop(c,6);
-					}
-			break;       
+				doNoteOn(ev->data.note.channel, ev->data.note.note, 0);
+				break;       
 			}
 			
 			#ifdef _DEBUG      
 			default:
 			{
-      	
+	  	
 				fprintf(stderr,"unknown event %d on Channel %2d: %5d   \r",ev->type, 
 				ev->data.control.channel, ev->data.control.value);
 			}
@@ -1225,6 +1315,8 @@ printf("minicomputer version %s\n",_VERSION);
 // ------------------------ decide the oscport number -------------------------
 char OscPort[] = _OSCPORT; // default value for OSC port
 char *oport = OscPort;// pointer of the OSC port string
+char *oport2;
+
 int i;
 // process the arguments
   if (argc > 1)
@@ -1244,20 +1336,21 @@ int i;
 	}
   }
 
-
-
-	printf("osc port %s\n",oport);
+	printf("Server OSC input port %s\n",oport);
 	sprintf(jackName,"Minicomputer%s",oport);// store globally a unique name
 
 // ------------------------ midi init ---------------------------------
 	pthread_t midithread;
 	seq_handle = open_seq();
+ 
 	npfd = snd_seq_poll_descriptors_count(seq_handle, POLLIN);
 	pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
 	snd_seq_poll_descriptors(seq_handle, pfd, npfd, POLLIN);
-    
-    	// create the thread and tell it to use Midi::work as thread function
+	
+		// create the thread and tell it to use Midi::work as thread function
 	int err = pthread_create(&midithread, NULL, midiprocessor,seq_handle);
+	// printf("start err %i\n", err);
+ 
 	
 // ------------------------ OSC Init ------------------------------------   
 	/* start a new server on port definied where oport points to */
@@ -1268,13 +1361,20 @@ int i;
 
 	/* add method that will match the path /Minicomputer, with three numbers, int (voicenumber), int (parameter) and float (value) 
 	 */
-    	lo_server_thread_add_method(st, "/Minicomputer", "iif", foo_handler, NULL);
+	lo_server_thread_add_method(st, "/Minicomputer", "iif", foo_handler, NULL);
 
-    	/* add method that will match the path Minicomputer/quit with one integer */
+	/* add method that will match the path Minicomputer/quit with one integer */
   	lo_server_thread_add_method(st, "/Minicomputer/quit", "i", quit_handler, NULL);
-	
+  	lo_server_thread_add_method(st, "/Minicomputer/midi", "iiii", midi_handler, NULL); // DSSI-like
+
 	lo_server_thread_start(st);
-   
+
+	// init for input
+	oport2=(char *)malloc(80);
+	snprintf(oport2, 80, "%d", atoi(oport)+1);
+	printf("Server OSC output port: \"%s\"\n", oport2);
+	t = lo_address_new(NULL, oport2);
+
 	/* setup our signal handler signalled() above, so 
 	 * we can exit cleanly (see end of main()) */
 	signal(SIGINT, signalled);
@@ -1282,7 +1382,8 @@ int i;
 	init();
 	/* naturally we need to become a jack client
 	 * prefered with a unique name, so lets add the OSC port to it*/
-	client = jack_client_new(jackName);
+	// client = jack_client_new(jackName);
+	client = jack_client_open(jackName, 0, NULL);
 	if (!client) {
 		printf("couldn't connect to jack server. Either it's not running or the client name is already taken\n");
 		exit(1);
@@ -1331,6 +1432,9 @@ int i;
 		//delayBuffer[k]=dbuffer;
 		delayI[k]=0;
 		delayJ[k]=0;
+		// Sub-oscillator initial state
+		sub[k]=-1.f;
+		subMSB[k]=0;
 	}
 	#ifdef _DEBUG
 	printf("bsize:%d %d\n",delayBufferSize,maxDelayTime);
@@ -1380,8 +1484,8 @@ int i;
  */
 static inline void error(int num, const char *msg, const char *path)
 {
-    printf("liblo server error %d in path %s: %s\n", num, path, msg);
-    fflush(stdout);
+	printf("liblo server error %d in path %s: %s\n", num, path, msg);
+	fflush(stdout);
 }
 
 /** catch any incoming messages and display them. returning 1 means that the
@@ -1396,19 +1500,71 @@ static inline void error(int num, const char *msg, const char *path)
  * @return int 0 if everything is ok, 1 means message is not fully handled
  * */
 static inline int generic_handler(const char *path, const char *types, lo_arg **argv,
-		    int argc, void *data, void *user_data)
+			int argc, void *data, void *user_data)
 {
-	if ( (argv[0]->i < _MULTITEMP) && (argv[1]->i < _CHOICEMAX) )
+	if ( (argv[0]->i < _MULTITEMP) && (argv[1]->i < _CHOICECOUNT) )
   	{
-  			
+		// printf("generic_handler %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
 		choice[argv[0]->i][argv[1]->i]=argv[2]->i;
 		return 0;
-    	}
-    	else return 1;
-    
+	}
+	else
+	{
+		printf("WARNING unhandled generic_handler %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
+		return 1;
+	}
 }
 
-/** specific message handler
+static inline int midi_handler(const char *path, const char *types, lo_arg **argv,
+			int argc, void *data, void *user_data)
+{
+	int i, c;
+	// first byte argv[0] is 0 for 3-byte messages such as note on/off
+	// printf("midi_handler %u %u %u %u \n", argv[0]->i, argv[1]->i, argv[2]->i, argv[3]->i);
+	if (argv[0]->i == 0){ // At most 3 bytes follow
+		if(argv[1]->i == 0){ // At most 2 bytes follow
+			if(argv[2]->i == 0){ // Single byte message follows
+				if(argv[3]->i == 0xFE){ // Active sense
+					lo_send(t, "/Minicomputer/sense", "");
+				}
+			}
+		}else{ // 3 MIDI bytes follow
+			c=(argv[1]->i)&0x0F;
+			switch ((argv[1]->i)&0xF0){
+				case 0x90:{ // Note on
+					doNoteOn(c, argv[2]->i, argv[3]->i);
+					// printf("doNoteOn %u %u %u \n", argv[1]->i&0x0F, argv[2]->i, argv[3]->i);
+					break;
+				}
+				case 0x80:{ // Note off
+					doNoteOn(c, argv[2]->i, 0);
+					// printf("doNoteOff %u %u \n", argv[1]->i&0x0F, argv[2]->i);
+					break;
+				}
+				case 0xB0:{ // Control change
+					switch(argv[2]->i){ // Controller number
+					  case 120:{ // All sound off
+						// Shut down main envelope (number 0) immediately
+						EG[c][0][6] = 0.0f;
+						EGtrigger[c][0] = 0;
+						EGstate[c][0] = 0;
+						lo_send(t, "/Minicomputer/EG", "iii", c, 0, EGstate[c][0]);
+						// Fall through all note off
+					  }
+					  case 123:{ // All note off
+						doNoteOn(c,lastnote[c], 0);
+						break;
+					  }
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+/** specific message handler for iif messages
+ * expects voice number, parameter number, parameter value
  *
  * @param pointer path osc path
  * @param pointer types
@@ -1421,36 +1577,35 @@ static inline int generic_handler(const char *path, const char *types, lo_arg **
 static inline int foo_handler(const char *path, const char *types, lo_arg **argv, int argc,
 		 void *data, void *user_data)
 {
-    /* example showing pulling the argument values out of the argv array */
-   int voice =  argv[0]->i;
-   int i =  argv[1]->i;
-   if ((voice<_MULTITEMP)&&(i>0) && (i<_PARACOUNT)) 
-   {
-   	parameter[voice][i]=argv[2]->f;
-   	//if ((i==2)||(i==17))
-   	//	parameter[voice][i]=1.f-argv[2]->f;
-   }
+	/* example showing pulling the argument values out of the argv array */
+	int voice =  argv[0]->i;
+	int i =  argv[1]->i;
+	if ((voice<_MULTITEMP) && (i>0) && (i<_PARACOUNT)) 
+	{
+	parameter[voice][i]=argv[2]->f;
+	}
 
-   //if ((i==10) && (parameter[10]!=0)) parameter[10]=1000.f;
-   // printf("%s <- f:%f, i:%d\n\n", path, argv[0]->f, argv[1]->i);
-   // fflush(stdout);
-   switch (i)
-   {
-   	 // reset the filters 
-   	 case 0:{
-   	 	low[voice][0]	= 0.f;
-   	 	high[voice][0]	= 0.f;
-   	 	band[voice][0] = 0.f;
-   	 	low[voice][1]	= 0.f;
-   	 	high[voice][1]	= 0.f;
-   	 	band[voice][1] = 0.f;
-   	 	low[voice][2]	= 0.f;
-   	 	high[voice][2]	= 0.f;
-   	 	band[voice][2] = 0.f;
-   	 	phase[voice][1] = 0.f;
-   	 	phase[voice][2] = 0.f;
-   	 	phase[voice][3] = 0.f;
+	//if ((i==10) && (parameter[10]!=0)) parameter[10]=1000.f;
+	// printf("%s <- f:%f, i:%d\n\n", path, argv[0]->f, argv[1]->i);
+	// fflush(stdout);
+	switch (i)
+	{
+	 // reset the filters and delay buffer
+	 case 0:{
+		low[voice][0] = 0.f;
+		high[voice][0] = 0.f;
+		band[voice][0] = 0.f;
+		low[voice][1] = 0.f;
+		high[voice][1] = 0.f;
+		band[voice][1] = 0.f;
+		low[voice][2] = 0.f;
+		high[voice][2] = 0.f;
+		band[voice][2] = 0.f;
+		phase[voice][1] = 0.f;
+		phase[voice][2] = 0.f;
+		phase[voice][3] = 0.f;
 		memset(delayBuffer[voice],0,sizeof(delayBuffer[voice]));
+		printf("foo_handler: voice %u filters and delay buffer reset\n", voice);
    	 break;}
    	 
    	 case 60:EG[voice][1][1]=argv[2]->f;break;
@@ -1520,10 +1675,10 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
    	 
    }
    //float g=parameter[30]*parameter[56]+parameter[33]*(1.0f-parameter[56]);
-#ifdef _DEBUG
-   printf("%i %i %f \n",voice,i,argv[2]->f);
-#endif   
-    return 0;
+//ifdef _DEBUG
+   // printf("foo_handler %i %i %f \n",voice,i,argv[2]->f);
+//endif   
+	return 0;
 }
 
 /** message handler for quit messages
@@ -1539,10 +1694,10 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 static inline int quit_handler(const char *path, const char *types, lo_arg **argv, int argc,
 		 void *data, void *user_data)
 {
-    done = 1;
-    quit = 1;
-    printf("about to sutdown minicomputer core \n");
-    fflush(stdout);
-    return 0;
+	done = 1;
+	quit = 1;
+	printf("about to shutdown minicomputer core\n");
+	fflush(stdout);
+	return 0;
 }
 //!}

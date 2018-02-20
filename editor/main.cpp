@@ -18,6 +18,7 @@
 // thanks to Leslie P. Polzer pointing me out to include cstring and more for gcc 4.3 onwards
 #include <cstdio>
 #include <cstdlib>
+//#include <stdlib.h>
 //#include <unistd.h>
 #include <cstring>
 #include <lo/lo.h>
@@ -26,16 +27,18 @@
 #include "../common.h"
 #include "Memory.h"
 #include "syntheditor.h"
+
 snd_seq_t *open_seq();
 snd_seq_t *seq_handle;
 int npfd;
 struct pollfd *pfd;
 char midiName[64]="MinicomputerEditor";// signifier for midiconnections, to be filled with OSC port number
 lo_address t;
-// some common definitions
 
+// some common definitions
 Memory Speicher;
 UserInterface Schaltbrett;
+
 /** open an Alsa Midiport for accepting programchanges and later more...
  *
  * @return handle to Alsaseq
@@ -46,15 +49,15 @@ snd_seq_t *open_seq() {
   int portid;
 
   if (snd_seq_open(&seq_handle, "hw", SND_SEQ_OPEN_DUPLEX, 0) < 0) {
-    fprintf(stderr, "Error opening ALSA sequencer.\n");
-    exit(1);
+	fprintf(stderr, "Error opening ALSA sequencer.\n");
+	exit(1);
   }
   snd_seq_set_client_name(seq_handle,midiName);
   if ((portid = snd_seq_create_simple_port(seq_handle, midiName,
-            SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE,
-            SND_SEQ_PORT_TYPE_APPLICATION)) < 0) {
-    fprintf(stderr, "Error creating sequencer port.\n");
-    exit(1);
+			SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE,
+			SND_SEQ_PORT_TYPE_APPLICATION)) < 0) {
+	fprintf(stderr, "Error creating sequencer port.\n");
+	exit(1);
   }
   return(seq_handle);
 }
@@ -62,18 +65,18 @@ snd_seq_t *open_seq() {
 Fl_Double_Window* make_window() {
   Fl_Double_Window* w;
   { Fl_Double_Window* o = new Fl_Double_Window(475, 330);
-    w = o;
+	w = o;
    
-     { Fl_Dial* knob1 = new Fl_Dial(25, 25, 25, 25,"f1");
-      knob1->callback((Fl_Callback*)callback);
+	 { Fl_Dial* knob1 = new Fl_Dial(25, 25, 25, 25,"f1");
+	  knob1->callback((Fl_Callback*)callback);
 }
-    {Fl_Dial* o =new Fl_Dial(65, 25, 25, 25, "f2");
+	{Fl_Dial* o =new Fl_Dial(65, 25, 25, 25, "f2");
 	o->callback((Fl_Callback*)callback);
 }
    {Fl_Dial* o = new Fl_Dial(105, 25, 25, 25, "f3");
 o->callback((Fl_Callback*)callback);
 }
-    o->end();
+	o->end();
 
   
 }
@@ -121,7 +124,7 @@ static void *midiprocessor(void *handle) {
 /*
 if (poll(pfd, npfd, 100000) > 0) 
 		{
-    	  midi_action(seq_handle);
+		  midi_action(seq_handle);
 		} */
 		
   snd_seq_event_t *ev;
@@ -129,14 +132,14 @@ if (poll(pfd, npfd, 100000) > 0)
   do {
    while (snd_seq_event_input(seq_handle, &ev))
    {
-    switch (ev->type) {
-    case SND_SEQ_EVENT_PGMCHANGE:
-      {
+	switch (ev->type) {
+	case SND_SEQ_EVENT_PGMCHANGE:
+	  {
 		int channel = ev->data.control.channel;
 		int value = ev->data.control.value;
 //#ifdef _DEBUG      
-        fprintf(stderr, "Programchange event on Channel %2d: %2d %5d       \r",
-                channel,  ev->data.control.param,value);
+		fprintf(stderr, "Programchange event on Channel %2d: %2d %5d       \r",
+				channel,  ev->data.control.param,value);
 //#endif		
 	// see if its the control channel
 	if (ev->data.control.channel == 8)
@@ -156,38 +159,66 @@ if (poll(pfd, npfd, 100000) > 0)
 		}
 
 	}
-        break;
-      }
-    /*
-      case SND_SEQ_EVENT_CONTROLLER:
-      {
+		break;
+	  }
+	/*
+	  case SND_SEQ_EVENT_CONTROLLER:
+	  {
 #ifdef _DEBUG      
-        fprintf(stderr, "Control event on Channel %2d: %2d %5d       \r",
-                ev->data.control.channel,  ev->data.control.param,ev->data.control.value);
+		fprintf(stderr, "Control event on Channel %2d: %2d %5d       \r",
+				ev->data.control.channel,  ev->data.control.param,ev->data.control.value);
 #endif		
-        if  (ev->data.control.param==1)   
-        	  modulator[ev->data.control.channel][ 16]=(float)ev->data.control.value*0.007874f; // /127.f;
-        	  else 
-        	  if  (ev->data.control.param==12)   
-        	  modulator[ev->data.control.channel][ 17]=(float)ev->data.control.value*0.007874f;// /127.f;
-        break;
-      }*/
-      /*
-      case SND_SEQ_EVENT_PITCHBEND:
-      {
+		if  (ev->data.control.param==1)   
+			  modulator[ev->data.control.channel][ 16]=(float)ev->data.control.value*0.007874f; // /127.f;
+			  else 
+			  if  (ev->data.control.param==12)   
+			  modulator[ev->data.control.channel][ 17]=(float)ev->data.control.value*0.007874f;// /127.f;
+		break;
+	  }*/
+	  /*
+	  case SND_SEQ_EVENT_PITCHBEND:
+	  {
 #ifdef _DEBUG      
-         fprintf(stderr,"Pitchbender event on Channel %2d: %5d   \r", 
-                ev->data.control.channel, ev->data.control.value);
+		 fprintf(stderr,"Pitchbender event on Channel %2d: %5d   \r", 
+				ev->data.control.channel, ev->data.control.value);
 #endif		
-                if (ev->data.control.channel<_MULTITEMP)
-               	 modulator[ev->data.control.channel][2]=(float)ev->data.control.value*0.0001221f; // /8192.f;
-        break;
-      }*/   
-     }// end of switch
-    snd_seq_free_event(ev);
+				if (ev->data.control.channel<_MULTITEMP)
+			   	 modulator[ev->data.control.channel][2]=(float)ev->data.control.value*0.0001221f; // /8192.f;
+		break;
+	  }*/   
+	 }// end of switch
+	snd_seq_free_event(ev);
    }// end of first while, emptying the seqdata queue
   } while (1==1);// doing forever, was  (snd_seq_event_input_pending(seq_handle, 0) > 0);
   return 0;// why the compiler insists to have this here? Its a void function so what??
+}
+
+static inline int EG_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data)
+{
+	// printf("Received EG %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
+	return(EG_draw(argv[0]->i, argv[1]->i, argv[2]->i));
+}
+
+static inline int sense_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data) {
+	sense = true; // Server core is up
+}
+
+static void timer_handler(void *userdata) {
+	EG_draw_all();
+	Fl::repeat_timeout(0.04, timer_handler, 0); // 25 fps
+}
+
+
+/** @brief OSC error handler 
+ *
+ * @param num errornumber
+ * @param pointer msg errormessage
+ * @param pointer path where it occured
+ */
+static inline void error(int num, const char *msg, const char *path)
+{
+	printf("liblo server error %d in path %s: %s\n", num, path, msg);
+	fflush(stdout);
 }
 
 /** @brief the main routine
@@ -198,9 +229,11 @@ if (poll(pfd, npfd, 100000) > 0)
  */
 int main(int argc, char **argv)
 {
+  char temp_name[128];
   printf("minieditor version %s\n",_VERSION);
+
 // ------------------------ create gui --------------
-	Fenster* w =Schaltbrett.make_window();
+	Fenster* w =Schaltbrett.make_window("minicomputer");
   //
   //for (int i = 0;i<8;++i)
   //{
@@ -208,8 +241,8 @@ int main(int argc, char **argv)
   	//fflush(stdout);
   	//Schaltbrett.soundchoice[i]->clear();
   //} 
-  	Speicher.load();
-  	//printf("und load...\n");
+	Speicher.load();
+	//printf("und load...\n");
   /*
   for (int i=0;i<512;i++) 
   {
@@ -222,7 +255,26 @@ int main(int argc, char **argv)
   	Schaltbrett.soundchoice[6]->add(Speicher.getName(0,i).c_str());
   	Schaltbrett.soundchoice[7]->add(Speicher.getName(0,i).c_str());
   }*/
+  //multichoice->damage(FL_DAMAGE_ALL);
+  //multichoice->redraw();
+
+
   Speicher.loadMulti();
+  
+  // Load data in the GUI
+  // Schaltbrett.changeMulti(1); // segfault
+  // Fix multi name display
+  int multi=multiDisplay->value();
+  /*
+  // printf("Multi %u: \"%s\"\n", multi, Speicher.multis[0].name); // OK
+  strnrtrim(temp_name, Speicher.multis[multi].name, 128);
+  // printf("Multi %u: \"%s\"\n", multi, temp_name); // OK
+  Schaltbrett.multichoice->value(temp_name);
+  multiRoller->value(multi);
+  */
+  
+  // int preset=soundchoice[i]->value();
+
   /*for (int i=0;i<128;i++) 
   {
   	Schaltbrett.multichoice->add(Speicher.multis[i].name);
@@ -233,6 +285,7 @@ int main(int argc, char **argv)
   int i;
   char OscPort[] = _OSCPORT; // default value for OSC port
   char *oport = OscPort;
+  char *oport2;
   if (argc > 1)
   {
   	for (i = 0;i<argc;++i)
@@ -247,7 +300,11 @@ int main(int argc, char **argv)
 			if (i<argc)
 			{
 				int tport = atoi(argv[i]);
-				if (tport > 0) oport = argv[i]; // overwrite the default for the OSCPort
+				if (tport > 0){
+					oport = argv[i]; // overwrite the default for the OSCPort
+					oport2=(char *)malloc(80);
+					snprintf(oport2, 80, "%d", tport+1);
+				}
 			}
 			else break; // we are through
 		}
@@ -255,9 +312,24 @@ int main(int argc, char **argv)
   }
   
 // ------------------------ osc init ---------------------------------
-  t = lo_address_new(NULL, oport);
-  printf("\n\nosc port %s\n",oport);
-  sprintf(midiName,"miniEditor%s",oport);// store globally a unique name
+	// init for output
+	t = lo_address_new(NULL, oport);
+	printf("\nGUI OSC output port: \"%s\"\n",oport);
+	sprintf(midiName,"miniEditor%s",oport);// store globally a unique name
+
+	// init for input
+	oport2=(char *)malloc(80);
+	snprintf(oport2, 80, "%d", atoi(oport)+1);
+	printf("GUI OSC input port: \"%s\"\n", oport2);
+	/* start a new server on port defined where oport points to */
+	lo_server_thread st = lo_server_thread_new(oport2, error);
+	/* add method that will match /Minicomputer/EG with three integers */
+	lo_server_thread_add_method(st, "/Minicomputer/EG", "iii", EG_handler, NULL);
+	lo_server_thread_add_method(st, "/Minicomputer/sense", "", sense_handler, NULL);
+	lo_server_thread_start(st);
+
+	Fl::add_timeout(.1, timer_handler, 0); // Attempt to refresh display
+
 // -------------------------------------------------------------------
 #ifdef _BUNDLE
 //------------------------- start engine -----------------------------
@@ -279,9 +351,10 @@ int main(int argc, char **argv)
   npfd = snd_seq_poll_descriptors_count(seq_handle, POLLIN);
   pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
   snd_seq_poll_descriptors(seq_handle, pfd, npfd, POLLIN);
-    
-    // create the thread and tell it to use Midi::work as thread function
-	int err = pthread_create(&midithread, NULL, midiprocessor,seq_handle);
+	
+	// create the thread and tell it to use Midi::work as thread function
+	int err=pthread_create(&midithread, NULL, midiprocessor,seq_handle);
+	if(err) fprintf(stderr,"Error %u creating MIDI thread\n", err);
 
 
   int ac = 0; // new argumentcount
@@ -355,15 +428,22 @@ int main(int argc, char **argv)
 	av[ac-2] = fg;
 	av[ac-1] = fgv;
   }
-  Fl::lock();
+  
+  // Safe to apply multi now that OSC is setup
+  // How can we ensure receiving side is ready?
+  // Should handshake rather than sleep
+  printf("Waiting for core...\n");
+  // sleep(1);
+  while(!sense){
+	   lo_send(t, "/Minicomputer/midi", "iiii", 0, 0, 0, 0xFE);
+	   usleep(100000);
+  } 
+  Schaltbrett.changeMulti(multi);
+
+  Fl::lock(); 
   w->show(ac, av);
-    /* an address to send messages to. sometimes it is better to let the server
-     * pick a port number for you by passing NULL as the last argument */
-    
-
-
-	
-		//lo_send(t, "/a/b/c/d", "f",10.f);
+	/* an address to send messages to. sometimes it is better to let the server
+	 * pick a port number for you by passing NULL as the last argument */
  int result = Fl::run();
  lo_send(t, "/Minicomputer/quit", "i",1);
  /* waiting for the midi thread to shutdown carefully */

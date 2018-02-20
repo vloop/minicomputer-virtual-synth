@@ -29,7 +29,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-//    #include <unistd.h>
+    #include <unistd.h>
 #include <cerrno> 
 #include "../common.h"
 using namespace std;
@@ -41,7 +41,7 @@ typedef struct setting
 {
 	float parameter[_PARACOUNT];
 	float freq[9][2];
-	int choice[17];
+	int choice[_CHOICECOUNT];
 	char name[128];
 } patch;
 /**
@@ -49,9 +49,9 @@ typedef struct setting
  */
 typedef struct mode
 {
-	unsigned int sound[8];// sound ids for the 8 voices
+	unsigned int sound[_MULTITEMP];// sound ids for the 8 voices
 	char name[128];//the name, up to 128 letters
-	float settings[8][_MULTISETTINGS];// additional settings for volumes
+	float settings[_MULTITEMP][_MULTISETTINGS];// additional settings for volumes
 } multi;
 
 /**
