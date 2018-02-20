@@ -9,6 +9,8 @@ else:
 	env = Environment(CCFLAGS = '')
 	guienv = Environment(CPPFLAGS = '')
 
+env.Append(LINKFLAGS=['-lm'])
+
 if ARGUMENTS.get('k8', 0):
 	env.Append(CCFLAGS = ['-march=k8','-mtune=k8','-m3dnow'])
 	guienv.Append(CPPFLAGS = ['-march=k8','-mtune=k8'])

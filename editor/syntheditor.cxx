@@ -48,18 +48,30 @@ static Fl_RGB_Image image_miniMini(idata_miniMini, 191, 99, 3, 0);
 //Fl_Chart * EG[7];
 
 // This function probably belongs somewhere else
-void replace_color (unsigned char * bits, int pixcount, unsigned char r1, unsigned char g1, unsigned char b1, unsigned char r2, unsigned char g2, unsigned char b2){
+void dump_replace_color (const unsigned char * bits, int pixcount, unsigned char r1, unsigned char g1, unsigned char b1, unsigned char r2, unsigned char g2, unsigned char b2){
+    printf("==========\n");
 	for(int i=0; i<pixcount*3; i+=3){
+		if(i%12==0) printf("\n");
 		// printf("pixel %u: %u, %u, %u\n", i/3, bits[i], bits[i+1], bits[i+2]);
 		// bits[3*i]=0; segfault!
 		if(bits[i]==r1 && bits[i+1]==g1 && bits[i+2]==b1){
-			printf("%03u,%03u,%03u,", r2, g2, b2);
+			printf("0x%02x,0x%02x,0x%02x,", r2, g2, b2);
 		}else{
-			printf("%03u,%03u,%03u,", bits[i], bits[i+1], bits[i+2]);
+			printf("0x%02x,0x%02x,0x%02x,", bits[i], bits[i+1], bits[i+2]);
 		}
-		if(i%12==00) printf("\n");
+	}
+    printf("==========\n");
+}
+void replace_color (unsigned char * bits, int pixcount, unsigned char r1, unsigned char g1, unsigned char b1, unsigned char r2, unsigned char g2, unsigned char b2){
+	for(int i=0; i<pixcount*3; i+=3){
+		if(bits[i]==r1 && bits[i+1]==g1 && bits[i+2]==b1){
+			bits[i]=r2;
+			bits[i+1]=g2;
+			bits[i+2]=b2;
+		}
 	}
 }
+
 // This function probably belongs somewhere else
 char *strnrtrim(char *dest, const char*source, size_t len){
 	int last_letter=-1;
@@ -1692,7 +1704,11 @@ int Fl_SteinerKnob::handle(int event) {
 // 			screen initialization
 // ---------------------------------------------------------------
 
-Fenster* UserInterface::make_window(const char* title) {
+// These should be members of UserInterface?
+static unsigned char idata_miniMini2[191*99*3];
+Fl_RGB_Image image_miniMini2(idata_miniMini2, 191, 99, 3, 0);
+
+Fenster* UserInterface::make_window(const char* title) {    
  // Fl_Double_Window* w;
  // {
 	currentsound=0;
@@ -1712,6 +1728,18 @@ Fenster* UserInterface::make_window(const char* title) {
 	for (int i=0;i<_PARACOUNT;++i) {
 		Knob[currentsound][i]=NULL;
 	}
+
+    memcpy(idata_miniMini2, idata_miniMini, 191*99*3*sizeof(unsigned char));
+    replace_color(idata_miniMini2, 191*99, 190, 218, 255, 127, 0, 127);
+    /*
+    for (int i=0; i<191*99*3; i+=3){
+        if(idata_miniMini2[i]==0 && idata_miniMini2[i+1]==127 && idata_miniMini2[i+2]==0){
+            idata_miniMini2[i]=127;
+            idata_miniMini2[i+1]=40;
+            idata_miniMini2[i+2]=127;
+        }
+    }
+    */
 
 // tabs beginning ------------------------------------------------------------
 	{ Fl_Tabs* o = new Fl_Tabs(0,0,995, 515);
@@ -1734,11 +1762,8 @@ Fenster* UserInterface::make_window(const char* title) {
 	o->box(FL_BORDER_FRAME);
 	// draw logo
 	{ Fl_Box* o = new Fl_Box(855, 450, 25, 25);
-	  // printf("pixel 0: %u %u %u\n",idata_miniMini[0], idata_miniMini[1], idata_miniMini[2]);
-	  replace_color(idata_miniMini, 191*99, 190, 218, 255, 0, 127, 0);
-	  // printf("pixel 0: %u %u %u\n",idata_miniMini[0], idata_miniMini[1], idata_miniMini[2]);
-	  // Fl_RGB_Image image_miniMini2(idata_miniMini, 191, 99, 3, 0);
-	  o->image(image_miniMini);
+      printf("Coucou! %d\n", i);
+	  o->image(image_miniMini2);
 	}
 	{ Fl_Group* o = new Fl_Group(5, 17, 300, 212);
 	  o->box(FL_ROUNDED_FRAME);
