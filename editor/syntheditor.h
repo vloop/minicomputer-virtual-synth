@@ -58,10 +58,15 @@
 extern lo_address t;
 extern Memory Speicher;
 
-// Original color 246
-#define _BGCOLOR 246
+#define _BGCOLOR_R 155
+#define _BGCOLOR_G 92
+#define _BGCOLOR_B 186
+// Original _BGCOLOR #246 RGBI
+#define _BGCOLOR (_BGCOLOR_R<<24)+(_BGCOLOR_G<<16)+(_BGCOLOR_B<<8)
 #define _BTNLBLCOLOR1 186
 #define _BTNLBLCOLOR2 1
+#define _LOGO_WIDTH 191
+#define _LOGO_HEIGHT 99
 
 /*
 class Fl_SteinerKnob:public Fl_Dial
@@ -122,12 +127,15 @@ public:
   Fl_Input* multichoice;
 private:
   string tablabel[9];
+  // unsigned char idata_miniMini2[191*99*3];
+  // Fl_RGB_Image image_miniMini2(idata_miniMini2, 191, 99, 3, 0);
+
 };
 
 // Fl_Widget* Knob[8][_PARACOUNT];
 int EG_draw(int voice, int EGnum, int stage);
 void EG_draw_all();
-void replace_color (unsigned char * bits, int pixcount, unsigned char r1, unsigned char g1, unsigned char b1, unsigned char r2, unsigned char g2, unsigned char b2);
+void replace_color (unsigned char * bits, unsigned int pixcount, unsigned char r1, unsigned char g1, unsigned char b1, unsigned char r2, unsigned char g2, unsigned char b2);
 
 char *strnrtrim(char *dest, const char*source, size_t len);
 

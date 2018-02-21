@@ -81,7 +81,7 @@ jack_client_t *client;
 
 float temp=0.f,lfo;
 float sampleRate=48000.0f; // only default, going to be overriden by the actual, taken from jack
-float tabX = 4096.f / 48000.0f;
+float tabX = tabF / 48000.0f;
 float srate = 3.145f/ 48000.f;
 float srDivisor = 1.f / 48000.f*100000.f;
 int i,delayBufferSize=0,maxDelayBufferSize=0,maxDelayTime=0;
@@ -519,10 +519,10 @@ int process(jack_nframes_t nframes, void *arg) {
 		// if (*phase>=tabF) *phase = 0; //just in case of extreme fm
 		}
 		if(phase[currentvoice][3]< 0.f)
-				{
-					phase[currentvoice][3]+= tabF;
+		{
+			phase[currentvoice][3]+= tabF;
 			//	if(*phase < 0.f) *phase = tabF-1;
-				}
+		}
 
 		unsigned int * choi = choice[currentvoice];
 		//modulator [currentvoice][14]=Oscillator(parameter[currentvoice][90],choice[currentvoice][12],&phase[currentvoice][3]);
@@ -620,19 +620,12 @@ int process(jack_nframes_t nframes, void *arg) {
 		// osc2 first amp mod
 		ta2 = param[23];
 		ta2 *=mod[choi[8]];
-		// osc2 second ampmod for FM only ???
-		/*
-		if(param[118]){
-			ta2*= param[11]*mod[choi[25]];
-		}else{
-			ta2+= param[11]*mod[choi[25]];
-		}
-		*/
 		//tf2+=(midif[currentvoice]*parameter[currentvoice][17]*parameter[currentvoice][18]);
 		tf2+=(midif[currentvoice]*(1.0f-param[17])*param[18]);
+		tf2-=glide[currentvoice];
+		// osc2 second ampmod for FM only, no mult. option
 		ta3 = param[25];
 		ta3 *=mod[choi[9]];
-		tf2-=glide[currentvoice];
 		// tf2+=param[15]*param[19]*mod[choi[6]];
 		// tf2+=param[21]*mod[choi[7]];
 		if(param[119]){
@@ -660,12 +653,12 @@ int process(jack_nframes_t nframes, void *arg) {
 			__builtin_prefetch(&param[56],0,0);
 		#endif
 
-			if(phase[currentvoice][2]< 0.f)
-				{
-					phase[currentvoice][2]+= tabF;
+		if(phase[currentvoice][2]< 0.f)
+		{
+			phase[currentvoice][2]+= tabF;
 			//	if(*phase < 0.f) *phase = tabF-1;
-				}
-			osc2 = table[choi[5]][iP2] ;
+		}
+		osc2 = table[choi[5]][iP2] ;
 		//osc2 = Oscillator(tf2,choice[currentvoice][5],&phase[currentvoice][2]);
 		mod[4] *= osc2;// osc2 fm out
 
@@ -866,8 +859,8 @@ int process(jack_nframes_t nframes, void *arg) {
 		//high[currentvoice][0] = (reso *temp) - low[currentvoice][0] - (q[currentvoice][0]*band[currentvoice][0]);
 		band[currentvoice][0]= f[currentvoice][0] * high[currentvoice][0] + band[currentvoice][0];
 
-		reso = q[currentvoice][1];
 		// second filter
+		reso = q[currentvoice][1];
 		low[currentvoice][1] = low[currentvoice][1] + f[currentvoice][1] * band[currentvoice][1];
 		high[currentvoice][1] = ((reso + ((1.f-reso)*0.1f))*temp) - low[currentvoice][1] - (reso*band[currentvoice][1]);
 		band[currentvoice][1]= f[currentvoice][1] * high[currentvoice][1] + band[currentvoice][1];
@@ -886,7 +879,7 @@ int process(jack_nframes_t nframes, void *arg) {
 
 		//---------------------------------- amplitude shaping
 
-		result = (1.f-mod[ choi[13]]*param[100] );///_MULTITEMP;
+		result = (1.f-mod[ choi[13]]*param[100] );
 		result *= mod[7];
 		result *= egCalc(currentvoice,0);// the final shaping envelope
 
@@ -968,7 +961,7 @@ void init ()
 	unsigned int i, k;
 	for (k=0;k<_MULTITEMP;k++)// k is here the voice number
 	{
-		for (i=0;i<8;i++) // i is the number of envelope
+		for (i=0;i<_EGCOUNT;i++) // i is the number of envelope
 		{
 			EG[k][i][1]=0.01f;
 			EG[k][i][2]=0.01f;
@@ -995,6 +988,7 @@ void init ()
 		modulator[k][0] =0.f;// the none modulator, doing nothing
 
 		sub[k]=1.0f;
+		// Init filter state
 		for (i=0;i<3;++i) 
 		{
 			low[k][i]=0;
@@ -1104,12 +1098,10 @@ inline doNoteOn(int c, int n, int v){
 			glide[c]+=midi2freq[n]-midif[c]; // Span between previous and new note
 			if(EGstate[c][0]==4){
 				glide[c]=0; // Don't glide from finished note
-				// printf('no glide\n');
-			}else{
-				// printf('glide\n');
 			}
-				
+
 			midif[c]=midi2freq[n];// lookup the frequency
+			// 1/127=0,007874015748...
 			modulator[c][19]=n*0.007874f;// fill the value in as normalized modulator
 			modulator[c][1]=(float)1.f-(v*0.007874f);// fill in the velocity as modulator
 			egStart(c,0);// start the engines!
@@ -1347,11 +1339,11 @@ int i;
 	pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
 	snd_seq_poll_descriptors(seq_handle, pfd, npfd, POLLIN);
 	
-		// create the thread and tell it to use Midi::work as thread function
+	// create the thread and tell it to use midiprocessor as thread function
 	int err = pthread_create(&midithread, NULL, midiprocessor,seq_handle);
 	// printf("start err %i\n", err);
  
-	
+
 // ------------------------ OSC Init ------------------------------------   
 	/* start a new server on port definied where oport points to */
 	lo_server_thread st = lo_server_thread_new(oport, error);
@@ -1364,8 +1356,8 @@ int i;
 	lo_server_thread_add_method(st, "/Minicomputer", "iif", foo_handler, NULL);
 
 	/* add method that will match the path Minicomputer/quit with one integer */
-  	lo_server_thread_add_method(st, "/Minicomputer/quit", "i", quit_handler, NULL);
-  	lo_server_thread_add_method(st, "/Minicomputer/midi", "iiii", midi_handler, NULL); // DSSI-like
+	lo_server_thread_add_method(st, "/Minicomputer/quit", "i", quit_handler, NULL);
+	lo_server_thread_add_method(st, "/Minicomputer/midi", "iiii", midi_handler, NULL); // DSSI-like
 
 	lo_server_thread_start(st);
 
@@ -1418,7 +1410,7 @@ int i;
 
 	// handling the sampling frequency
 	sampleRate = (float) jack_get_sample_rate (client); 
-	tabX = 4096.f / sampleRate;
+	tabX = tabF / sampleRate;
 	srate = 3.145f/ sampleRate;
 	srDivisor = 1.f / sampleRate * 100000.f;
 	// depending on it the delaybuffer
