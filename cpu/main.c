@@ -218,7 +218,6 @@ static inline void egStart (const unsigned int voice,const unsigned int number)
 	EGstate[voice][number] = 0;// state  
 	EGFaktor[voice][number] = 0.f;
 	lo_send(t, "/Minicomputer/EG", "iii", voice, number, 1);
-	//printf("start %i", voice);
 }
 /**
  * set the envelope to release mode
@@ -235,7 +234,6 @@ static inline void egStop (const unsigned int voice,const unsigned int number)
 	  lo_send(t, "/Minicomputer/EG", "iii", voice, number, 4);
 	else
 	  lo_send(t, "/Minicomputer/EG", "iii", voice, number, 0);
-	// printf("stop %i", voice);
 }
 /**
  * calculate the envelope, done in audiorate to avoide zippernoise
@@ -1377,7 +1375,7 @@ int i;
 	// client = jack_client_new(jackName);
 	client = jack_client_open(jackName, 0, NULL);
 	if (!client) {
-		printf("couldn't connect to jack server. Either it's not running or the client name is already taken\n");
+		fprintf(stderr, "couldn't connect to jack server. Either it's not running or the client name is already taken\n");
 		exit(1);
 	}
 
@@ -1502,7 +1500,7 @@ static inline int generic_handler(const char *path, const char *types, lo_arg **
 	}
 	else
 	{
-		printf("WARNING unhandled generic_handler %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
+		fprintf(stderr, "WARNING unhandled generic_handler %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
 		return 1;
 	}
 }
@@ -1512,7 +1510,9 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 {
 	int i, c;
 	// first byte argv[0] is 0 for 3-byte messages such as note on/off
-	// printf("midi_handler %u %u %u %u \n", argv[0]->i, argv[1]->i, argv[2]->i, argv[3]->i);
+#ifdef _DEBUG
+	printf("midi_handler %u %u %u %u \n", argv[0]->i, argv[1]->i, argv[2]->i, argv[3]->i);
+#endif
 	if (argv[0]->i == 0){ // At most 3 bytes follow
 		if(argv[1]->i == 0){ // At most 2 bytes follow
 			if(argv[2]->i == 0){ // Single byte message follows
@@ -1525,12 +1525,16 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 			switch ((argv[1]->i)&0xF0){
 				case 0x90:{ // Note on
 					doNoteOn(c, argv[2]->i, argv[3]->i);
-					// printf("doNoteOn %u %u %u \n", argv[1]->i&0x0F, argv[2]->i, argv[3]->i);
+#ifdef _DEBUG
+					printf("doNoteOn %u %u %u \n", argv[1]->i&0x0F, argv[2]->i, argv[3]->i);
+#endif
 					break;
 				}
 				case 0x80:{ // Note off
 					doNoteOn(c, argv[2]->i, 0);
-					// printf("doNoteOff %u %u \n", argv[1]->i&0x0F, argv[2]->i);
+#ifdef _DEBUG
+					printf("doNoteOff %u %u \n", argv[1]->i&0x0F, argv[2]->i);
+#endif
 					break;
 				}
 				case 0xB0:{ // Control change
@@ -1597,79 +1601,80 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 		phase[voice][2] = 0.f;
 		phase[voice][3] = 0.f;
 		memset(delayBuffer[voice],0,sizeof(delayBuffer[voice]));
+#ifdef _DEBUG
 		printf("foo_handler: voice %u filters and delay buffer reset\n", voice);
-   	 break;}
-   	 
-   	 case 60:EG[voice][1][1]=argv[2]->f;break;
-   	 case 61:EG[voice][1][2]=argv[2]->f;break;
-   	 case 62:EG[voice][1][3]=argv[2]->f;break;
-   	 case 63:EG[voice][1][4]=argv[2]->f;break;
-   	 case 64:
-   	 {
-   	 	EGrepeat[voice][1] = (argv[2]->f>0) ? 1:0;
-   	 	if (EGrepeat[voice][1] > 0 ) egStart(voice,1);
-   	 	break;
-   	 }
-   	 case 65:EG[voice][2][1]=argv[2]->f;break;
-   	 case 66:EG[voice][2][2]=argv[2]->f;break;
-   	 case 67:EG[voice][2][3]=argv[2]->f;break;
-   	 case 68:EG[voice][2][4]=argv[2]->f;break;
-   	  case 69:
-   	 {
-   	 	EGrepeat[voice][2] = (argv[2]->f>0) ? 1:0;
-   	 	if (EGrepeat[voice][2] > 0 ) egStart(voice,2);
-   	 	break;
-   	 }
-   	 case 70:EG[voice][3][1]=argv[2]->f;break;
-   	 case 71:EG[voice][3][2]=argv[2]->f;break;
-   	 case 72:EG[voice][3][3]=argv[2]->f;break;
-   	 case 73:EG[voice][3][4]=argv[2]->f;break;
-   	  case 74:
-   	 {
-   	 	EGrepeat[voice][3] = (argv[2]->f>0) ? 1:0;
-   	 	if (EGrepeat[voice][3] > 0 ) egStart(voice,3);
-   	 	break;
-   	 }
-   	 case 75:EG[voice][4][1]=argv[2]->f;break;
-   	 case 76:EG[voice][4][2]=argv[2]->f;break;
-   	 case 77:EG[voice][4][3]=argv[2]->f;break;
-   	 case 78:EG[voice][4][4]=argv[2]->f;break; 
-   	  case 79:
-   	 {
-   	 	EGrepeat[voice][4] = (argv[2]->f>0) ? 1:0;
-   	 	if (EGrepeat[voice][4] > 0 ) egStart(voice,4);
-   	 	break;
-   	 }
-   	 case 80:EG[voice][5][1]=argv[2]->f;break;
-   	 case 81:EG[voice][5][2]=argv[2]->f;break;
-   	 case 82:EG[voice][5][3]=argv[2]->f;break;
-   	 case 83:EG[voice][5][4]=argv[2]->f;break;
-   	  case 84:
-   	 {
-   	 	EGrepeat[voice][5] = (argv[2]->f>0) ? 1:0;
-   	 	if (EGrepeat[voice][5] > 0 ) egStart(voice,5);
-   	 	break;
-   	 }
-   	 case 85:EG[voice][6][1]=argv[2]->f;break;
-   	 case 86:EG[voice][6][2]=argv[2]->f;break;
-   	 case 87:EG[voice][6][3]=argv[2]->f;break;
-   	 case 88:EG[voice][6][4]=argv[2]->f;break;
-   	  case 89:
-   	 {
-   	 	EGrepeat[voice][6] = (argv[2]->f>0) ? 1:0;
-   	 	if (EGrepeat[voice][6] > 0 ) egStart(voice,6);
-   	 	break;
-   	 }
-   	 case 102:EG[voice][0][1]=argv[2]->f;break;
-   	 case 103:EG[voice][0][2]=argv[2]->f;break;
-   	 case 104:EG[voice][0][3]=argv[2]->f;break;
-   	 case 105:EG[voice][0][4]=argv[2]->f;break;
-   	 
-   }
-   //float g=parameter[30]*parameter[56]+parameter[33]*(1.0f-parameter[56]);
-//ifdef _DEBUG
-   // printf("foo_handler %i %i %f \n",voice,i,argv[2]->f);
-//endif   
+#endif
+	 break;}
+	 
+	 case 60:EG[voice][1][1]=argv[2]->f;break;
+	 case 61:EG[voice][1][2]=argv[2]->f;break;
+	 case 62:EG[voice][1][3]=argv[2]->f;break;
+	 case 63:EG[voice][1][4]=argv[2]->f;break;
+	 case 64:
+	 {
+	 	EGrepeat[voice][1] = (argv[2]->f>0) ? 1:0;
+	 	if (EGrepeat[voice][1] > 0 ) egStart(voice,1);
+	 	break;
+	 }
+	 case 65:EG[voice][2][1]=argv[2]->f;break;
+	 case 66:EG[voice][2][2]=argv[2]->f;break;
+	 case 67:EG[voice][2][3]=argv[2]->f;break;
+	 case 68:EG[voice][2][4]=argv[2]->f;break;
+	 case 69:
+	 {
+	 	EGrepeat[voice][2] = (argv[2]->f>0) ? 1:0;
+	 	if (EGrepeat[voice][2] > 0 ) egStart(voice,2);
+	 	break;
+	 }
+	 case 70:EG[voice][3][1]=argv[2]->f;break;
+	 case 71:EG[voice][3][2]=argv[2]->f;break;
+	 case 72:EG[voice][3][3]=argv[2]->f;break;
+	 case 73:EG[voice][3][4]=argv[2]->f;break;
+	 case 74:
+	 {
+	 	EGrepeat[voice][3] = (argv[2]->f>0) ? 1:0;
+	 	if (EGrepeat[voice][3] > 0 ) egStart(voice,3);
+	 	break;
+	 }
+	 case 75:EG[voice][4][1]=argv[2]->f;break;
+	 case 76:EG[voice][4][2]=argv[2]->f;break;
+	 case 77:EG[voice][4][3]=argv[2]->f;break;
+	 case 78:EG[voice][4][4]=argv[2]->f;break; 
+	 case 79:
+	 {
+	 	EGrepeat[voice][4] = (argv[2]->f>0) ? 1:0;
+	 	if (EGrepeat[voice][4] > 0 ) egStart(voice,4);
+	 	break;
+	 }
+	 case 80:EG[voice][5][1]=argv[2]->f;break;
+	 case 81:EG[voice][5][2]=argv[2]->f;break;
+	 case 82:EG[voice][5][3]=argv[2]->f;break;
+	 case 83:EG[voice][5][4]=argv[2]->f;break;
+	 case 84:
+	 {
+	 	EGrepeat[voice][5] = (argv[2]->f>0) ? 1:0;
+	 	if (EGrepeat[voice][5] > 0 ) egStart(voice,5);
+	 	break;
+	 }
+	 case 85:EG[voice][6][1]=argv[2]->f;break;
+	 case 86:EG[voice][6][2]=argv[2]->f;break;
+	 case 87:EG[voice][6][3]=argv[2]->f;break;
+	 case 88:EG[voice][6][4]=argv[2]->f;break;
+	 case 89:
+	 {
+		EGrepeat[voice][6] = (argv[2]->f>0) ? 1:0;
+		if (EGrepeat[voice][6] > 0 ) egStart(voice,6);
+		break;
+	 }
+	 case 102:EG[voice][0][1]=argv[2]->f;break;
+	 case 103:EG[voice][0][2]=argv[2]->f;break;
+	 case 104:EG[voice][0][3]=argv[2]->f;break;
+	 case 105:EG[voice][0][4]=argv[2]->f;break;
+	 
+	}
+#ifdef _DEBUG
+	printf("foo_handler %i %i %f \n",voice,i,argv[2]->f);
+#endif   
 	return 0;
 }
 

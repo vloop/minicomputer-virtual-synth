@@ -34,6 +34,7 @@ int npfd;
 struct pollfd *pfd;
 char midiName[64]="MinicomputerEditor";// signifier for midiconnections, to be filled with OSC port number
 lo_address t;
+bool lo_error=false;
 
 // some common definitions
 Memory Speicher;
@@ -137,10 +138,10 @@ if (poll(pfd, npfd, 100000) > 0)
 	  {
 		int channel = ev->data.control.channel;
 		int value = ev->data.control.value;
-//#ifdef _DEBUG      
+#ifdef _DEBUG      
 		fprintf(stderr, "Programchange event on Channel %2d: %2d %5d       \r",
 				channel,  ev->data.control.param,value);
-//#endif		
+#endif		
 	// see if its the control channel
 	if (ev->data.control.channel == 8)
 	{ // perform multi program change
@@ -195,12 +196,15 @@ if (poll(pfd, npfd, 100000) > 0)
 
 static inline int EG_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data)
 {
-	// printf("Received EG %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
+#ifdef _DEBUG
+	printf("Received EG %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
+#endif
 	return(EG_draw(argv[0]->i, argv[1]->i, argv[2]->i));
 }
 
 static inline int sense_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data) {
 	sense = true; // Server core is up
+	return 0;
 }
 
 static void timer_handler(void *userdata) {
@@ -219,6 +223,7 @@ static inline void error(int num, const char *msg, const char *path)
 {
 	printf("liblo server error %d in path %s: %s\n", num, path, msg);
 	fflush(stdout);
+	lo_error=true;
 }
 
 /** @brief the main routine
@@ -229,11 +234,47 @@ static inline void error(int num, const char *msg, const char *path)
  */
 int main(int argc, char **argv)
 {
-  char temp_name[128];
   printf("minieditor version %s\n",_VERSION);
 
+// ---------- Handle command line parameters ----------
+  // check color settings in arguments and add some if missing
+  // TODO -remote IP for remote server
+  bool needcolor=true; // true means user didnt give some so I need to take care myself
+  int i;
+  char OscPort[] = _OSCPORT; // default value for OSC port
+  char *oport = OscPort;
+  char *oport2;
+  bool launched=false;
+  if (argc > 1)
+  {
+  	for (i = 0;i<argc;++i)
+	{
+	  	if ((strcmp(argv[i],"-bg")==0) || (strcmp(argv[i],"-fg")==0))
+		{
+			needcolor = false;
+		}
+		else if (strcmp(argv[i],"-port")==0) // got a OSC port argument
+		{
+			++i;// looking for the next entry
+			if (i<argc)
+			{
+				int tport = atoi(argv[i]);
+				if (tport > 0){
+					oport = argv[i]; // overwrite the default for the OSCPort
+					oport2=(char *)malloc(80);
+					snprintf(oport2, 80, "%d", tport+1);
+				}// TODO what if not a port number??
+			}
+			else break; // we are through
+		}
+	}
+  }
+
 // ------------------------ create gui --------------
-	Fenster* w =Schaltbrett.make_window("minicomputer");
+	char temp_name[128];
+	strcpy(temp_name, "minicomputer ");
+	strncpy(temp_name+13, oport, 100);
+	Fenster* w =Schaltbrett.make_window(temp_name);
   //
   //for (int i = 0;i<8;++i)
   //{
@@ -280,38 +321,10 @@ int main(int argc, char **argv)
   	Schaltbrett.multichoice->add(Speicher.multis[i].name);
   }*/
   //printf("weiter...\n");
-  // check color settings in arguments and add some if missing
-  bool needcolor=true; // true means user didnt give some so I need to take care myself
-  int i;
-  char OscPort[] = _OSCPORT; // default value for OSC port
-  char *oport = OscPort;
-  char *oport2;
-  if (argc > 1)
-  {
-  	for (i = 0;i<argc;++i)
-	{
-	  	if ((strcmp(argv[i],"-bg")==0) || (strcmp(argv[i],"-fg")==0))
-		{
-			needcolor = false;
-		}
-		else if (strcmp(argv[i],"-port")==0) // got a OSC port argument
-		{
-			++i;// looking for the next entry
-			if (i<argc)
-			{
-				int tport = atoi(argv[i]);
-				if (tport > 0){
-					oport = argv[i]; // overwrite the default for the OSCPort
-					oport2=(char *)malloc(80);
-					snprintf(oport2, 80, "%d", tport+1);
-				}
-			}
-			else break; // we are through
-		}
-	}
-  }
-  
-// ------------------------ osc init ---------------------------------
+
+
+// ------------------------ OSC init ---------------------------------
+	// TODO error checking and exit
 	// init for output
 	t = lo_address_new(NULL, oport);
 	printf("\nGUI OSC output port: \"%s\"\n",oport);
@@ -321,29 +334,33 @@ int main(int argc, char **argv)
 	oport2=(char *)malloc(80);
 	snprintf(oport2, 80, "%d", atoi(oport)+1);
 	printf("GUI OSC input port: \"%s\"\n", oport2);
-	/* start a new server on port defined where oport points to */
+	/* start a new server on port defined where oport2 points to */
 	lo_server_thread st = lo_server_thread_new(oport2, error);
 	/* add method that will match /Minicomputer/EG with three integers */
-	lo_server_thread_add_method(st, "/Minicomputer/EG", "iii", EG_handler, NULL);
-	lo_server_thread_add_method(st, "/Minicomputer/sense", "", sense_handler, NULL);
-	lo_server_thread_start(st);
+	if(!lo_error) lo_server_thread_add_method(st, "/Minicomputer/EG", "iii", EG_handler, NULL);
+	if(!lo_error) lo_server_thread_add_method(st, "/Minicomputer/sense", "", sense_handler, NULL);
+	if(!lo_error) lo_server_thread_start(st);
+
+	if(lo_error){
+		fprintf(stderr, "OSC failure (port conflict?)\n");
+		exit(1); // No clean-up needed yet?
+	}
 
 	Fl::add_timeout(.1, timer_handler, 0); // Attempt to refresh display
 
 // -------------------------------------------------------------------
 #ifdef _BUNDLE
 //------------------------- start engine -----------------------------
-	char engineName[32];// the name of the core program + given port, if any.
-	if (strcmp(oport,"7770")==0) // is default port?
-	{
-		sprintf(engineName,"minicomputerCPU &");
-	}
-	else // no default so add parameter
-	{
+	// probe the OSC port
+	// It is safe to send now that OSC is setup
+	lo_send(t, "/Minicomputer/midi", "iiii", 0, 0, 0, 0xFE);
+	usleep(100000); // 0.1 s - should be enough even for remote
+	if(!sense){ // Don't start it if already done
+		char engineName[32];// the name of the core program + given port, if any.
 		sprintf(engineName,"minicomputerCPU -port %s &",oport);
+		system(engineName);// actual start
+		launched=true;
 	}
-	
-	system(engineName);// actual start
 #endif
 // ------------------------ midi init ---------------------------------
   pthread_t midithread;
@@ -354,9 +371,12 @@ int main(int argc, char **argv)
 	
 	// create the thread and tell it to use Midi::work as thread function
 	int err=pthread_create(&midithread, NULL, midiprocessor,seq_handle);
-	if(err) fprintf(stderr,"Error %u creating MIDI thread\n", err);
+	if(err){
+		fprintf(stderr,"Error %u creating MIDI thread\n", err);
+		// should exit?
+	}
 
-
+// ---------- Prepare command line for FLTK -----------
   int ac = 0; // new argumentcount
   // copy existing arguments, filtering out osc port arguments
   // step one, parsing and determine the final count of arguments
@@ -413,7 +433,9 @@ int main(int argc, char **argv)
   	else 
 	{
 		av[i] = argv[i];
+#ifdef _DEBUG
 		printf("%s\n",argv[i]);
+#endif
 	}
   }
 
@@ -429,23 +451,21 @@ int main(int argc, char **argv)
 	av[ac-1] = fgv;
   }
   
-  // Safe to apply multi now that OSC is setup
-  // How can we ensure receiving side is ready?
-  // Should handshake rather than sleep
+  // Wait for core before sending GUI data
   printf("Waiting for core...\n");
-  // sleep(1);
   while(!sense){
-	   lo_send(t, "/Minicomputer/midi", "iiii", 0, 0, 0, 0xFE);
-	   usleep(100000);
-  } 
-  Schaltbrett.changeMulti(multi);
+		lo_send(t, "/Minicomputer/midi", "iiii", 0, 0, 0, 0xFE);
+		usleep(100000); // 0.1 s
+  }
+  
+  Schaltbrett.changeMulti(multi); // Transmit multi data to the sound engine
 
   Fl::lock(); 
   w->show(ac, av);
 	/* an address to send messages to. sometimes it is better to let the server
 	 * pick a port number for you by passing NULL as the last argument */
  int result = Fl::run();
- lo_send(t, "/Minicomputer/quit", "i",1);
+ if (launched) lo_send(t, "/Minicomputer/quit", "i",1);
  /* waiting for the midi thread to shutdown carefully */
  pthread_cancel(midithread);
 /* release Alsa Midi connection */
