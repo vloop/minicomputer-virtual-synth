@@ -9,8 +9,6 @@ else:
 	env = Environment(CCFLAGS = '')
 	guienv = Environment(CPPFLAGS = '')
 
-env.Append(LINKFLAGS=['-lm'])
-
 if ARGUMENTS.get('k8', 0):
 	env.Append(CCFLAGS = ['-march=k8','-mtune=k8','-m3dnow'])
 	guienv.Append(CPPFLAGS = ['-march=k8','-mtune=k8'])
@@ -47,6 +45,9 @@ if not conf.CheckLibWithHeader('asound', 'alsa/asoundlib.h','c'):
 if not conf.CheckLibWithHeader('pthread', 'pthread.h','c'):
 	print 'Did not find pthread library, exiting!'
 	Exit(1)
+
+env.Append(LIBS=['m'])
+
 env = conf.Finish()
 
 print"-                    checking dependencies for the editor:"

@@ -3127,9 +3127,8 @@ Fenster* UserInterface::make_window(const char* title) {
 	  //o->textcolor(FL_BACKGROUND2_COLOR); 
 	  o->textfont(FL_HELVETICA_BOLD );
 	  o->labelcolor(FL_BACKGROUND2_COLOR);
-	  char Textausgabe[400];
 	  char version[] = _VERSION;
-	  sprintf(Textausgabe, "<html><body>"
+	  char *about="<html><body>"
 		  "<i><center>version %s</center></i><br>"
 		  "<p><br>a standalone industrial grade softwaresynthesizer for Linux<br>"
 		  "<p><br>developed by Malte Steiner 2007-2009"
@@ -3140,7 +3139,10 @@ Fenster* UserInterface::make_window(const char* title) {
 		  "<br>http://www.block4.com"
 		  "<br>http://minicomputer.sourceforge.net"
 		  "</center>"
-		  "</body></html>", version);
+		  "</body></html>";
+	  char *Textausgabe;
+	  Textausgabe=(char *)malloc(strlen(about)+strlen(version));
+	  sprintf(Textausgabe, version);
 	  o->value(Textausgabe);
 	}	
 	o->end(); 
