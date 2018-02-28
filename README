@@ -86,7 +86,35 @@ So a k8 64bit build looks like
 
 scons 64bit=1 k8=1
 
-further optimization can be switched in common.h but its experimental and results vary
+further optimization can be switched in common.h but it's experimental and results vary
+
+----------------------------- installation steps for mint ------------------------
+The steps below were tested on a fresh linuxmint-18.3-xfce-64bit install
+Other distributions may slightly vary
+
+ sudo apt-get update
+ sudo apt-get upgrade
+ sudo apt-get install build-essential scons fluid libjack-dev liblo-dev libclthreads-dev libasound-dev libfltk1.3-dev
+ wget https://github.com/vloop/minicomputer-virtual-synth/archive/master.zip
+ unzip master.zip
+ cd minicomputer-virtual-synth-master/
+ scons
+ sudo scons install
+ ./installpresets.sh
+
+Of course, you still need to install jack to actually use the synth!
+Beware that jack2 installation removes libjack-dev, and that causes scons to fail.
+You may still use minicomputer with jackd2, if you don't need to rebuild it.
+For example, with your user name instead of "test" on the usermod line:
+
+ sudo apt-get install jackd2 qjackctl
+ sudo usermod -aG audio test
+ pasuspender -- jackd -d alsa &
+ minicomputer
+ jack_connect "Minicomputer7771:mix out left" "system:playback_1"
+ jack_connect "Minicomputer7771:mix out right" "system:playback_2"
+
+Or of course you may use qjackctl to start jack and setup the connections.
 
 TROUBLESHOOTING:
 
