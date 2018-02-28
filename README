@@ -89,6 +89,7 @@ scons 64bit=1 k8=1
 further optimization can be switched in common.h but it's experimental and results vary
 
 ----------------------------- installation steps for mint ------------------------
+
 The steps below were tested on a fresh linuxmint-18.3-xfce-64bit install
 Other distributions may slightly vary
 
@@ -102,9 +103,10 @@ Other distributions may slightly vary
  sudo scons install
  ./installpresets.sh
 
-Of course, you still need to install jack to actually use the synth!
-Beware that jack2 installation removes libjack-dev, and that causes scons to fail.
-You may still use minicomputer with jackd2, if you don't need to rebuild it.
+At this stage, the binaries and presets are in place.
+Of course, you still need to install jack 1 or 2 to actually use the synth!
+Beware that jack 2 installation removes libjack-dev, and that causes scons to fail.
+You may still use minicomputer with jack 2, if you don't need to rebuild it.
 For example, with your user name instead of "test" on the usermod line:
 
  sudo apt-get install jackd2 qjackctl
@@ -116,7 +118,7 @@ For example, with your user name instead of "test" on the usermod line:
 
 Or of course you may use qjackctl to start jack and setup the connections.
 
-TROUBLESHOOTING:
+----------------------------- TROUBLESHOOTING -----------------------------
 
 - 'I have library xyz installed but scons complains about not finding xyz'
 make sure that you have the developer version of the library installed which comes extra and additionally.Usually looks like libxyz.dev
