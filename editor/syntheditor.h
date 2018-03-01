@@ -144,6 +144,7 @@ extern Fl_Value_Output *multiDisplay;
 extern Fl_Input* Multichoice;
 extern bool sense;
 extern char *oport;
+extern char *oport2;
 
 // the logo image
 static unsigned char idata_miniMini[] =

@@ -233,6 +233,7 @@ static inline void error(int num, const char *msg, const char *path)
  * @return integer, 0 when terminated correctly
  */
 char *oport;
+char *oport2;
 int main(int argc, char **argv)
 {
   printf("minieditor version %s\n",_VERSION);
@@ -244,7 +245,7 @@ int main(int argc, char **argv)
   int i;
   char OscPort[] = _OSCPORT; // default value for OSC port
   oport = OscPort;
-  char *oport2;
+  oport2=(char *)malloc(80);
   bool launched=false;
   if (argc > 1)
   {
@@ -262,14 +263,13 @@ int main(int argc, char **argv)
 				int tport = atoi(argv[i]);
 				if (tport > 0){
 					oport = argv[i]; // overwrite the default for the OSCPort
-					oport2=(char *)malloc(80);
-					snprintf(oport2, 80, "%d", tport+1);
 				}// TODO what if not a port number??
 			}
 			else break; // we are through
 		}
 	}
   }
+  snprintf(oport2, 80, "%d", atoi(oport)+1);
 
 // ------------------------ create gui --------------
 	char temp_name[128];
@@ -332,8 +332,6 @@ int main(int argc, char **argv)
 	sprintf(midiName,"miniEditor%s",oport);// store globally a unique name
 
 	// init for input
-	oport2=(char *)malloc(80);
-	snprintf(oport2, 80, "%d", atoi(oport)+1);
 	printf("GUI OSC input port: \"%s\"\n", oport2);
 	/* start a new server on port defined where oport2 points to */
 	lo_server_thread st = lo_server_thread_new(oport2, error);
