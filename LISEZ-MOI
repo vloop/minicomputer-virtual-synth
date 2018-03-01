@@ -1,0 +1,123 @@
+Minicomputer v. 1.41
+Synthétiseur Digital de qualité industrielle
+
+par Malte Steiner
+
+email: steiner@block4.com
+pour cette version
+email: marc.perilleux@laposte.net
+
+Minicomputer est un synthétiseur virtuel Linux pour
+créer des sons électroniques expérimentaux comme on en utilise par exemple 
+en musique industrielle, Glitch, IDM et d'autres musiques électroniques.
+
+Il se peut qu'il y ait des bugs mais Minicomputer a déjà été utilisé avec succés en studio pour le projet 'Akustikkoppler' 
+et en live pour 'Notstandskomitee'.
+
+Minicomputer est un logiciel libre, gratuit et open source sous licence GPL3.
+
+Il est composé d'un moteur sonore et d'un éditeur.
+
+Les prérequis comprennent:
+– Jack
+– FLTK pour l'éditeur
+– Alsaseq pour la communication MIDI
+– pthreads
+– liblo pour la communication OSC
+et 
+– Scons pour la compilation
+
+Faites attention, les sons peuvent être brutaux!
+L'utilisation est de votre responsabilité, vous êtes avertis!
+
+----------------------------- démarrage de Minicomputer ------------------------
+
+Pour démarrer le synthé, il suffit de saisir minicomputer à l'invite de commande.
+Ceci lancera l'éditeur ainsi que le moteur sonore si nécessaire.
+Par défaut ces programmes communiquent via OSC sur les ports 7771 et 7772.
+Si vous préférez un autre port ou souhaitez lancer plusieurs instances, vous pouvez définir le port de base au moyen du paramètre -port:
+
+minicomputer -port 434334
+
+Le numéro de port apparait avec le nom dans qjackctl, ceci permet d'identifier les différentes instances.
+
+
+----------------------------- compilation de Minicomputer ------------------------
+
+Pour compiler Minicomputer, saisissez simplement
+
+scons
+
+Le nettoyage (suppression) des fichiers intermédiaires de la compilation mais aussi des exécutables nouvellement générés s'effectue par la commande
+
+scons -c
+
+L'installation dans /usr/local/bin doit s'effectuer en tant que super-utilisateur par 
+
+scons install
+
+De même pour la désinstallation:
+
+scons -c install
+
+Actuellement le répertoire cible est en dur dans le fichier SConstruct, dans les deux dernières lignes.
+Les données se trouvent dans le sous-répertoire .miniComputer/ de votre dossier personnel.
+Pour démarrer il est recommandé d'utiliser le script installpresets.sh avec votre propre nom d'utilisateur.
+Ceci écrasera toute version antérieure des multis et des sons, après en avoir créé une sauvegarde de sécurité.
+
+Le build reconnait les paramètres suivants qui permettent d'optimiser selon l'architecture:
+– 64bit=1
+force le build en 64 bits au moyen de l'option ­m64 option
+– k7=1
+optimisation pour les processeurs AMD Athlon­XP
+– k8=1
+optimisation pour les processeurs AMD K8 cpus, via les options  ­march=k8 ­mtune=k8.
+– native=1
+optimisation pour le système actuel
+
+Par exemple, le build 64 bits pour un K8 sera
+
+scons 64bit=1 k8=1
+
+D'autres optimisations peuvent être activées dans common.h mais il s'agit d'expérimentations, le résultat peut varier.
+
+----------------------------- installation pour Linux Mint ------------------------
+
+Ces étapes ont été testées sur une installation vierge de linuxmint-18.3-xfce-64bit
+D'autres distributions peuvent nécessiter de légères modifications
+
+ sudo apt-get update
+ sudo apt-get upgrade
+ sudo apt-get install build-essential scons fluid libjack-dev liblo-dev libclthreads-dev libasound-dev libfltk1.3-dev
+ wget https://github.com/vloop/minicomputer-virtual-synth/archive/master.zip
+ unzip master.zip
+ cd minicomputer-virtual-synth-master/
+ scons
+ sudo scons install
+ ./installpresets.sh
+
+A ce stade, les exécutables et les données sont en place.
+Evidemment, il reste à installer jack 1 or 2 pour pouvoir utiliser le synthé!
+Attention, l'installation de jack 2 supprime libjack-dev, ce qui empêche scons d'aboutir.
+Il est quand même possible d'utiliser Minicomputer avec jack 2, si vous n'avez pas besoin de le construire à nouveau.
+Par exemple, en remplaçant "test" par votre nom d'utilisateur dans la ligne usermod:
+
+ sudo apt-get install jackd2 qjackctl
+ sudo usermod -aG audio test
+ pasuspender -- jackd -d alsa &
+ minicomputer
+ jack_connect "Minicomputer7771:mix out left" "system:playback_1"
+ jack_connect "Minicomputer7771:mix out right" "system:playback_2"
+
+Vous pouvez bien sur aussi utiliser qjackctl pour démarrer jack et établir les connexions.
+
+----------------------------- Dépannage -----------------------------
+
+« j'ai installé la bibliothèque xyz mais scons ne la trouve pas »
+- Vérifiez que vous avez bien installé aussi la version de développement, qui aura habituellement un nom du genre libxyz.dev.
+
+Un mot à l'intention des créateurs de paquetages:
+
+J'apprécie l'inclusion de Minicomputer dans les dépôts.
+Si vous rencontrez des difficultés, merci de me contacter à l'adresse mail ci-dessus et nous chercherons une solution.
+
