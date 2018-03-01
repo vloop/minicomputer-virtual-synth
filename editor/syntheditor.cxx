@@ -3133,6 +3133,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  "<p><br>developed by Malte Steiner 2007-2009"
 		  "<p>distributed as free open source software under GPL3 licence<br>"
 		  "<p>additional bugs by Marc Périlleux 2018"
+		  "<p>currently using port %s"
 		  "<p>contact:<br>"
 		  "<center>steiner@block4.com"
 		  "<br>http://www.block4.com"
@@ -3140,8 +3141,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		  "</center>"
 		  "</body></html>";
 	  char *Textausgabe;
-	  Textausgabe=(char *)malloc(strlen(about)+strlen(version));
-	  sprintf(Textausgabe, version);
+	  Textausgabe=(char *)malloc(strlen(about)+strlen(version)+strlen(oport));
+	  sprintf(Textausgabe, about, version, oport);
 	  o->value(Textausgabe);
 	}	
 	o->end(); 

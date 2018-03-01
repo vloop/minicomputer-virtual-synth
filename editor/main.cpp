@@ -232,6 +232,7 @@ static inline void error(int num, const char *msg, const char *path)
  * @param pointer to array with arguments
  * @return integer, 0 when terminated correctly
  */
+char *oport;
 int main(int argc, char **argv)
 {
   printf("minieditor version %s\n",_VERSION);
@@ -242,7 +243,7 @@ int main(int argc, char **argv)
   bool needcolor=true; // true means user didnt give some so I need to take care myself
   int i;
   char OscPort[] = _OSCPORT; // default value for OSC port
-  char *oport = OscPort;
+  oport = OscPort;
   char *oport2;
   bool launched=false;
   if (argc > 1)

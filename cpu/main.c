@@ -1088,7 +1088,7 @@ void init ()
 
 } // end of initialization
 
-inline doNoteOn(int c, int n, int v){
+static inline void doNoteOn(int c, int n, int v){
 	if (c <_MULTITEMP){
 		if (v>0){
 			heldnote[c]=0;

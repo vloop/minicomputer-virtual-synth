@@ -143,6 +143,7 @@ extern Fl_Roller *multiRoller;
 extern Fl_Value_Output *multiDisplay;
 extern Fl_Input* Multichoice;
 extern bool sense;
+extern char *oport;
 
 // the logo image
 static unsigned char idata_miniMini[] =
