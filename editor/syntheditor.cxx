@@ -18,7 +18,6 @@
 
 #include "syntheditor.h"
 static Fl_RGB_Image image_miniMini(idata_miniMini, _LOGO_WIDTH, _LOGO_HEIGHT, 3, 0);
-// gcc -o synthEditor2 syntheditor.cxx -lfltk -llo
  Fl_Widget* Knob[_MULTITEMP][_PARACOUNT];
  Fl_Choice* auswahl[_MULTITEMP][_CHOICECOUNT];
  Fl_Value_Input* miniDisplay[_MULTITEMP][13];
@@ -3127,8 +3126,8 @@ Fenster* UserInterface::make_window(const char* title) {
 	  //o->textcolor(FL_BACKGROUND2_COLOR); 
 	  o->textfont(FL_HELVETICA_BOLD );
 	  o->labelcolor(FL_BACKGROUND2_COLOR);
-	  char version[] = _VERSION;
-	  char *about="<html><body>"
+	  const char version[] = _VERSION;
+	  const char *about="<html><body>"
 		  "<i><center>version %s</center></i><br>"
 		  "<p><br>a standalone industrial grade softwaresynthesizer for Linux<br>"
 		  "<p><br>developed by Malte Steiner 2007-2009"
