@@ -19,7 +19,7 @@
 //  gcc -o synthesizer synth2.c -ljack -ffast-math -O3 -march=k8 -mtune=k8 -funit-at-a-time -fpeel-loops -ftracer -funswitch-loops -llo -lasound
 
 #include <jack/jack.h>
-//#include <jack/midiport.h> // later we use the jack midi ports too, but not this time
+#include <jack/midiport.h>
 #include <signal.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -58,7 +58,8 @@ int EGrepeat[_MULTITEMP][8] __attribute__((aligned (16)));
 unsigned int EGtrigger[_MULTITEMP][8] __attribute__((aligned (16)));
 unsigned int EGstate[_MULTITEMP][8] __attribute__((aligned (16)));
 float high[_MULTITEMP][4],band[_MULTITEMP][4],low[_MULTITEMP][4],f[_MULTITEMP][4],q[_MULTITEMP][4],v[_MULTITEMP][4],faktor[_MULTITEMP][4];
-jack_port_t   *port[_MULTITEMP + 4]; // _multitemp * ports + 2 mix and 2 aux
+jack_port_t *port[_MULTITEMP + 4]; // _multitemp * ports + 2 mix and 2 aux
+jack_port_t *_jack_midipt;
 unsigned int lastnote[_MULTITEMP];
 unsigned int hold[_MULTITEMP];
 unsigned int heldnote[_MULTITEMP];
@@ -85,7 +86,7 @@ float tabX = tabF / 48000.0f;
 float srate = 3.145f/ 48000.f;
 float srDivisor = 1.f / 48000.f*100000.f;
 int i,delayBufferSize=0,maxDelayBufferSize=0,maxDelayTime=0;
-jack_nframes_t 	bufsize;
+jack_nframes_t bufsize;
 int done = 0;
 static const float anti_denormal = 1e-20;// magic number to get rid of denormalizing
 
@@ -170,7 +171,7 @@ static inline int generic_handler(const char *path, const char *types, lo_arg **
 static inline int foo_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data); 
 static inline int quit_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
 static inline int midi_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
-
+static inline void doNoteOn(int c, int n, int v);
 
 /* inlined manually
 static inline float Oscillator(float frequency,int wave,float *phase)
@@ -424,19 +425,79 @@ int process(jack_nframes_t nframes, void *arg) {
 	float *bufferAux1 = (float*) jack_port_get_buffer(port[10], nframes);
 	float *bufferAux2 = (float*) jack_port_get_buffer(port[11], nframes);
 	
-	// functions for including JACK Midi later, commented out for now
-	/*jack_midi_port_info_t* info;
-		void* buf;
-		jack_midi_event_t ev;
-	
-	
-		buf = jack_port_get_buffer(inbuf, bufsize);
-		info = jack_midi_port_get_info(buf, bufsize);
-		for(index=0; index<info->event_count; ++index)
+	// functions for including JACK Midi
+    void* buf;
+    jack_midi_event_t ev;
+    buf = jack_port_get_buffer(_jack_midipt, nframes);
+//    jack_nframes_t evcount = jack_midi_get_event_count(_jack_midipt); // Always 0 ??
+//        jack_midi_port_info_t* info;
+//		info = jack_midi_port_get_info(buf, bufsize);
+    int index1=0;
+    //tmax=64*(nframes+1)
+    while (   (jack_midi_event_get (&ev, buf, index1) == 0)
+      )//&& index1<evcount)
+//		for(index=0; index<jack_midi_get_event_count (buf); ++index)
 		{
-			jack_midi_event_get(&ev, buf, index, nframes);
+#ifdef _DEBUG         
+            printf("jack midi in event size %u\n", ev.size);
+#endif
+            if(ev.size==3){
+                int t, n, v, c;
+                t = ev.buffer [0];
+                n = ev.buffer [1];
+                v = ev.buffer [2];
+                c = t & 0x0F;
+                if (c<8){
+                    switch(t & 0xF0){ // Note on
+                        case 0x90:{
+                            doNoteOn(c, n, v);
+                            break;
+                        }
+                        case 0x80:{ // Note off
+                            doNoteOn(c, n, 0);
+                            break;
+                        }
+                        // Untested
+                        case 0xB0:{ // Control change
+                            switch(n){ // Controller number
+                              case 120:{ // All sound off
+                                // Shut down main envelope (number 0) immediately
+                                EG[c][0][6] = 0.0f;
+                                EGtrigger[c][0] = 0;
+                                EGstate[c][0] = 0;
+                                lo_send(t, "/Minicomputer/EG", "iii", c, 0, EGstate[c][0]);
+                                // Fall through all note off
+                              }
+                              case 123:{ // All note off
+                                doNoteOn(c,lastnote[c], 0);
+                                break;
+                              }
+                              case 64:{ // Hold
+                                if(v>63){ // Hold on
+                                    hold[c]=1;
+                                }else{ // Hold off
+                                    hold[c]=0;
+                                    if (heldnote[c]){
+                                    // note is held if note_off occurs while hold is on
+                                    // There is no attempt at polyphonic keyboard handling
+                                        doNoteOn(c, heldnote[c], 0); // Do a note_off
+                                        heldnote[c]=0;
+                                    }
+                                }
+                                break;
+                              }
+                            }
+                            break;
+                        } // End of control change
+                    }
+                }
+#ifdef _DEBUG         
+                printf("jack midi in t: %u n: %u v: %u c: %u\n", t, n, v, c);
+#endif
+            }
+            ++index1;
 		}
-	*/
+	
 
 	/* main loop */
 	register unsigned int index;
@@ -1329,7 +1390,7 @@ int i;
 	printf("Server OSC input port %s\n",oport);
 	sprintf(jackName,"Minicomputer%s",oport);// store globally a unique name
 
-// ------------------------ midi init ---------------------------------
+// ------------------------ ALSA midi init ---------------------------------
 	pthread_t midithread;
 	seq_handle = open_seq();
  
@@ -1359,7 +1420,7 @@ int i;
 
 	lo_server_thread_start(st);
 
-	// init for input
+	// init for output
 	oport2=(char *)malloc(80);
 	snprintf(oport2, 80, "%d", atoi(oport)+1);
 	printf("Server OSC output port: \"%s\"\n", oport2);
@@ -1380,8 +1441,8 @@ int i;
 	}
 
 	/* we register the output ports and tell jack these are 
-	 * terminal ports which means we don't 
-	 * have any input ports from which we could somhow 
+	 * terminal ports which means we don't
+	 * have any input ports from which we could somehow 
 	 * feed our output */
 	port[0] = jack_port_register(client, "output1", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput|JackPortIsTerminal, 0);
 	port[1] = jack_port_register(client, "output2", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput|JackPortIsTerminal, 0);
@@ -1399,6 +1460,12 @@ int i;
 	port[8] = jack_port_register(client, "mix out left", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput|JackPortIsTerminal, 0);
 	port[9] = jack_port_register(client, "mix out right", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput|JackPortIsTerminal, 0);
 
+    _jack_midipt = jack_port_register (client, "Midi/in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
+    if (!_jack_midipt)
+    {
+	    fprintf (stderr, "Error: can't create the 'Midi/in' jack port\n");
+	    exit (1);
+	}
 	//inbuf = jack_port_register(client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
 	/* jack is callback based. That means we register 
 	 * a callback function (see process() above)
