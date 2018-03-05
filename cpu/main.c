@@ -447,7 +447,8 @@ int process(jack_nframes_t nframes, void *arg) {
                 n = ev.buffer [1];
                 v = ev.buffer [2];
                 c = t & 0x0F;
-                if (c<8){
+                // Much duplicate code below - should be factored out
+                if (c<_MULTITEMP){
                     switch(t & 0xF0){ // Note on
                         case 0x90:{
                             doNoteOn(c, n, v);
@@ -458,24 +459,68 @@ int process(jack_nframes_t nframes, void *arg) {
                             break;
                         }
                         // Untested
+                        case 0xE0:{ // Pitch bend
+                            modulator[c][2]=((v<<7)+n)*0.0001221f; // /8192.f;
+                            break;
+                        }
                         case 0xB0:{ // Control change
                             switch(n){ // Controller number
-                              case 120:{ // All sound off
-                                // Shut down main envelope (number 0) immediately
-                                EG[c][0][6] = 0.0f;
-                                EGtrigger[c][0] = 0;
-                                EGstate[c][0] = 0;
-                                lo_send(t, "/Minicomputer/EG", "iii", c, 0, EGstate[c][0]);
-                                // Fall through all note off
-                              }
-                              case 123:{ // All note off
-                                doNoteOn(c,lastnote[c], 0);
-                                break;
-                              }
-                              case 64:{ // Hold
-                                if(v>63){ // Hold on
+                                case 1:{ // Modulation
+                                    modulator[c][16]=v*0.007874f; // /127.f
+                                    break;
+                                }
+                                case 12:{ // Effect controller 1
+                                    modulator[c][17]=v*0.007874f; // /127.f
+                                    break;
+                                }
+                                case 2:{ // Breath controller
+                                    modulator[c][20]=v*0.007874f; // /127.f
+                                    break;
+                                }
+                                case 3:{ // Undefined
+                                    modulator[c][21]=v*0.007874f; // /127.f
+                                    break;
+                                }
+                                case 4:{ // Foot controller
+                                    modulator[c][22]=v*0.007874f; // /127.f
+                                    break;
+                                }
+                                case 5:{ // Portamento time
+                                    modulator[c][23]=v*0.007874f; // /127.f
+                                    break;
+                                }
+                                case 14:{ // Undefined
+                                    modulator[c][24]=v*0.007874f; // /127.f
+                                    break;
+                                }
+                                case 15:{ // Undefined
+                                    modulator[c][25]=v*0.007874f; // /127.f
+                                    break;
+                                }
+                                case 16:{ // General purpose
+                                    modulator[c][26]=v*0.007874f; // /127.f
+                                    break;
+                                }
+                                case 17:{ // General purpose
+                                    modulator[c][27]=v*0.007874f; // /127.f
+                                    break;
+                                }
+                                case 120:{ // All sound off
+                                  // Shut down main envelope (number 0) immediately
+                                  EG[c][0][6] = 0.0f;
+                                  EGtrigger[c][0] = 0;
+                                  EGstate[c][0] = 0;
+                                  lo_send(t, "/Minicomputer/EG", "iii", c, 0, EGstate[c][0]);
+                                  // Fall through all note off
+                                }
+                                case 123:{ // All note off
+                                  doNoteOn(c,lastnote[c], 0);
+                                  break;
+                                }
+                                case 64:{ // Hold
+                                  if(v>63){ // Hold on
                                     hold[c]=1;
-                                }else{ // Hold off
+                                  }else{ // Hold off
                                     hold[c]=0;
                                     if (heldnote[c]){
                                     // note is held if note_off occurs while hold is on
@@ -483,9 +528,9 @@ int process(jack_nframes_t nframes, void *arg) {
                                         doNoteOn(c, heldnote[c], 0); // Do a note_off
                                         heldnote[c]=0;
                                     }
+                                  }
+                                  break;
                                 }
-                                break;
-                              }
                             }
                             break;
                         } // End of control change
