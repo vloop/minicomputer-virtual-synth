@@ -35,6 +35,7 @@ struct pollfd *pfd;
 char midiName[64]="MinicomputerEditor";// signifier for midiconnections, to be filled with OSC port number
 lo_address t;
 bool lo_error=false;
+int bank[_MULTITEMP];
 
 // some common definitions
 Memory Speicher;
@@ -151,31 +152,38 @@ if (poll(pfd, npfd, 100000) > 0)
 			Schaltbrett.changeMulti(value);
 		}
 	}
-	else if ((channel>=0) && (channel<8)) 
+	else if ((channel>=0) && (channel<_MULTITEMP)) 
 	{
 		//program change on the sounds
 		if ((value>-1) && (value <128))
 		{
-			Schaltbrett.changeSound(channel,value);
+			Schaltbrett.changeSound(channel,value+((bank[channel])<<7));
 		}
 
 	}
 		break;
 	  }
-	/*
 	  case SND_SEQ_EVENT_CONTROLLER:
 	  {
 #ifdef _DEBUG      
 		fprintf(stderr, "Control event on Channel %2d: %2d %5d       \r",
-				ev->data.control.channel,  ev->data.control.param,ev->data.control.value);
+				ev->data.control.channel, ev->data.control.param, ev->data.control.value);
 #endif		
+        // MIDI Controller  0 = Bank Select MSB (Most Significant Byte)
+        // MIDI Controller 32 = Bank Select LSB (Least Significant Byte)
+		if ((ev->data.control.param==32) && (ev->data.control.value <4) && (ev->data.control.channel<_MULTITEMP)){
+            printf("Change to bank %u on channel %u\n", ev->data.control.value, ev->data.control.channel);
+            bank[ev->data.control.channel]=ev->data.control.value;
+        }
+        /*
 		if  (ev->data.control.param==1)   
 			  modulator[ev->data.control.channel][ 16]=(float)ev->data.control.value*0.007874f; // /127.f;
 			  else 
 			  if  (ev->data.control.param==12)   
 			  modulator[ev->data.control.channel][ 17]=(float)ev->data.control.value*0.007874f;// /127.f;
+        */
 		break;
-	  }*/
+	  }
 	  /*
 	  case SND_SEQ_EVENT_PITCHBEND:
 	  {

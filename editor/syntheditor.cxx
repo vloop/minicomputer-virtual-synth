@@ -1495,14 +1495,17 @@ void UserInterface::changeMulti(int pgm)
  * @param int the voice between 0 and 7 (it is not clear if the first Midi channel is 1 (which is usually the case in the hardware world) or 0)
  * @param int the Program number between 0 and 127
  */
-void UserInterface::changeSound(int channel,int pgm)
+void UserInterface::changeSound(int channel, int pgm)
 {
-	if ((channel >-1) && (channel < 8) && (pgm>-1) && (pgm<128))
+	if ((channel >-1) && (channel < 8) && (pgm>-1) && (pgm<512))
 	{
 	Fl::lock();
 		int t = currentsound;
+        char temp_name[128];
 		currentsound = channel;
-		schoice[channel]->value(Speicher.getName(0,pgm).c_str());
+        strnrtrim(temp_name, Speicher.getName(0,pgm).c_str(),128);
+        printf("Change to sound %u \"%s\"\n", pgm, temp_name);
+		schoice[channel]->value(temp_name);
 		//schoice[channel]->damage(FL_DAMAGE_ALL);
 		//schoice[channel]->redraw();
 		Rollers[channel]->value(pgm);// set gui
