@@ -172,7 +172,9 @@ if (poll(pfd, npfd, 100000) > 0)
         // MIDI Controller  0 = Bank Select MSB (Most Significant Byte)
         // MIDI Controller 32 = Bank Select LSB (Least Significant Byte)
 		if ((ev->data.control.param==32) && (ev->data.control.value <4) && (ev->data.control.channel<_MULTITEMP)){
+#ifdef _DEBUG
             printf("Change to bank %u on channel %u\n", ev->data.control.value, ev->data.control.channel);
+#endif		
             bank[ev->data.control.channel]=ev->data.control.value;
         }
         /*

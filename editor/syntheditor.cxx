@@ -1504,7 +1504,9 @@ void UserInterface::changeSound(int channel, int pgm)
         char temp_name[128];
 		currentsound = channel;
         strnrtrim(temp_name, Speicher.getName(0,pgm).c_str(),128);
+#ifdef _DEBUG
         printf("Change to sound %u \"%s\"\n", pgm, temp_name);
+#endif
 		schoice[channel]->value(temp_name);
 		//schoice[channel]->damage(FL_DAMAGE_ALL);
 		//schoice[channel]->redraw();
