@@ -68,6 +68,9 @@ extern Memory Speicher;
 #define _LOGO_WIDTH 191
 #define _LOGO_HEIGHT 99
 
+// One tab per voice plus midi and about
+#define _TABCOUNT _MULTITEMP+2
+
 /*
 class Fl_SteinerKnob:public Fl_Dial
 {
@@ -126,7 +129,7 @@ public:
   Fl_Input* soundchoice[_MULTITEMP];
   Fl_Input* multichoice;
 private:
-  string tablabel[9];
+  string tablabel[_TABCOUNT];
   // unsigned char idata_miniMini2[191*99*3];
   // Fl_RGB_Image image_miniMini2(idata_miniMini2, 191, 99, 3, 0);
 

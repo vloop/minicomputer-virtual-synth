@@ -29,12 +29,18 @@
 #include <string.h>
 #include <alsa/asoundlib.h>
 #include <pthread.h>
+#include <float.h>
+// #include <limits.h>
+// This works only for c++
+// #include <cmath.h>
+// double epsilon = std::numeric_limits<float>::min();
+
 // some common definitions
 #include "../common.h" 
+
 // defines
 #define _MODCOUNT 32
 #define _WAVECOUNT 32
-// define _CHOICEMAX 16 // Replaced by _CHOICECOUNT
 
 // Table size must be a power of 2 so that we can use & instead of %
 #define TableSize 4096
@@ -45,11 +51,11 @@
 //#define _DEBUG
 
 // variables
+// Should define a struct for voice
 float delayBuffer[_MULTITEMP][96000] __attribute__((aligned (16)));
-float table [_WAVECOUNT][TableSize] __attribute__((aligned (16)));
 float parameter[_MULTITEMP][_PARACOUNT] __attribute__((aligned (16)));
 float modulator[_MULTITEMP][_MODCOUNT] __attribute__((aligned (16)));
-float midi2freq [128],midif[_MULTITEMP] __attribute__((aligned (16)));
+float midif[_MULTITEMP] __attribute__((aligned (16)));
 float EG[_MULTITEMP][8][8] __attribute__((aligned (16))); // 7 8
 float EGFaktor[_MULTITEMP][8] __attribute__((aligned (16)));
 float phase[_MULTITEMP][4] __attribute__((aligned (16)));//=0.f;
@@ -58,16 +64,24 @@ int EGrepeat[_MULTITEMP][8] __attribute__((aligned (16)));
 unsigned int EGtrigger[_MULTITEMP][8] __attribute__((aligned (16)));
 unsigned int EGstate[_MULTITEMP][8] __attribute__((aligned (16)));
 float high[_MULTITEMP][4],band[_MULTITEMP][4],low[_MULTITEMP][4],f[_MULTITEMP][4],q[_MULTITEMP][4],v[_MULTITEMP][4],faktor[_MULTITEMP][4];
-jack_port_t *port[_MULTITEMP + 4]; // _multitemp * ports + 2 mix and 2 aux
-jack_port_t *_jack_midipt;
 unsigned int lastnote[_MULTITEMP];
 unsigned int hold[_MULTITEMP];
 unsigned int heldnote[_MULTITEMP];
 float glide[_MULTITEMP];
-int delayI[_MULTITEMP],delayJ[_MULTITEMP];
-lo_address t;
+int delayI[_MULTITEMP], delayJ[_MULTITEMP];
 float sub[_MULTITEMP];
 int subMSB[_MULTITEMP];
+int channel[_MULTITEMP];
+// note-based filtering useful for drumkit multis
+int note_min[_MULTITEMP];
+int note_max[_MULTITEMP];
+
+jack_port_t *port[_MULTITEMP + 4]; // _multitemp * ports + 2 mix and 2 aux
+jack_port_t *_jack_midipt;
+lo_address t;
+
+float table [_WAVECOUNT][TableSize] __attribute__((aligned (16)));
+float midi2freq [128];
 
 char jackName[64]="Minicomputer";// signifier for audio and midiconnections, to be filled with OSC port number
 snd_seq_t *open_seq();
@@ -171,7 +185,9 @@ static inline int generic_handler(const char *path, const char *types, lo_arg **
 static inline int foo_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data); 
 static inline int quit_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
 static inline int midi_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
-static inline void doNoteOn(int c, int n, int v);
+static inline void doNoteOn(int voice, int note, int velocity);
+static inline void doNoteOff(int voice, int note, int velocity);
+static void doMidi(int t, int n, int v);
 
 /* inlined manually
 static inline float Oscillator(float frequency,int wave,float *phase)
@@ -236,6 +252,16 @@ static inline void egStop (const unsigned int voice,const unsigned int number)
 	else
 	  lo_send(t, "/Minicomputer/EG", "iii", voice, number, 0);
 }
+
+static inline void egOff (const unsigned int voice)
+{
+	// Shut down main envelope (number 0) immediately
+	EG[voice][0][6] = 0.0f;
+	EGtrigger[voice][0] = 0;
+	EGstate[voice][0] = 0;
+	lo_send(t, "/Minicomputer/EG", "iii", voice, 0, EGstate[voice][0]);
+}
+
 /**
  * calculate the envelope, done in audiorate to avoide zippernoise
  * @param the voice number
@@ -425,122 +451,28 @@ int process(jack_nframes_t nframes, void *arg) {
 	float *bufferAux1 = (float*) jack_port_get_buffer(port[10], nframes);
 	float *bufferAux2 = (float*) jack_port_get_buffer(port[11], nframes);
 	
-	// functions for including JACK Midi
-    void* buf;
-    jack_midi_event_t ev;
-    buf = jack_port_get_buffer(_jack_midipt, nframes);
+	// JACK Midi handling
+	void* buf;
+	jack_midi_event_t ev;
+	buf = jack_port_get_buffer(_jack_midipt, nframes);
 //    jack_nframes_t evcount = jack_midi_get_event_count(_jack_midipt); // Always 0 ??
 //        jack_midi_port_info_t* info;
 //		info = jack_midi_port_get_info(buf, bufsize);
-    int index1=0;
-    //tmax=64*(nframes+1)
-    while (   (jack_midi_event_get (&ev, buf, index1) == 0)
-      )//&& index1<evcount)
+	int index1=0;
+	while ((jack_midi_event_get (&ev, buf, index1) == 0)
+	  )//&& index1<evcount)
 //		for(index=0; index<jack_midi_get_event_count (buf); ++index)
 		{
 #ifdef _DEBUG         
-            printf("jack midi in event size %u\n", ev.size);
+			printf("jack midi in event size %u\n", ev.size);
 #endif
-            if(ev.size==3){
-                int t, n, v, c;
-                t = ev.buffer [0];
-                n = ev.buffer [1];
-                v = ev.buffer [2];
-                c = t & 0x0F;
-                // Much duplicate code below - should be factored out
-                if (c<_MULTITEMP){
-                    switch(t & 0xF0){ // Note on
-                        case 0x90:{
-                            doNoteOn(c, n, v);
-                            break;
-                        }
-                        case 0x80:{ // Note off
-                            doNoteOn(c, n, 0);
-                            break;
-                        }
-                        // Untested
-                        case 0xE0:{ // Pitch bend
-                            modulator[c][2]=((v<<7)+n)*0.0001221f; // /8192.f;
-                            break;
-                        }
-                        case 0xB0:{ // Control change
-                            switch(n){ // Controller number
-                                case 1:{ // Modulation
-                                    modulator[c][16]=v*0.007874f; // /127.f
-                                    break;
-                                }
-                                case 12:{ // Effect controller 1
-                                    modulator[c][17]=v*0.007874f; // /127.f
-                                    break;
-                                }
-                                case 2:{ // Breath controller
-                                    modulator[c][20]=v*0.007874f; // /127.f
-                                    break;
-                                }
-                                case 3:{ // Undefined
-                                    modulator[c][21]=v*0.007874f; // /127.f
-                                    break;
-                                }
-                                case 4:{ // Foot controller
-                                    modulator[c][22]=v*0.007874f; // /127.f
-                                    break;
-                                }
-                                case 5:{ // Portamento time
-                                    modulator[c][23]=v*0.007874f; // /127.f
-                                    break;
-                                }
-                                case 14:{ // Undefined
-                                    modulator[c][24]=v*0.007874f; // /127.f
-                                    break;
-                                }
-                                case 15:{ // Undefined
-                                    modulator[c][25]=v*0.007874f; // /127.f
-                                    break;
-                                }
-                                case 16:{ // General purpose
-                                    modulator[c][26]=v*0.007874f; // /127.f
-                                    break;
-                                }
-                                case 17:{ // General purpose
-                                    modulator[c][27]=v*0.007874f; // /127.f
-                                    break;
-                                }
-                                case 120:{ // All sound off
-                                  // Shut down main envelope (number 0) immediately
-                                  EG[c][0][6] = 0.0f;
-                                  EGtrigger[c][0] = 0;
-                                  EGstate[c][0] = 0;
-                                  lo_send(t, "/Minicomputer/EG", "iii", c, 0, EGstate[c][0]);
-                                  // Fall through all note off
-                                }
-                                case 123:{ // All note off
-                                  doNoteOn(c,lastnote[c], 0);
-                                  break;
-                                }
-                                case 64:{ // Hold
-                                  if(v>63){ // Hold on
-                                    hold[c]=1;
-                                  }else{ // Hold off
-                                    hold[c]=0;
-                                    if (heldnote[c]){
-                                    // note is held if note_off occurs while hold is on
-                                    // There is no attempt at polyphonic keyboard handling
-                                        doNoteOn(c, heldnote[c], 0); // Do a note_off
-                                        heldnote[c]=0;
-                                    }
-                                  }
-                                  break;
-                                }
-                            }
-                            break;
-                        } // End of control change
-                    }
-                }
-#ifdef _DEBUG         
-                printf("jack midi in t: %u n: %u v: %u c: %u\n", t, n, v, c);
-#endif
-            }
-            ++index1;
+			if(ev.size==3){
+				int t, n, v, c;
+				doMidi(ev.buffer[0], ev.buffer[1], ev.buffer[2]);
+			} else if(ev.size==2){ // For example channel pressure
+				doMidi(ev.buffer[0], ev.buffer[1], 0);
+			}
+			++index1;
 		}
 	
 
@@ -634,7 +566,9 @@ int process(jack_nframes_t nframes, void *arg) {
 		mod[14] = table[choi[12]][iP3] ;
 
 // --------------- calculate the parameters and modulations of main oscillators 1 and 2
-		glide[currentvoice]*=param[116]; // *srDivisor? what about denorm ??
+		glide[currentvoice]*=param[116]; // *srDivisor?? or may be unconsistent across sample rates
+		// what about denorm ??
+		// if(glide[currentvoice]< FLT_MIN/param[116]) glide[currentvoice]=0;
 		// guard values
 		tf = param[1];
 		tf *=param[2];
@@ -1065,6 +999,10 @@ void init ()
 	unsigned int i, k;
 	for (k=0;k<_MULTITEMP;k++)// k is here the voice number
 	{
+		channel[k]=k;
+		note_min[k]=0;
+		note_max[k]=127;
+
 		for (i=0;i<_EGCOUNT;i++) // i is the number of envelope
 		{
 			EG[k][i][1]=0.01f;
@@ -1099,6 +1037,7 @@ void init ()
 			high[k][i]=0;
 		}
 	}
+
 	float PI=3.145;
 	float increment = (float)(PI*2) / (float)TableSize;
 	float x = 0.0f;
@@ -1194,41 +1133,163 @@ void init ()
 
 } // end of initialization
 
-static inline void doNoteOn(int c, int n, int v){
-	if (c <_MULTITEMP){
-		if (v>0){
-			heldnote[c]=0;
-			lastnote[c]=n;
-			glide[c]+=midi2freq[n]-midif[c]; // Span between previous and new note
-			if(EGstate[c][0]==4){
-				glide[c]=0; // Don't glide from finished note
+void doControlChange(int voice, int n, int v){
+	// voice number (not necessarily the same as channel)
+	if  (voice <_MULTITEMP)
+	{
+		switch(n){ // Controller number
+			case 1:{ // Modulation
+				modulator[voice][16]=v*0.007874f; // /127.f
+				break;
 			}
-
-			midif[c]=midi2freq[n];// lookup the frequency
-			// 1/127=0,007874015748...
-			modulator[c][19]=n*0.007874f;// fill the value in as normalized modulator
-			modulator[c][1]=(float)1.f-(v*0.007874f);// fill in the velocity as modulator
-			egStart(c,0);// start the engines!
-			// Maybe optionally restart repeatable envelopes too, i.e free-run boutton?
-			if (EGrepeat[c][1] == 0) egStart(c,1);
-			if (EGrepeat[c][2] == 0) egStart(c,2);
-			if (EGrepeat[c][3] == 0) egStart(c,3);
-			if (EGrepeat[c][4] == 0) egStart(c,4);
-			if (EGrepeat[c][5] == 0) egStart(c,5);
-			if (EGrepeat[c][6] == 0) egStart(c,6);
-		}else{ // if velo == 0 it should be handled as noteoff...
-			if(n==lastnote[c]){ // Ignore release for old notes
-				if(hold[c]){
-					heldnote[c]=n;
-				}else{
-					egStop(c,0);  
-					if (EGrepeat[c][1] == 0) egStop(c,1);  
-					if (EGrepeat[c][2] == 0) egStop(c,2); 
-					if (EGrepeat[c][3] == 0) egStop(c,3); 
-					if (EGrepeat[c][4] == 0) egStop(c,4);  
-					if (EGrepeat[c][5] == 0) egStop(c,5);  
-					if (EGrepeat[c][6] == 0) egStop(c,6);                                
+			case 12:{ // Effect controller 1
+				modulator[voice][17]=v*0.007874f; // /127.f
+				break;
+			}
+			case 2:{ // Breath controller
+				modulator[voice][20]=v*0.007874f; // /127.f
+				break;
+			}
+			case 3:{ // Undefined
+				modulator[voice][21]=v*0.007874f; // /127.f
+				break;
+			}
+			case 4:{ // Foot controller
+				modulator[voice][22]=v*0.007874f; // /127.f
+				break;
+			}
+			case 5:{ // Portamento time
+				modulator[voice][23]=v*0.007874f; // /127.f
+				break;
+			}
+			case 14:{ // Undefined
+				modulator[voice][24]=v*0.007874f; // /127.f
+				break;
+			}
+			case 15:{ // Undefined
+				modulator[voice][25]=v*0.007874f; // /127.f
+				break;
+			}
+			case 16:{ // General purpose
+				modulator[voice][26]=v*0.007874f; // /127.f
+				break;
+			}
+			case 17:{ // General purpose
+				modulator[voice][27]=v*0.007874f; // /127.f
+				break;
+			}
+			case 120:{ // All sound off
+				egOff(voice); // Instant mute except delay??
+				// Fall through all note off
+			}
+			case 123:{ // All note off
+				doNoteOff(voice, lastnote[voice], 0);
+				break;
+			}
+			case 64:{ // Hold
+				if(v>63){ // Hold on
+					hold[voice]=1;
+				}else{ // Hold off
+					hold[voice]=0;
+					if (heldnote[voice]){
+					// note is held if note_off occurs while hold is on
+					// There is no attempt at polyphonic keyboard handling
+						doNoteOff(voice, heldnote[voice], 0); // Do a note_off
+						heldnote[voice]=0;
+					}
 				}
+				break;
+			}
+		}
+	}
+}
+
+void doMidi(int status, int n, int v){
+	int c = status & 0x0F;
+	int t = status & 0xF0;
+	int voice;
+#ifdef _DEBUG      
+	fprintf(stderr,"doMidi %u %u %u\n", status, n, v);
+#endif
+	// if (voice<_MULTITEMP){
+	for(voice=0; voice<_MULTITEMP; voice++){
+		if(channel[voice]==c){
+			switch(t){
+				case 0x90:{ // Note on
+					doNoteOn(voice, n, v);
+					break;
+				}
+				case 0x80:{ // Note off
+					doNoteOff(voice, n, v);
+					break;
+				}
+				case 0xD0: // Channel pressure
+				{
+					modulator[voice][15]=(float)n*0.007874f; // /127.f
+					break;
+				}
+				case 0xE0:{ // Pitch bend ?? needs bias; f mod has a strange behaviour for <0
+					modulator[voice][2]=((v<<7)+n)*0.00012207f; // /8192.f;
+					// modulator[voice][2]=(((v<<7)+n)-8192)*0.00012207f; // /8192.f;
+#ifdef _DEBUG
+					printf("Pitch bend %u -> %u %f\n", c, voice, (((v<<7)+n)-8192)*0.0001221f);
+#endif
+					break;
+				}
+				case 0xB0:{ // Control change
+					doControlChange(voice, n, v);
+					break;
+				}
+			}
+		}
+	}
+}
+
+static inline void doNoteOff(int voice, int note, int velocity){
+	// Velocity currently ignored
+	if (voice <_MULTITEMP){
+		if(note==lastnote[voice]){ // Ignore release for old notes
+			if(hold[voice]){
+				heldnote[voice]=note;
+			}else{
+				egStop(voice,0);  
+				if (EGrepeat[voice][1] == 0) egStop(voice,1);  
+				if (EGrepeat[voice][2] == 0) egStop(voice,2); 
+				if (EGrepeat[voice][3] == 0) egStop(voice,3); 
+				if (EGrepeat[voice][4] == 0) egStop(voice,4);  
+				if (EGrepeat[voice][5] == 0) egStop(voice,5);  
+				if (EGrepeat[voice][6] == 0) egStop(voice,6);                                
+			}
+		}
+	}
+}
+
+static inline void doNoteOn(int voice, int note, int velocity){
+	if (voice <_MULTITEMP){
+		if ((note>=note_min[voice]) && (note<=note_max[voice])){
+			if (velocity>0){
+				heldnote[voice]=0;
+				lastnote[voice]=note;
+				glide[voice]+=midi2freq[note]-midif[voice]; // Span between previous and new note
+				if(EGstate[voice][0]==4){
+					glide[voice]=0; // Don't glide from finished note
+				}
+
+				midif[voice]=midi2freq[note];// lookup the frequency
+				// 1/127=0,007874015748...
+				modulator[voice][19]=note*0.007874f;// fill the value in as normalized modulator
+				modulator[voice][1]=(float)1.f-(velocity*0.007874f);// fill in the velocity as modulator
+				// why is velocity inverted??
+				egStart(voice,0);// start the engines!
+				// Maybe optionally restart repeatable envelopes too, i.e free-run boutton?
+				if (EGrepeat[voice][1] == 0) egStart(voice,1);
+				if (EGrepeat[voice][2] == 0) egStart(voice,2);
+				if (EGrepeat[voice][3] == 0) egStart(voice,3);
+				if (EGrepeat[voice][4] == 0) egStart(voice,4);
+				if (EGrepeat[voice][5] == 0) egStart(voice,5);
+				if (EGrepeat[voice][6] == 0) egStart(voice,6);
+			}else{ // if velo == 0 it should be handled as noteoff...
+				doNoteOff(voice, note, velocity);
 			}
 		}
 	}
@@ -1260,7 +1321,8 @@ static void *midiprocessor(void *handle) {
 	printf("start\n");
  	fflush(stdout);
 	#endif
-	unsigned int c = _MULTITEMP; // channel of incomming data
+	unsigned int c = _MULTITEMP; // channel of incoming data
+	int voice;
 	#ifdef _MIDIBLOCK
 	do {
 	#else
@@ -1271,7 +1333,7 @@ static void *midiprocessor(void *handle) {
 	   {
 		if (ev != NULL)
 		{
-		if (ev->type != 36)
+		if (ev->type != 36) // discard SND_SEQ_EVENT_CLOCK
 		switch (ev->type) 
 		{	// first check the controllers
 			// they usually come in hordes
@@ -1280,8 +1342,13 @@ static void *midiprocessor(void *handle) {
 				c = ev->data.control.channel;
 			#ifdef _DEBUG      
 				fprintf(stderr, "Control event on Channel %2d: %2d %5d       \r",
-				c,  ev->data.control.param,ev->data.control.value);
-			#endif		
+				c,  ev->data.control.param, ev->data.control.value);
+			#endif
+				for(voice=0; voice<_MULTITEMP; voice++){
+					if(channel[voice]==c)
+						doControlChange(voice, ev->data.control.param, ev->data.control.value);
+				}
+			/* Factored out, see above
 				if  (c <_MULTITEMP)
 				{
 					if  (ev->data.control.param==1)   
@@ -1330,6 +1397,7 @@ static void *midiprocessor(void *handle) {
 						}
 					}
 				}
+				*/
 				break;
 			}
 			case SND_SEQ_EVENT_PITCHBEND:
@@ -1338,9 +1406,11 @@ static void *midiprocessor(void *handle) {
 			#ifdef _DEBUG      
 				fprintf(stderr,"Pitchbender event on Channel %2d: %5d   \r", 
 				c, ev->data.control.value);
-			#endif		
-				if (c<_MULTITEMP)
-					modulator[c][2]=ev->data.control.value*0.0001221f; // /8192.f;
+			#endif
+				for(voice=0; voice<_MULTITEMP; voice++){
+					if(channel[voice]==c)
+						modulator[voice][2]=ev->data.control.value*0.0001221f; // /8192.f;
+				}
 			break;
 			}   
 			case SND_SEQ_EVENT_CHANPRESS:
@@ -1349,49 +1419,60 @@ static void *midiprocessor(void *handle) {
 				#ifdef _DEBUG      
 				fprintf(stderr,"touch event on Channel %2d: %5d   \r", 
 				c, ev->data.control.value);
-				#endif		
-				if (c<_MULTITEMP)
-					modulator[c][ 15]=(float)ev->data.control.value*0.007874f;
+				#endif
+				for(voice=0; voice<_MULTITEMP; voice++){
+					if(channel[voice]==c)
+						modulator[voice][15]=(float)ev->data.control.value*0.007874f;
+				}
 			break;
 			}
 
 			case SND_SEQ_EVENT_NOTEON:
 			{   
 				c = ev->data.note.channel;
-			#ifdef _DEBUG      
-				fprintf(stderr, "Note On event on Channel %2d: %5d       \r",
+#ifdef _DEBUG      
+				fprint("Note On event on Channel %2d: %5d       \r",
 				c, ev->data.note.note);
-			#endif
-				fprintf(stderr, "Note On event %u \r",EGstate[c][0]);
-				doNoteOn(c, ev->data.note.note, ev->data.note.velocity);
+				fprint("Note On event %u \r",EGstate[c][0]);
+#endif
+				for(voice=0; voice<_MULTITEMP; voice++){
+					if(channel[voice]==c){
+#ifdef _DEBUG      
+						printf("midiprocessor note on voice %u channel %u %u..%u : %u %u\n",
+							voice, channel[voice], note_min[voice], note_max[voice], c, ev->data.note.note);
+#endif
+						doNoteOn(voice, ev->data.note.note, ev->data.note.velocity);
+					}
+				}
 				break;
 			}      
 			case SND_SEQ_EVENT_NOTEOFF: 
 			{
-				doNoteOn(ev->data.note.channel, ev->data.note.note, 0);
+				for(voice=0; voice<_MULTITEMP; voice++){
+					if(channel[voice]==ev->data.note.channel)
+						doNoteOff(voice, ev->data.note.note, ev->data.note.velocity);
+				}
 				break;       
 			}
-			
-			#ifdef _DEBUG      
+
+#ifdef _DEBUG      
 			default:
 			{
-	  	
 				fprintf(stderr,"unknown event %d on Channel %2d: %5d   \r",ev->type, 
 				ev->data.control.channel, ev->data.control.value);
 			}
-			#endif		
+#endif
 		}// end of switch
 	snd_seq_free_event(ev);
-	usleep(10);// absolutly necessary, otherwise stream of mididata would block the whole computer, sleep for 1ms == 1000 microseconds
+	usleep(10);// absolutely necessary, otherwise stream of mididata would block the whole computer, sleep for 10 microseconds
 	} // end of if
 #ifdef _MIDIBLOCK
-	usleep(1000);// absolutly necessary, otherwise stream of mididata would block the whole computer, sleep for 1ms == 1000 microseconds
+	usleep(1000);// absolutely necessary, otherwise stream of mididata would block the whole computer, sleep for 1ms == 1000 microseconds
    }
  } while ((quit==0) && (done==0));// doing it as long we are running was  (snd_seq_event_input_pending(seq_handle, 0) > 0);
 #else
-	usleep(100);// absolutly necessary, otherwise stream of mididata would block the whole computer, sleep for 1ms == 1000 microseconds
+	usleep(100);// absolutely necessary, otherwise stream of mididata would block the whole computer, sleep for 100 microseconds
 	}// end of first while, emptying the seqdata queue
-
 	usleep(2000);// absolutly necessary, otherwise this thread would block the whole computer, sleep for 2ms == 2000 microseconds
 } // end of while(quit==0)
 #endif
@@ -1505,11 +1586,11 @@ int i;
 	port[8] = jack_port_register(client, "mix out left", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput|JackPortIsTerminal, 0);
 	port[9] = jack_port_register(client, "mix out right", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput|JackPortIsTerminal, 0);
 
-    _jack_midipt = jack_port_register (client, "Midi/in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
-    if (!_jack_midipt)
-    {
-	    fprintf (stderr, "Error: can't create the 'Midi/in' jack port\n");
-	    exit (1);
+	_jack_midipt = jack_port_register (client, "Midi/in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
+	if (!_jack_midipt)
+	{
+		fprintf (stderr, "Error: can't create the 'Midi/in' jack port\n");
+		exit (1);
 	}
 	//inbuf = jack_port_register(client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
 	/* jack is callback based. That means we register 
@@ -1652,11 +1733,7 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 				case 0xB0:{ // Control change
 					switch(argv[2]->i){ // Controller number
 					  case 120:{ // All sound off
-						// Shut down main envelope (number 0) immediately
-						EG[c][0][6] = 0.0f;
-						EGtrigger[c][0] = 0;
-						EGstate[c][0] = 0;
-						lo_send(t, "/Minicomputer/EG", "iii", c, 0, EGstate[c][0]);
+						egOff(c);
 						// Fall through all note off
 					  }
 					  case 123:{ // All note off
@@ -1690,7 +1767,7 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 	int i =  argv[1]->i;
 	if ((voice<_MULTITEMP) && (i>0) && (i<_PARACOUNT)) 
 	{
-	parameter[voice][i]=argv[2]->f;
+		parameter[voice][i]=argv[2]->f;
 	}
 
 	//if ((i==10) && (parameter[10]!=0)) parameter[10]=1000.f;
@@ -1782,7 +1859,11 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 	 case 103:EG[voice][0][2]=argv[2]->f;break;
 	 case 104:EG[voice][0][3]=argv[2]->f;break;
 	 case 105:EG[voice][0][4]=argv[2]->f;break;
-	 
+
+	 // 125 test note and 126 test velocity intentionally ignored
+	 case 127:channel[voice]=(argv[2]->f)-1;break;
+	 case 128:note_min[voice]=argv[2]->f;break;
+	 case 129:note_max[voice]=argv[2]->f;break;
 	}
 #ifdef _DEBUG
 	printf("foo_handler %i %i %f \n",voice,i,argv[2]->f);

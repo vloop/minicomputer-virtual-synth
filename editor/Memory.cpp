@@ -22,20 +22,20 @@
 Memory::Memory()
 {
 	int i;
-	for (i=0;i<8;++i)
+	for (i=0;i<_MULTITEMP;++i)
 	{
 		choice[i] = 0;
 	}	
 	//char zeichenkette[128];
 	for ( i = 0;i<512;++i)
 	{
-		sprintf(sounds[i].name,"%i untitled",i);
+		sprintf(sounds[i].name,"%i untitled sound",i);
 		//strcpy(sounds[i].name,zeichenkette);
 	}
 	
 	for ( i = 0;i<128;++i)
 	{
-		sprintf(multis[i].name,"%i untitled",i);
+		sprintf(multis[i].name,"%i untitled multi",i);
 		//strcpy(multis[i].name,zeichenkette);
 	}
 	//gotFolder = false;
@@ -131,14 +131,14 @@ char kommand[1200];
   //oa << sounds[i];
 	}
   ofs.close();*/
-  //................................binary format, depricated! ............................
+  //................................binary format, deprecated! ............................
 #ifdef _BINFILE
 FILE *fh; // file handle
 
 	system("mv minicomputerMemory.mcm minicomputerMemory.bak");// make a backup
 	if ((fh=fopen("minicomputerMemory.mcm","wb")) ==NULL)
 	{
-		printf("cant open file minicomputerMemory.mcm\n");
+		printf("can't open file minicomputerMemory.mcm\n");
 		
 	}
 	else
@@ -147,7 +147,7 @@ FILE *fh; // file handle
 	{
 		if ((fwrite(&sounds[i],sizeof(patch),1,fh)) == -1)
 			{
-		 		printf("cant write into minicomputerMemory.mcm\n");
+		 		printf("can't write into minicomputerMemory.mcm\n");
 		 		break;
 			}
 			fseek(fh,0,SEEK_END);
@@ -444,7 +444,7 @@ void Memory::saveMulti()
   	system("minicomputerMulti.mcm minicomputerMulti.bak");
 	if ((fh=fopen("minicomputerMulti.mcm","wb")) ==NULL)
 	{
-		printf("cant open file minicomputerMulti.mcm\n");
+		printf("can't open file minicomputerMulti.mcm\n");
 		
 	}
 	else
@@ -453,7 +453,7 @@ void Memory::saveMulti()
 	{
 		if ((fwrite(&multis[i],sizeof(multi),1,fh)) == -1)
 			{
-		 		printf("cant write into minicomputerMulti.mcm\n");
+		 		printf("can't write into minicomputerMulti.mcm\n");
 		 		break;
 			}
 			fseek(fh,0,SEEK_END);
@@ -461,7 +461,7 @@ void Memory::saveMulti()
 	fclose(fh);
 	}
 #endif
-//---------------------- new textformat
+//---------------------- new text format
 // first write in temporary file, just in case
 
 sprintf(kommand,"%s/minicomputerMulti.temp",folder);
@@ -473,11 +473,11 @@ for (i=0;i<128;++i)// write the whole 128 multis
 	File<< "["<<i<<"]" <<endl;// write the multi id number
 	File<< "'"<<multis[i].name<<"'"<<endl;// write the name of the multi
 	
-	for (p=0;p<8;++p) // store the sound ids of all 8 voices
+	for (p=0;p<_MULTITEMP;++p) // store the sound ids of all 8 voices
 	{
 		File<< "("<< p << ":" <<multis[i].sound[p]<<")"<<endl;
-	for (j=0;j<_MULTISETTINGS;++j)
-		File<< "{"<< p << ";"<< j << ":" <<multis[i].settings[p][j]<<"}"<<endl;
+		for (j=0;j<_MULTISETTINGS;++j)
+			File<< "{"<< p << ";"<< j << ":" <<multis[i].settings[p][j]<<"}"<<endl;
 	}
 }
 

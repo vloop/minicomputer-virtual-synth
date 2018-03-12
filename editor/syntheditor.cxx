@@ -21,7 +21,7 @@ static Fl_RGB_Image image_miniMini(idata_miniMini, _LOGO_WIDTH, _LOGO_HEIGHT, 3,
  Fl_Widget* Knob[_MULTITEMP][_PARACOUNT];
  Fl_Choice* auswahl[_MULTITEMP][_CHOICECOUNT];
  Fl_Value_Input* miniDisplay[_MULTITEMP][13];
- Fl_Widget* tab[9];
+ Fl_Widget* tab[_TABCOUNT];
  Fl_Input* schoice[_MULTITEMP];
  Fl_Roller* Rollers[_MULTITEMP];
  Fl_Roller* multiRoller;
@@ -30,8 +30,8 @@ static Fl_RGB_Image image_miniMini(idata_miniMini, _LOGO_WIDTH, _LOGO_HEIGHT, 3,
  Fl_Toggle_Button* audition;
  int audition_state[_MULTITEMP];
  Fl_Value_Input* paramon;
- Fl_Value_Input* note_number;
- Fl_Value_Input* note_velocity;
+ // Fl_Value_Input* note_number;
+ // Fl_Value_Input* note_velocity;
  Fl_Value_Output *memDisplay[_MULTITEMP];
  Fl_Value_Output *multiDisplay;
  Fl_Input* Multichoice;
@@ -199,7 +199,7 @@ static void tabCallback(Fl_Widget* o, void* )
 {
 Fl::lock();
 	Fl_Widget* e =((Fl_Tabs*)o)->value();
-	if (e==tab[8]) // The "About" tab
+	if (e==tab[8] || e==tab[9]) // The "midi" and the "About" tabs
 	{
 		if (multiDisplay != NULL)
 			multiDisplay->hide();
@@ -234,7 +234,7 @@ Fl::lock();
 			audition->hide();
 		else
 			printf("there seems to be something wrong with audition widget");
-
+/*
 		if (note_number != NULL)
 			note_number->hide();
 		else
@@ -244,6 +244,7 @@ Fl::lock();
 			note_velocity->hide();
 		else
 			printf("there seems to be something wrong with note_velocity widget");
+*/
 	}
 	else // Voice tabs
 	{
@@ -290,7 +291,7 @@ Fl::lock();
 			((Fl_Toggle_Button*)audition)->value(audition_state[currentsound]);
 		}else
 			printf("there seems to be something wrong with audition widget");
-
+/*
 		if (note_number != NULL)
 			note_number->show();
 		else
@@ -300,7 +301,7 @@ Fl::lock();
 			note_velocity->show();
 		else
 			printf("there seems to be something wrong with note_velocity widget");
-
+*/
 #ifdef _DEBUG
 	printf("sound %i\n", currentsound );
 	fflush(stdout);
@@ -338,6 +339,9 @@ currentParameter = ((Fl_Valuator*)o)->argument();
 			case 123: // BPM
 			case 125: // Audition note number
 			case 126: // Audition note velocity
+			case 127: // Midi channel
+			case 128: // Min note
+			case 129: // Max note
 			 break; // do nothing
 			default: 
 				paramon->value(((Fl_Valuator*)o)->value());
@@ -563,7 +567,7 @@ switch (currentParameter)
 	case 50:{
 		float f=0;
 		int Argument=0;
-		
+
 		//if (!isFine)
 		//{
 			f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
@@ -616,21 +620,30 @@ switch (currentParameter)
 		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
 #ifdef _DEBUG
 		printf("%li : %g     \r", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
-#endif		
+#endif
 		break;
 	}
 	
 
 }
-	
+
 #ifdef _DEBUG
 fflush(stdout);
-#endif		
+#endif
 } // end of o != NULL
 
 Fl::awake();
 Fl::unlock();
 } // end of parmCallback
+
+static void midiparmCallback(Fl_Widget* o, void*) {
+	int voice=(((Fl_Valuator*)o)->argument())>>8;
+	int parm=(((Fl_Valuator*)o)->argument())&0xFF;
+	if (transmit)lo_send(t, "/Minicomputer", "iif", voice, parm, ((Fl_Valuator*)o)->value());
+#ifdef _DEBUG
+	printf("%li : %g     \r", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+#endif
+}
 
 /**
  * copybutton parmCallback, called whenever the user wants to copy filterparameters
@@ -1023,6 +1036,11 @@ static void storesound(Fl_Widget* o, void* e)
 	case 107:
 	case 108:
 	case 109:
+	case 125:
+	case 126:
+	case 127:
+	case 128:
+	case 129:
 	{
 		// do nothing
 	}
@@ -1258,24 +1276,26 @@ static void recall(unsigned int preset)
 	break;
 	}
 	
-	// special treatment for the mix knobs, they are saved in the multisetting
+	// special treatment for the mix knobs and midi settings, they are saved in the multisetting
 	case 101:
 	case 106:
 	case 107:
 	case 108:
 	case 109:
+	case 125:
+	case 126:
+	case 127:
+	case 128:
+	case 129:
 	{
-		// do nothing
+		break; // do nothing
 	}
-	break;
 	default:
 	{
 		((Fl_Valuator*)Knob[currentsound][i])->value(Speicher.sounds[Speicher.getChoice(currentsound)].parameter[i]);
 		parmCallback(Knob[currentsound][i],NULL);
 		break;
 	}
-	
-
 }
 		}
 	}
@@ -1350,7 +1370,6 @@ static void loadmulti(Fl_Widget*, void*)
 				printf("i ist %i Speicher ist %i\n",i,Speicher.multis[currentmulti].sound[i]);
 				fflush(stdout);
 			#endif
-			// schoice[i]->value(Speicher.getName(0,Speicher.multis[currentmulti].sound[i]).c_str());// set gui
 			char temp_name[128];
 			strnrtrim(temp_name, Speicher.getName(0,Speicher.multis[currentmulti].sound[i]).c_str(), 128);
 			schoice[i]->value(temp_name);
@@ -1372,16 +1391,21 @@ static void loadmulti(Fl_Widget*, void*)
 				fflush(stdout);
 			#endif
 		}
-		// set the knobs of the mix
+		// set the knobs of the mix, 0..4
 		int MULTI_parm_num[]={101, 106, 107, 108, 109};
 		for (unsigned int j=0; j<sizeof(MULTI_parm_num)/sizeof(int); j++)
 		{
-			#ifdef _DEBUG
-			printf("i:%i j:%i knob:%i\n",i,j,actualknob);
-			fflush(stdout);
-			#endif
 			((Fl_Valuator*)Knob[i][MULTI_parm_num[j]])->value(Speicher.multis[currentmulti].settings[i][j]);
 			parmCallback(Knob[i][MULTI_parm_num[j]],NULL);
+		}
+		// set the midi parameters, 5..9
+		int MIDI_parm_num[]={125, 126, 127, 128, 129};
+		int start=5; // sizeof(MULTI_parm_num)/sizeof(int);
+		for (unsigned int j=0; j<sizeof(MIDI_parm_num)/sizeof(int); j++)
+		{
+			// printf("loadmulti: %u %u %f\n", j, MIDI_parm_num[j], Speicher.multis[currentmulti].settings[i][j+start]);
+			((Fl_Valuator*)Knob[i][MIDI_parm_num[j]])->value(Speicher.multis[currentmulti].settings[i][j+start]);
+			midiparmCallback(Knob[i][MIDI_parm_num[j]],NULL);
 		}
 	}
 	currentsound = 0;
@@ -1436,17 +1460,23 @@ static void storemulti(Fl_Widget* o, void* e)
 	//Schaltbrett.soundchoice-> add(Speicher.getName(i).c_str());
 	// get the knobs of the mix
 	
-	for (i=0;i<8;++i)
+	for (i=0;i<_MULTITEMP;++i)
 	{
 		Speicher.multis[currentmulti].sound[i]=Speicher.getChoice(i);
 #ifdef _DEBUG
 		printf("sound slot: %d = %d\n",i,Speicher.getChoice(i));
 #endif
+		// Indices must match those in loadmulti
 		Speicher.multis[currentmulti].settings[i][0]=((Fl_Valuator*)Knob[i][101])->value();
 		Speicher.multis[currentmulti].settings[i][1]=((Fl_Valuator*)Knob[i][106])->value();
 		Speicher.multis[currentmulti].settings[i][2]=((Fl_Valuator*)Knob[i][107])->value();
 		Speicher.multis[currentmulti].settings[i][3]=((Fl_Valuator*)Knob[i][108])->value();
 		Speicher.multis[currentmulti].settings[i][4]=((Fl_Valuator*)Knob[i][109])->value();
+		Speicher.multis[currentmulti].settings[i][5]=((Fl_Valuator*)Knob[i][125])->value();
+		Speicher.multis[currentmulti].settings[i][6]=((Fl_Valuator*)Knob[i][126])->value();
+		Speicher.multis[currentmulti].settings[i][7]=((Fl_Valuator*)Knob[i][127])->value();
+		Speicher.multis[currentmulti].settings[i][8]=((Fl_Valuator*)Knob[i][128])->value();
+		Speicher.multis[currentmulti].settings[i][9]=((Fl_Valuator*)Knob[i][129])->value();
 	}
 	// write to disk
 	Speicher.saveMulti();
@@ -1709,7 +1739,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	{ Fl_Tabs* o = new Fl_Tabs(0,0,995, 515);
 		o->callback((Fl_Callback*)tabCallback);
 	 int i;
-	for (i=0;i<_MULTITEMP;++i)// generate 8 tabs for the 8 voices
+	for (i=0; i<_MULTITEMP; ++i)// generate a tab for each voice
 	{
 		{ 
 		ostringstream oss;
@@ -2897,7 +2927,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->maximum(2);
 		o->color(fl_rgb_color(190,160,255));
 		o->value(0);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Dial* o = new Fl_Dial(874, 120, 25, 25, "aux 1");
 		o->labelsize(8); 
@@ -2906,7 +2937,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->maximum(2);
 		o->color(fl_rgb_color(140,140,255));
 		o->value(0);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Dial* o = new Fl_Dial(904, 120, 25, 25, "aux 2");
 		o->labelsize(8); 
@@ -2915,7 +2947,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->color(fl_rgb_color(140,140,255));
 		o->maximum(2);
 		o->value(0);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Dial* o = new Fl_Dial(934, 120, 25, 25, "mix vol");
 		o->labelsize(8); 
@@ -2924,7 +2957,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->maximum(2);
 		o->color(fl_rgb_color(170,140,255));
 		o->value(1);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Slider* o = new Fl_Slider(864, 160, 80, 10, "mix pan");
 		o->labelsize(8); 
@@ -2935,7 +2969,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->color(fl_rgb_color(170,140,255));
 		o->value(0.5);
 		o->type(FL_HORIZONTAL);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Choice* j = new Fl_Choice(844, 190, 85, 15, "pan modulator");
 		j->box(FL_BORDER_BOX);
@@ -3079,6 +3114,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
+	/* Moved to MIDI tab
    	{ Fl_Value_Input* o = new Fl_Value_Input(760, 465, 45, 14, "note");
 	  o->box(FL_ROUNDED_BOX);
 	  o->labelsize(8);
@@ -3105,53 +3141,147 @@ Fenster* UserInterface::make_window(const char* title) {
 	  Knob[i][o->argument()] = o;
 	  note_velocity = o;
 	}
-
+*/
 	o->end(); 
 	tab[i]=o;
-	} // ==================================== end single tab
+	} // ==================================== end single voice tab
 
-	} // end of for
+	} // end of voice tabs loop
 
-		{ 
+	// ==================================== midi config tab
+	{ 
+		tablabel[i]="MIDI";
+		Fl_Group* o = new Fl_Group(1, 10, 995, 515, tablabel[i].c_str());
+		o->color((Fl_Color)_BGCOLOR);
+		o->labelsize(8);
+		// o->callback((Fl_Callback*)tabCallback,&xtab);  
+		o->box(FL_BORDER_FRAME);
+		// draw logo
+		{ Fl_Box* o = new Fl_Box(855, 450, 25, 25);
+		  o->image(image_miniMini2);
+		}
+		int voice;
+		char * voice_label[_MULTITEMP];
+		for(voice=0; voice<_MULTITEMP; voice++){
+			voice_label[voice]=(char *)malloc(20);
+			sprintf(voice_label[voice], "Voice %u\0", voice+1);
+			{ Fl_Box* d = new Fl_Box(16+60*voice, 30, 50, 220, voice_label[voice]);
+				d->labelsize(8);
+				d->labelcolor(FL_BACKGROUND2_COLOR);
+				d->align(FL_ALIGN_TOP_LEFT);
+			}
+		  // Channel
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 46, 46, 15, "Channel");
+			o->box(FL_ROUNDED_BOX);
+			o->align(FL_ALIGN_TOP_LEFT);
+			o->labelsize(8);
+			o->textsize(8);
+			o->range(1,16);
+			o->step(1);
+			o->value(voice);
+			o->argument(127+(voice<<8));
+			o->callback((Fl_Callback*)midiparmCallback);
+			o->value(voice);
+			Knob[voice][127] = o;
+		  }
+		  // Note min
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 86, 46, 15, "Note min");
+			o->box(FL_ROUNDED_BOX);
+			o->align(FL_ALIGN_TOP_LEFT);
+			o->labelsize(8);
+			o->textsize(8);
+			o->range(0,127);
+			o->step(1);
+			o->argument(128+(voice<<8));
+			o->callback((Fl_Callback*)midiparmCallback);
+			Knob[voice][128] = o;
+		  }
+		  // Note max
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 126, 46, 15, "Note max");
+			o->box(FL_ROUNDED_BOX);
+			o->align(FL_ALIGN_TOP_LEFT);
+			o->labelsize(8);
+			o->textsize(8);
+			o->range(0,127);
+			o->step(1);
+			o->value(127);
+			o->argument(129+(voice<<8));
+			o->callback((Fl_Callback*)midiparmCallback);
+			Knob[voice][129] = o;
+		  }
+		  // Test note
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 166, 45, 14, "Test note");
+			o->box(FL_ROUNDED_BOX);
+			o->labelsize(8);
+			o->textsize(8);
+			o->range(0,127);
+			o->align(FL_ALIGN_TOP_LEFT);
+			o->step(1);
+			o->value(63);
+			// o->callback((Fl_Callback*)parmCallback);
+			o->argument(125);
+			Knob[voice][o->argument()] = o;
+		  }
+		  // Test velocity
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 206, 45, 14, "Test velocity");
+			o->box(FL_ROUNDED_BOX);
+			o->labelsize(8);
+			o->textsize(8);
+			o->range(0,127);
+			o->align(FL_ALIGN_TOP_LEFT);
+			o->step(1);
+			o->value(80);
+			// o->callback((Fl_Callback*)parmCallback);
+			o->argument(126);
+			Knob[voice][o->argument()] = o;
+		  }
+		}
+		o->end(); 
+		tab[i]=o;
+		i++;
+	} // ==================================== end midi config tab
+
+	// ==================================== about tab 
+	{ 
 		tablabel[i]="about";
 		Fl_Group* o = new Fl_Group(1, 10, 995, 515, tablabel[i].c_str());
 		o->color((Fl_Color)_BGCOLOR);
 		o->labelsize(8);
 		// o->callback((Fl_Callback*)tabCallback,&xtab);  
 		o->box(FL_BORDER_FRAME);
-	// draw logo
-	{ Fl_Box* o = new Fl_Box(855, 450, 25, 25);
-	  o->image(image_miniMini2);
-	}
-	{
-	  Fl_Help_View* o=new Fl_Help_View(200, 50, 600, 300, "About Minicomputer");
-	  o->box(FL_ROUNDED_BOX);
-	  o->labelsize(12);
-	  o->color((Fl_Color)_BGCOLOR);
-	  //o->textcolor(FL_BACKGROUND2_COLOR); 
-	  o->textfont(FL_HELVETICA_BOLD );
-	  o->labelcolor(FL_BACKGROUND2_COLOR);
-	  const char version[] = _VERSION;
-	  const char *about="<html><body>"
-		  "<i><center>version %s</center></i><br>"
-		  "<p><br>a standalone industrial grade softwaresynthesizer for Linux<br>"
-		  "<p><br>developed by Malte Steiner 2007-2009"
-		  "<p>distributed as free open source software under GPL3 licence<br>"
-		  "<p>additional bugs by Marc Périlleux 2018"
-		  "<p>OSC currently using ports %s and %s"
-		  "<p>contact:<br>"
-		  "<center>steiner@block4.com"
-		  "<br>http://www.block4.com"
-		  "<br>http://minicomputer.sourceforge.net"
-		  "</center>"
-		  "</body></html>";
-	  char *Textausgabe;
-	  Textausgabe=(char *)malloc(strlen(about)+strlen(version)+strlen(oport)+strlen(oport2));
-	  sprintf(Textausgabe, about, version, oport, oport2);
-	  o->value(Textausgabe);
-	}	
-	o->end(); 
-	tab[i]=o;
+		// draw logo
+		{ Fl_Box* o = new Fl_Box(855, 450, 25, 25);
+		  o->image(image_miniMini2);
+		}
+		{
+		  Fl_Help_View* o=new Fl_Help_View(200, 50, 600, 300, "About Minicomputer");
+		  o->box(FL_ROUNDED_BOX);
+		  o->labelsize(12);
+		  o->color((Fl_Color)_BGCOLOR);
+		  //o->textcolor(FL_BACKGROUND2_COLOR); 
+		  o->textfont(FL_HELVETICA_BOLD );
+		  o->labelcolor(FL_BACKGROUND2_COLOR);
+		  const char version[] = _VERSION;
+		  const char *about="<html><body>"
+			  "<i><center>version %s</center></i><br>"
+			  "<p><br>a standalone industrial grade softwaresynthesizer for Linux<br>"
+			  "<p><br>developed by Malte Steiner 2007-2009"
+			  "<p>distributed as free open source software under GPL3 licence<br>"
+			  "<p>additional bugs by Marc Périlleux 2018"
+			  "<p>OSC currently using ports %s and %s"
+			  "<p>contact:<br>"
+			  "<center>steiner@block4.com"
+			  "<br>http://www.block4.com"
+			  "<br>http://minicomputer.sourceforge.net"
+			  "</center>"
+			  "</body></html>";
+		  char *Textausgabe;
+		  Textausgabe=(char *)malloc(strlen(about)+strlen(version)+strlen(oport)+strlen(oport2));
+		  sprintf(Textausgabe, about, version, oport, oport2);
+		  o->value(Textausgabe);
+		}	
+		o->end(); 
+		tab[i]=o;
 	} // ==================================== end about tab 
 	  
 	o->end();

@@ -79,7 +79,7 @@ public:
 	void setChoice(unsigned int voice,unsigned int i);
 	unsigned int getChoice(unsigned int voice);
 	private:
-	unsigned int choice[8];
+	unsigned int choice[_MULTITEMP];
 	bool parseNumbers(string &str,int &iParameter,int &i2Parameter,float &fValue);
 	char folder[1024]; // the directory to write stuff in
 	bool gotFolder;
