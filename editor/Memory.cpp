@@ -395,12 +395,14 @@ while (File)
 		break;
 		case '\'': // setting the name
 		{
-			j = 1; // important, otherwise it would bail out at the first '	
+			j = 1; // important, otherwise it would bail out at the first '
 			while ((j<str.length()) && (str[j]!='\'') && (j<128) )
 			{
 				sounds[current].name[j-1] = str[j];
 				++j;
 			}
+			sounds[current].name[j-1] = 0;
+/*
 			if (j<128) // fill the rest with blanks to clear the string
 			{
 				while (j<128)
@@ -409,6 +411,7 @@ while (File)
 					++j;
 				}
 			}
+*/
 		}
 		break;
 		/*case '[':// setting the current sound index

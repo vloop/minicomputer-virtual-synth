@@ -1780,7 +1780,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		miniDisplay[i][0]=o;
 	  }
-	  { Fl_Light_Button* o = new Fl_Light_Button(20, 92, 66, 19, "fix frequency");
+	  { Fl_Light_Button* o = new Fl_Light_Button(15, 92, 66, 19, "fix frequency");
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(8);
@@ -1848,8 +1848,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->align(FL_ALIGN_TOP_LEFT);
 		o->argument(2);
 		o->callback((Fl_Callback*)choiceCallback);
-		 o->menu(menu_amod);
-		 auswahl[i][o->argument()]=o;
+		o->menu(menu_amod);
+		auswahl[i][o->argument()]=o;
 	  }
 	  { Fl_Dial* o = new Fl_Dial(260, 133, 25, 25, "amount");
 		o->labelsize(8);
@@ -1858,7 +1858,6 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->maximum(1);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
-		
 	  }
 	  { Fl_Choice* o = new Fl_Choice(134, 138, 120, 15, "amp modulator 2");
 		o->box(FL_BORDER_BOX);
@@ -1870,7 +1869,6 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		o->menu(menu_amod);
 		auswahl[i][o->argument()]=o;
-	   
 	  }
 	  { Fl_Dial* o = new Fl_Dial(247, 23, 25, 25, "amount");
 		o->labelsize(8);
@@ -1894,7 +1892,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	  { Fl_Dial* o = new Fl_Dial(248, 59, 25, 25, "amount");
 		o->labelsize(8);
 		o->argument(7); 
-		 o->minimum(-1000);
+		o->minimum(-1000);
 		o->maximum(1000);
 		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 	  }
@@ -1947,7 +1945,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	  { Fl_Dial* o = new Fl_Dial(21, 244, 34, 34, "frequency");
 		o->labelsize(8); 
 		o->argument(16);
-		 o->maximum(1000); 
+		o->maximum(1000); 
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][16] = o;
 	  }
@@ -1956,12 +1954,12 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelsize(8);
 		o->textsize(8); 
 		o->maximum(10000);
-	o->step(0.001);
+		o->step(0.001);
 		o->argument(16);
 		o->callback((Fl_Callback*)parmCallback);
 		miniDisplay[i][2]=o;
 	  }
-	  { Fl_Light_Button* o = new Fl_Light_Button(20, 316, 66, 19, "fix frequency");
+	  { Fl_Light_Button* o = new Fl_Light_Button(15, 316, 66, 19, "fix frequency");
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(8); 
@@ -1972,7 +1970,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	  { Fl_Dial* o = new Fl_Dial(79, 403, 25, 25, "fm output  vol");
 		o->labelsize(8); 
 		o->argument(28);
-	  //  o->maximum(1000);
+		//  o->maximum(1000);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][28] = o;
 	  }
@@ -1980,8 +1978,9 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(8);
-		 o->argument(15);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->argument(15);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Positioner* o = new Fl_Positioner(15,345,40,80,"tune");
 		o->xbounds(0,16);
@@ -2006,7 +2005,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->textsize(8);
 		o->maximum(10000);   
 		o->argument(18);
-	o->step(0.001);
+		o->step(0.001);
 		o->callback((Fl_Callback*)tuneCallback);
 		miniDisplay[i][3]=o;
 	  }
@@ -2023,10 +2022,10 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelsize(8);
 		o->textsize(8);
 		o->align(FL_ALIGN_TOP_LEFT);
-		 o->argument(8);
+		o->argument(8);
 		o->callback((Fl_Callback*)choiceCallback);
 		o->menu(menu_amod);
-		 auswahl[i][o->argument()]=o;
+		auswahl[i][o->argument()]=o;
 	  }
 	  { Fl_Dial* o = new Fl_Dial(260, 357, 25, 25, "amount");
 		o->labelsize(8);
@@ -2069,12 +2068,12 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Choice* o = new Fl_Choice(122, 288, 120, 15, "freq modulator 2");
-		  o->box(FL_BORDER_BOX);
+		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(8);
 		o->textsize(8);
 		o->align(FL_ALIGN_TOP_LEFT);
-		 o->argument(7);
+		o->argument(7);
 		o->callback((Fl_Callback*)choiceCallback);
 		o->menu(menu_fmod);
 		auswahl[i][o->argument()]=o;
@@ -2085,7 +2084,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelsize(8);
 		o->textsize(8);
 		o->align(FL_ALIGN_TOP_LEFT);
-		 o->argument(5);
+		o->argument(5);
 		o->callback((Fl_Callback*)choiceCallback);
 		o->menu(menu_wave);auswahl[i][o->argument()]=o;
 	  }
@@ -2093,7 +2092,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->box(FL_BORDER_BOX);
 		  o->selection_color((Fl_Color)89);
 		  o->labelsize(8);
-	  o->argument(115);
+		  o->argument(115);
 		  o->callback((Fl_Callback*)parmCallback);
 		  Knob[i][o->argument()] = o;
 		}
@@ -2103,9 +2102,9 @@ Fenster* UserInterface::make_window(const char* title) {
   { Fl_Group* o = new Fl_Group(312, 17, 277, 433);
 	  o->box(FL_ROUNDED_FRAME);
 	  o->color(FL_BACKGROUND2_COLOR);
-  	{ Fl_Box* d = new Fl_Box(312, 225, 277, 435, "filters");
-	  	d->labelsize(8);
-	  	d->labelcolor(FL_BACKGROUND2_COLOR);
+	{ Fl_Box* d = new Fl_Box(312, 225, 277, 435, "filters");
+		d->labelsize(8);
+		d->labelcolor(FL_BACKGROUND2_COLOR);
 	}
 	  { Fl_Group* o = new Fl_Group(330, 28, 239, 92, "filter 1");
 		o->box(FL_ROUNDED_FRAME);
@@ -2121,7 +2120,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->yvalue(200.5);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
-		
+
 		/* Fl_Dial* o = f1cut1 = new Fl_SteinerKnob(344, 51, 34, 34, "cut");
 		  o->labelsize(8);
 		  o->argument(30);
@@ -2136,14 +2135,16 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->minimum(0.9);
 		  o->value(0.9);
 		  o->maximum(0.01);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[i][o->argument()] = o;
 		}
 		{ Fl_Dial* o = f1vol1 = new Fl_Dial(425, 70, 20, 20, "vol");
 		  o->labelsize(8);
-		   o->argument(32);
-		o->callback((Fl_Callback*)parmCallback);o->minimum(-1);
+		  o->argument(32);
+		  o->callback((Fl_Callback*)parmCallback);o->minimum(-1);
 		  o->value(0.5);
-		  o->maximum(1);Knob[i][o->argument()] = o;
+		  o->maximum(1);
+		  Knob[i][o->argument()] = o;
 		}
 		
 		
@@ -2153,25 +2154,24 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->box(FL_BORDER_BOX);
 		o->xstep(500); o->selection_color(0);
 		o->labelsize(8);
-	o->yvalue(20);
+		o->yvalue(20);
 		o->callback((Fl_Callback*)parmCallback);
 	   /* Fl_Dial* o = f1cut2 = new Fl_SteinerKnob(481, 50, 34, 34, "cut");
-		  o->labelsize(8); 
-		  o->value(50);
-		   o->maximum(10000);
+		o->labelsize(8); 
+		o->value(50);
+		o->maximum(10000);
 		o->callback((Fl_Callback*)parmCallback);*/
-		  o->argument(33);
-	  Knob[i][o->argument()] = o;
-		
+		o->argument(33);
+		Knob[i][o->argument()] = o;
 		}
 		{ Fl_Dial* o = f1q2 = new Fl_Dial(531, 32, 25, 25, "q");
 		  o->labelsize(8); 
-		  
 		  o->argument(34);
 		  o->minimum(0.9);
 		  o->value(0.5);
 		  o->maximum(0.01);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[i][o->argument()] = o;
 		}
 		{ Fl_Dial* o = f1vol2 = new Fl_Dial(541, 70, 20, 20, "vol");
 		  o->labelsize(8); 
@@ -2187,23 +2187,23 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(8);
 		  o->textsize(8);
-	  o->maximum(10000);
-	  o->step(0.01);
-	o->value(200);
+		  o->maximum(10000);
+		  o->step(0.01);
+		  o->value(200);
 		  o->argument(30);
-	   o->callback((Fl_Callback*)cutoffCallback);
+		  o->callback((Fl_Callback*)cutoffCallback);
 		  miniDisplay[i][4]=o;
 		}
 		{ Fl_Value_Input* o = new Fl_Value_Input(528, 100, 38, 15);
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(8);
 		  o->textsize(8);
-	  o->maximum(10000);
-	  o->step(0.01);
-	o->value(20);
+		  o->maximum(10000);
+		  o->step(0.01);
+		  o->value(20);
 		  o->argument(33);
-	   o->callback((Fl_Callback*)cutoffCallback);
-		   miniDisplay[i][5]=o;
+		  o->callback((Fl_Callback*)cutoffCallback);
+		  miniDisplay[i][5]=o;
 		}
 	/*
 		{ Fl_Button* o = new Fl_Button(426, 35, 45, 15, "copy ->");
@@ -2270,12 +2270,12 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->labelsize(8);
 		   o->value(50);
 		  o->maximum(10000);*/
-		  o->argument(40);Knob[i][o->argument()] = o;
+		o->argument(40);Knob[i][o->argument()] = o;
 		o->callback((Fl_Callback*)parmCallback);
 		}
 		{ Fl_Dial* o = f1q1 = new Fl_Dial(415, 137, 25, 25, "q");
 		  o->labelsize(8);
-		   o->argument(41);
+		  o->argument(41);
 		  o->minimum(0.9);
 		  o->maximum(0.001);
 		  o->value(0.5);
@@ -2283,9 +2283,9 @@ Fenster* UserInterface::make_window(const char* title) {
 		}
 		{ Fl_Dial* o = f1vol1 = new Fl_Dial(425, 174, 20, 20, "vol");
 		  o->labelsize(8);
-		   o->argument(42);
-	 o->callback((Fl_Callback*)parmCallback);
-	 o->minimum(-1);
+		  o->argument(42);
+		  o->callback((Fl_Callback*)parmCallback);
+		  o->minimum(-1);
 		  o->value(0);
 		  o->maximum(1);Knob[i][o->argument()] = o;
 		}
@@ -2301,47 +2301,48 @@ Fenster* UserInterface::make_window(const char* title) {
 		   o->labelsize(8);
 		   o->value(50);
 		  o->maximum(10000);*/
-		  o->argument(43);Knob[i][o->argument()] = o;
+		o->argument(43);Knob[i][o->argument()] = o;
 		o->callback((Fl_Callback*)parmCallback);
 		}
 		{ Fl_Dial* o = f1q2 = new Fl_Dial(531, 136, 25, 25, "q");
 		  o->labelsize(8);
-		   o->labelsize(8);
+		  o->labelsize(8);
 		  o->argument(44);
 		  o->minimum(0.9);
 		  o->value(0.5);
 		  o->maximum(0.001);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[i][o->argument()] = o;
 		}
 		{ Fl_Dial* o = f1vol2 = new Fl_Dial(541, 174, 20, 20, "vol");
 		  o->labelsize(8);
-		   o->labelsize(8);
+		  o->labelsize(8);
 		  o->argument(45);
-	  o->maximum(1);
-	 o->callback((Fl_Callback*)parmCallback);
-	  o->minimum(-1);
+		  o->maximum(1);
+		  o->callback((Fl_Callback*)parmCallback);
+		  o->minimum(-1);
 		  o->value(0);
 		  Knob[i][o->argument()] = o;
 		}
 		{ Fl_Value_Input* o = new Fl_Value_Input(412, 204, 38, 15);
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(8);
-	  o->maximum(10000);
+		  o->maximum(10000);
 		  o->argument(40);
-	  o->step(0.01);
-	   o->callback((Fl_Callback*)cutoffCallback);
+		  o->step(0.01);
+		  o->callback((Fl_Callback*)cutoffCallback);
 		  o->textsize(8);
-	  miniDisplay[i][6]=o;
+		  miniDisplay[i][6]=o;
 		}
 		{ Fl_Value_Input* o = new Fl_Value_Input(528, 204, 38, 15);
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(8);
 		  o->argument(43);
-	  o->maximum(10000);
-	  o->step(0.01);
-	   o->callback((Fl_Callback*)cutoffCallback);
+		  o->maximum(10000);
+		  o->step(0.01);
+		  o->callback((Fl_Callback*)cutoffCallback);
 		  o->textsize(8);
-	  miniDisplay[i][7]=o;
+		  miniDisplay[i][7]=o;
 		}
 	/*
 		{ Fl_Button* o = new Fl_Button(426, 139, 45, 15, "copy ->");
@@ -2372,24 +2373,26 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->labelsize(8); 
 		  o->value(50);
 		  o->maximum(10000);*/
-		  o->argument(50);
+		o->argument(50);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 		}
 		{ Fl_Dial* o = f1q1 = new Fl_Dial(415, 243, 25, 25, "q");
 		  o->labelsize(8); 
-		   o->argument(51);
+		  o->argument(51);
 		  o->minimum(0.9);
 		  o->maximum(0.001);
 		  o->value(0.5);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[i][o->argument()] = o;
 		}
 		{ Fl_Dial* o = f1vol1 = new Fl_Dial(425, 280, 20, 20, "vol");
 		  o->labelsize(8);
-		   o->argument(52);
-		   o->maximum(1);o->minimum(-1);
+		  o->argument(52);
+		  o->maximum(1);o->minimum(-1);
 		  o->value(0);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[i][o->argument()] = o;
 		}
 		{ Fl_Positioner* o = new Fl_Positioner(456,241,70,79,"cut");
 		o->xbounds(0,7000);
@@ -2401,8 +2404,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->labelsize(8);
 		  o->value(50);
 		  o->maximum(10000);*/
-		   o->argument(53);
-		   Knob[i][o->argument()] = o;
+		o->argument(53);
+		Knob[i][o->argument()] = o;
 		o->callback((Fl_Callback*)parmCallback);
 		}
 		{ Fl_Dial* o = f1q2 = new Fl_Dial(531, 242, 25, 25, "q");
@@ -2411,7 +2414,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->minimum(0.9);
 		  o->value(0.5);
 		  o->maximum(0.001);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[i][o->argument()] = o;
 		}
 		{ Fl_Dial* o = f1vol2 = new Fl_Dial(541, 280, 20, 20, "vol");
 		  o->labelsize(8); 
@@ -2423,22 +2427,22 @@ Fenster* UserInterface::make_window(const char* title) {
 		{ Fl_Value_Input* o = new Fl_Value_Input(412, 310, 38, 15);
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(8);
-	  o->maximum(10000);
-	  o->step(0.01);
+		  o->maximum(10000);
+		  o->step(0.01);
 		  o->argument(50);
-	   o->callback((Fl_Callback*)cutoffCallback);
+		  o->callback((Fl_Callback*)cutoffCallback);
 		  o->textsize(8);
-	  miniDisplay[i][8]=o;
+		  miniDisplay[i][8]=o;
 		}
 		{ Fl_Value_Input* o = new Fl_Value_Input(528, 310, 38, 15);
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(8);
-	  o->maximum(10000);
+		  o->maximum(10000);
 		  o->argument(53);
-	  o->step(0.01);
-	   o->callback((Fl_Callback*)cutoffCallback);
+		  o->step(0.01);
+		  o->callback((Fl_Callback*)cutoffCallback);
 		  o->textsize(8);
-	  miniDisplay[i][9]=o;
+		  miniDisplay[i][9]=o;
 		}
 	/*
 		{ Fl_Button* o = new Fl_Button(426, 245, 45, 15, "copy ->");
@@ -2521,13 +2525,13 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelsize(8);
 		{ Fl_Dial* o = new Fl_Dial(618, 96, 25, 25, "A");
 		  o->labelsize(8);o->argument(65);
-	  o->minimum(0.2);
+		  o->minimum(0.2);
 		  o->maximum(0.01);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
 		{ Fl_Dial* o = new Fl_Dial(648, 96, 25, 25, "D");
 		  o->labelsize(8);o->argument(66);
-	  o->minimum(0.15);
+		  o->minimum(0.15);
 		  o->maximum(0.01);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
@@ -2537,7 +2541,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		}
 		{ Fl_Dial* o = new Fl_Dial(708, 96, 25, 25, "R");
 		  o->labelsize(8);o->argument(68);
-	  o->minimum(0.15);
+		  o->minimum(0.15);
 		  o->maximum(0.02);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
@@ -2556,13 +2560,13 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelsize(8);
 		{ Fl_Dial* o = new Fl_Dial(618, 153, 25, 25, "A");
 		  o->labelsize(8);o->argument(70);
-	  o->minimum(0.2);
+		  o->minimum(0.2);
 		  o->maximum(0.01);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
 		{ Fl_Dial* o = new Fl_Dial(648, 153, 25, 25, "D");
 		  o->labelsize(8);o->argument(71);
-	  o->minimum(0.15);
+		  o->minimum(0.15);
 		  o->maximum(0.01);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
@@ -2572,7 +2576,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		}
 		{ Fl_Dial* o = new Fl_Dial(708, 153, 25, 25, "R");
 		  o->labelsize(8);o->argument(73);
-	  o->minimum(0.15);
+		  o->minimum(0.15);
 		  o->maximum(0.02);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
@@ -2591,13 +2595,13 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelsize(8);
 		{ Fl_Dial* o = new Fl_Dial(618, 210, 25, 25, "A");
 		  o->labelsize(8);o->argument(75);
-	  o->minimum(0.2);
+		  o->minimum(0.2);
 		  o->maximum(0.01);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
 		{ Fl_Dial* o = new Fl_Dial(648, 210, 25, 25, "D");
 		  o->labelsize(8);o->argument(76);
-	  o->minimum(0.15);
+		  o->minimum(0.15);
 		  o->maximum(0.01);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
@@ -2607,7 +2611,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		}
 		{ Fl_Dial* o = new Fl_Dial(708, 210, 25, 25, "R");
 		  o->labelsize(8);o->argument(78);
-	  o->minimum(0.15);
+		  o->minimum(0.15);
 		  o->maximum(0.02);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
@@ -2626,13 +2630,13 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelsize(8);
 		{ Fl_Dial* o = new Fl_Dial(618, 269, 25, 25, "A");
 		  o->labelsize(8);o->argument(80);
-	  o->minimum(0.2);
+		  o->minimum(0.2);
 		  o->maximum(0.01);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
 		{ Fl_Dial* o = new Fl_Dial(648, 269, 25, 25, "D");
 		  o->labelsize(8);o->argument(81);
-	  o->minimum(0.15);
+		  o->minimum(0.15);
 		  o->maximum(0.01);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
@@ -2642,7 +2646,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		}
 		{ Fl_Dial* o = new Fl_Dial(708, 269, 25, 25, "R");
 		  o->labelsize(8);o->argument(83);
-	  o->minimum(0.15);
+		  o->minimum(0.15);
 		  o->maximum(0.02);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
@@ -2664,12 +2668,11 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->minimum(0.2);
 		  o->maximum(0.01);
 		  Knob[i][o->argument()] = o;
-		  
 		  o->callback((Fl_Callback*)parmCallback);
 		}
 		{ Fl_Dial* o = new Fl_Dial(648, 330, 25, 25, "D");
 		  o->labelsize(8);o->argument(86);
-	  o->minimum(0.15);
+		  o->minimum(0.15);
 		  o->maximum(0.01);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
@@ -2679,7 +2682,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		}
 		{ Fl_Dial* o = new Fl_Dial(708, 330, 25, 25, "R");
 		  o->labelsize(8);o->argument(88); 
-	  o->minimum(0.15);
+		  o->minimum(0.15);
 		  o->maximum(0.02);
 		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 		}
@@ -2695,7 +2698,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
 		o->labelsize(8);
-		
+
 		{  Fl_Positioner* o = new Fl_Positioner(620,384,50,40,"tune");
 		o->xbounds(0,128);
 		o->ybounds(0.99,0);
@@ -2703,7 +2706,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->xstep(1);
 		o->labelsize(8);
 		o->argument(90);
-		   o->selection_color(0);
+		o->selection_color(0);
 		o->callback((Fl_Callback*)parmCallback);
 		 Knob[i][o->argument()] = o;
 	  /*Fl_Dial* o = new Fl_SteinerKnob(627, 392, 34, 34, "frequency");
@@ -2789,14 +2792,14 @@ Fenster* UserInterface::make_window(const char* title) {
 		//o->callback((Fl_Callback*)chooseCallback,NULL);
 	  }
 	  { Fl_Roller* o = new Fl_Roller(274, 487, 150, 14);
-	  	o->type(FL_HORIZONTAL);
+		o->type(FL_HORIZONTAL);
 		o->tooltip("roll the list of sounds");
 		o->minimum(0);
-	o->maximum(511);
-	o->step(1);
+		o->maximum(511);
+		o->step(1);
 	//o->slider_size(0.04);
-	o->box(FL_BORDER_FRAME);
-	Rollers[i]=o;
+		o->box(FL_BORDER_FRAME);
+		Rollers[i]=o;
 		o->callback((Fl_Callback*)rollerCallback,NULL);
 	  }
 
@@ -3049,15 +3052,17 @@ Fenster* UserInterface::make_window(const char* title) {
 	  o->end();
 	}
 	{ Fl_Dial* o = new Fl_Dial(295, 151, 25, 25, "osc1  vol");
-	  o->labelsize(8);
-	  o->align(FL_ALIGN_TOP);
+		o->labelsize(8);
+		o->align(FL_ALIGN_TOP);
 		o->argument(14);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Dial* o = new Fl_Dial(295, 252, 25, 25, "osc2  vol");
 		o->labelsize(8);
 		o->argument(29);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Dial* o = new Fl_Dial(950, 221, 25, 25, "to delay");
 		o->labelsize(8);
@@ -3080,11 +3085,19 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Light_Button* o = new Fl_Light_Button(80, 138, 40, 15, "mult.");
+	{ Fl_Light_Button* o = new Fl_Light_Button(92, 138, 40, 15, "mult.");
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(8);
 		o->argument(118);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	}
+	{ Fl_Light_Button* o = new Fl_Light_Button(92, 102, 40, 15, "mult.");
+		o->box(FL_BORDER_BOX);
+		o->selection_color((Fl_Color)89);
+		o->labelsize(8);
+		o->argument(130);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
@@ -3097,7 +3110,22 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	// Osc 2 amp mod 2 is for FM only, mult. wouldn't make sense
+	{ Fl_Light_Button* o = new Fl_Light_Button(92, 326, 40, 15, "mult.");
+		o->box(FL_BORDER_BOX);
+		o->selection_color((Fl_Color)89);
+		o->labelsize(8);
+		o->argument(131);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	}
+	{ Fl_Light_Button* o = new Fl_Light_Button(92, 362, 40, 15, "mult.");
+		o->box(FL_BORDER_BOX);
+		o->selection_color((Fl_Color)89);
+		o->labelsize(8);
+		o->argument(132);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	}
 	// Mult button morph
 	{ Fl_Light_Button* o = new Fl_Light_Button(492, 397, 40, 15, "mult.");
 		o->box(FL_BORDER_BOX);
