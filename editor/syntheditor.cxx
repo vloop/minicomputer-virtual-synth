@@ -87,7 +87,9 @@ char *strnrtrim(char *dest, const char*source, size_t len){
 
 static void choiceCallback(Fl_Widget* o, void*)
 {
-	// printf("choiceCallback %u %u %u\n",currentsound,((Fl_Choice*)o)->argument(),((Fl_Choice*)o)->value());
+#ifdef _DEBUF
+	printf("choiceCallback voice %u, parameter %u, value %u\n", currentsound, ((Fl_Choice*)o)->argument(),((Fl_Choice*)o)->value());
+#endif
 	if (transmit) lo_send(t, "/Minicomputer/choice", "iii",currentsound,((Fl_Choice*)o)->argument(),((Fl_Choice*)o)->value());
 }
 static void do_audition(Fl_Widget* o, void*)
@@ -110,7 +112,7 @@ static void all_off(Fl_Widget* o, void*)
 	audition->clear();
 	if (transmit) for (i=0; i<_MULTITEMP; i++){
 	  lo_send(t, "/Minicomputer/midi", "iiii", 0, 0xB0+i, 120, 0);
-	  audition_state[currentsound]=((Fl_Toggle_Button*)audition)->value();
+	  audition_state[i]=((Fl_Toggle_Button*)audition)->value();
 	}
 }
 
@@ -469,6 +471,9 @@ switch (currentParameter)
 	case 118:
 	case 119:
 	case 120:
+	case 130:
+	case 131:
+	case 132:
 	{
 		if (((Fl_Light_Button *)o)->value()==0)
 		{
@@ -961,6 +966,9 @@ static void storesound(Fl_Widget* o, void* e)
 	case 118:
 	case 119:
 	case 120:
+	case 130:
+	case 131:
+	case 132:
 	{
 		if (((Fl_Light_Button *)Knob[currentsound][i])->value()==0)
 		{
@@ -1182,7 +1190,9 @@ static void recall(unsigned int preset)
 	case 118:
 	case 119:
 	case 120:
-
+	case 130:
+	case 131:
+	case 132:
 	{
 		#ifdef _DEBUG
 		printf("handle: %d\n",i);
@@ -3192,7 +3202,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		char * voice_label[_MULTITEMP];
 		for(voice=0; voice<_MULTITEMP; voice++){
 			voice_label[voice]=(char *)malloc(20);
-			sprintf(voice_label[voice], "Voice %u\0", voice+1);
+			sprintf(voice_label[voice], "Voice %u", voice+1); // ?? trailing \0
 			{ Fl_Box* d = new Fl_Box(16+60*voice, 30, 50, 220, voice_label[voice]);
 				d->labelsize(8);
 				d->labelcolor(FL_BACKGROUND2_COLOR);

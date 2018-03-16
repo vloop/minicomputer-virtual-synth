@@ -50,18 +50,24 @@
 
 //#define _DEBUG
 
+#define scale127 0.007874f
+
 // variables
+int first_time=1;
 // Should define a struct for voice (and for EG)
 float delayBuffer[_MULTITEMP][96000] __attribute__((aligned (16)));
 float parameter[_MULTITEMP][_PARACOUNT] __attribute__((aligned (16)));
 float modulator[_MULTITEMP][_MODCOUNT] __attribute__((aligned (16)));
-// Bias will be used for AM because we don't want negative amplitude
+// Bias and scale ensure modulator range is 0..1
+// This is useful when adding modulations
 float modulator_bias[_MODCOUNT] __attribute__((aligned (16)))={
 	1.0f, // 00 none
 	0.0f, // 01 velocity
-	0.0f, // 02 pitch bend
+	1.0f, // 02 pitch bend
 	1.0f, // 03 osc 1 fm out
 	1.0f, // 04 osc 2 fm out
+	0.0f, // Hole in numbering
+	0.0f, // Hole in numbering
 	1.0f, // 05 filter
 	0.0f, // 06 eg 1
 	0.0f, // 07 eg 2
@@ -87,9 +93,11 @@ float modulator_bias[_MODCOUNT] __attribute__((aligned (16)))={
 float modulator_scale[_MODCOUNT] __attribute__((aligned (16)))={
 	1.0f, // 00 none
 	1.0f, // 01 velocity
-	1.0f, // 02 pitch bend
+	0.5f, // 02 pitch bend
 	0.5f, // 03 osc 1 fm out
 	0.5f, // 04 osc 2 fm out
+	0.0f, // Hole in numbering
+	0.0f, // Hole in numbering
 	0.5f, // 05 filter
 	1.0f, // 06 eg 1
 	1.0f, // 07 eg 2
@@ -113,14 +121,15 @@ float modulator_scale[_MODCOUNT] __attribute__((aligned (16)))={
 	1.0f, // 25 cc 17
 };
 float midif[_MULTITEMP] __attribute__((aligned (16)));
-float EG[_MULTITEMP][8][8] __attribute__((aligned (16))); // 7 8
+float EG[_MULTITEMP][8][8] __attribute__((aligned (16)));
 float EGFaktor[_MULTITEMP][8] __attribute__((aligned (16)));
-float phase[_MULTITEMP][4] __attribute__((aligned (16)));//=0.f;
+float phase[_MULTITEMP][4] __attribute__((aligned (16)));
 unsigned int choice[_MULTITEMP][_CHOICECOUNT] __attribute__((aligned (16)));
 int EGrepeat[_MULTITEMP][8] __attribute__((aligned (16)));
 unsigned int EGtrigger[_MULTITEMP][8] __attribute__((aligned (16)));
 unsigned int EGstate[_MULTITEMP][8] __attribute__((aligned (16)));
-float high[_MULTITEMP][4],band[_MULTITEMP][4],low[_MULTITEMP][4],f[_MULTITEMP][4],q[_MULTITEMP][4],v[_MULTITEMP][4],faktor[_MULTITEMP][4];
+float high[_MULTITEMP][4],band[_MULTITEMP][4],low[_MULTITEMP][4];
+float f[_MULTITEMP][4],q[_MULTITEMP][4],v[_MULTITEMP][4],faktor[_MULTITEMP][4];
 unsigned int lastnote[_MULTITEMP];
 unsigned int hold[_MULTITEMP];
 unsigned int heldnote[_MULTITEMP];
@@ -128,6 +137,8 @@ float glide[_MULTITEMP];
 int delayI[_MULTITEMP], delayJ[_MULTITEMP];
 float sub[_MULTITEMP];
 int subMSB[_MULTITEMP];
+// Could implement a channel reverse lookup array to avoid scanning??
+// We need to be able to stack channels
 int channel[_MULTITEMP];
 // note-based filtering useful for drumkit multis
 int note_min[_MULTITEMP];
@@ -473,7 +484,7 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
  */
 int process(jack_nframes_t nframes, void *arg) {
 
-	float tfo1, tfo2, ta1_1, ta1_2, ta1, ta2, ta3; // Osc related
+	float tfo1, tfo2, ta1_1, ta1_2, ta1_3, ta1_4, ta2, ta3; // Osc related
 	float tf1, tf2, tf3, morph, mo, mf, result, tdelay, clib1, clib2; 
 	float osc1, osc2, delayMod, pan;
 
@@ -622,10 +633,6 @@ int process(jack_nframes_t nframes, void *arg) {
 		int iP1 = (int) phase[currentvoice][1];// float to int, cost some cycles
 		int iP2 = (int) phase[currentvoice][2];// hopefully this got optimized by compiler
 		int iP3 = (int) phase[currentvoice][3];// hopefully this got optimized by compiler
-
-		iP1=iP1&tabM;//i%=TableSize;
-		iP2=iP2&tabM;//i%=TableSize;
-		iP3=iP3&tabM;//i%=TableSize;
 		*/
 
 		// Can this ever happen??
@@ -647,19 +654,20 @@ int process(jack_nframes_t nframes, void *arg) {
 		__builtin_prefetch(&param[11],0,0);
 		#endif
 		
-		phase[currentvoice][3]=fmodf(phase[currentvoice][3], tabF);
-		/*
+		// Not sure what the perf cost of fmodf could be
+		// What about remainder? https://www.gnu.org/software/libc/manual/html_node/Remainder-Functions.html
+		// phase[currentvoice][3]=fmodf(phase[currentvoice][3], tabF);
 		if(phase[currentvoice][3] >= tabF)
 		{
 			phase[currentvoice][3]-= tabF;
 		}
-		*/
-		/* This cannot happen in the absence of modulation
+		// This cannot happen in the absence of modulation
 		if(phase[currentvoice][3] < 0.f)
 		{
 			phase[currentvoice][3]+= tabF;
+			fprintf(stderr, "Phase glitch!\n");
 		}
-		*/
+
 
 		unsigned int * choi = choice[currentvoice];
 		// write the oscillator 3 output to modulators
@@ -693,21 +701,76 @@ int process(jack_nframes_t nframes, void *arg) {
 		}
 		*/
 		if(param[130]){ // Mult mode amp mod 1
+			// Normalize mod 1 then multiply by signed amount
+			ta1_1 = 1; // No modulation 1
+			if(choi[2]) // Modulation 1 is not "none"
+				ta1_1 = (mod[choi[2]]+modulator_bias[choi[2]]) * modulator_scale[choi[2]] * param[9]; // -1..1, keep 1 for modulator "none"
+			// Apply mod 2
+			if(param[118]){ // Mult mode amp mod 2 KO
+				ta1_2 = 1; // No modulation 2
+				if(choi[3]) // Modulation 2 is not "none"
+					ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
+				// case mult1 mult2
+				//   vol = mod1'*mod2'
+// #ifdef _DEBUG
+				if(first_time && index==0) printf("ta1 %u %f %f %f %f %f\n", choi[3], modulator_bias[choi[3]], modulator_scale[choi[3]], ta1_1, ta1_2, ta1_1*ta1_2);
+// #endif
+				ta1_2=ta1_1*ta1_2; // -1..1
+			}else{ // Add mode amp mod 2 ok
+				ta1_2 = 0; // No modulation 2 -- addition neutral
+				if(choi[3]) // Modulation 2 is not none
+					ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
+				// case mult1 add2
+				//   vol = (mod1'+mod2')*0.5
+				ta1_2=(ta1_1+ta1_2)*0.5f; // -1..1
+			}
+			// Apply volume to mix and FM out
+			ta1_3=param[13]*ta1_2;
+			ta1_4=param[14]*ta1_2;
+		}else{ // Add mode amp mod 1
+			// Keep full range -1..1
+			ta1_2 = mod[choi[3]]*param[11]; // -1..1
+			ta1_1 = mod[choi[2]]*param[9]; // -1..1
+			// Apply mod 2
+			if(param[118]){ // Mult mode amp mod 2 ok
+				// case add1 mult2
+				//   vol = 0.5 + (mod1*mod2)*0.5
+				ta1_2=ta1_1*ta1_2; // -1..1
+			}else{ // Add mode amp mod 2 ok
+				// case add1 add2
+				//   vol = 0.5 + (mod1+mod2)*0.25
+				ta1_2=(ta1_1+ta1_2)*0.5f; // -1..1
+			}
+			// Apply volume to mix and FM out
+			ta1_3=param[13]*(0.5f+ta1_2*0.5f);
+			ta1_4=param[14]*(0.5f+ta1_2*0.5f);
+		}
+/*
+		if(param[130]){ // Mult mode amp mod 1
 			ta1_1 = 1; // No modulation
-			if(choi[2]!=0) ta1_1 = (mod[choi[2]]+modulator_bias[choi[2]]) * modulator_scale[choi[2]] * param[9]; // -1..1, keep 1 for modulator "none"
+			if(choi[2]!=0)
+				ta1_1 = (mod[choi[2]]+modulator_bias[choi[2]]) * modulator_scale[choi[2]] * param[9]; // -1..1, keep 1 for modulator "none"
 		}else{ // Add mode - 0 mod means half volume
 			ta1_1 = mod[choi[2]]*param[9]; // -1..1
 		}
 
 		if(param[118]){ // Mult mode amp mod 2
 			ta1_2 = 1; // No modulation
-			if(choi[3]!=0) ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
-			ta1=ta1_1*ta1_2; // -1..1
+			if(choi[3]!=0)
+				ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
+			ta1_2=ta1_1*ta1_2; // -1..1
 		}else{ // Add mode - 0 mod means half volume
 			ta1_2 = mod[choi[3]]*param[11];
-			ta1=(ta1_1+ta1_2)*0.5f; // -1..1
+			ta1_2=(ta1_1+ta1_2)*0.5f; // -1..1
 		}
-
+		if(param[130]){ // Mult mode amp mod 1
+			ta1_3=param[13]*ta1_2;
+			ta1_4=param[14]*ta1_2;
+		}else{ // Add mode
+			ta1_3=param[13]*(0.5f+ta1_2*0.5f);
+			ta1_4=param[14]*(0.5f+ta1_2*0.5f);
+		}
+*/
 		#ifdef _PREFETCH
 		__builtin_prefetch(&phase[currentvoice][1],0,2);
 		__builtin_prefetch(&phase[currentvoice][2],0,2);
@@ -738,9 +801,10 @@ int process(jack_nframes_t nframes, void *arg) {
 
 		// iPsub=subMSB[currentvoice]+(iP1>>1); // 0..tabM
 		// sub[currentvoice]=(4.f*iPsub/tabF)-1.0f; // Ramp up -1..+1 (beware of int to float)
+		// phase[currentvoice][1]=fmodf(phase[currentvoice][1], tabF);
 		if(phase[currentvoice][1] >= tabF)
 		{
-			// phase[currentvoice][1]-= tabF;
+			phase[currentvoice][1]-= tabF;
 			// branchless sync osc2 to osc1 (param[115] is 0 or 1):
 			phase[currentvoice][2]-= phase[currentvoice][2]*param[115];
 			// sub[currentvoice]=-sub[currentvoice]; // Square
@@ -764,7 +828,6 @@ int process(jack_nframes_t nframes, void *arg) {
 			__builtin_prefetch(&choice[currentvoice][9],0,0);
 		#endif
 
-		phase[currentvoice][1]=fmodf(phase[currentvoice][1], tabF);
 		if(phase[currentvoice][1]< 0.f)
 				{
 					phase[currentvoice][1]+= tabF;
@@ -776,7 +839,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		// param[13] is fm output vol for osc 1 (values 0..1)
 		// Why 1.0f+ ?? -1..3 if both inputs used, maybe intended to be 0..2
 		// mod[3]=osc1*(param[13]*(1.0f+ta1));
-		mod[3]=osc1*param[13]*ta1;
+		mod[3]=osc1*ta1_3; // param[13]*ta1;
 
 // --------------- generate sub
 		phase[currentvoice][0]+= tabX * tfo1 / 2.0f;
@@ -833,14 +896,14 @@ int process(jack_nframes_t nframes, void *arg) {
 
 		// then generate the actual phase:
 		phase[currentvoice][2]+= tabX * tfo2;
-		phase[currentvoice][2]=fmodf(phase[currentvoice][2], tabF);
-		/*
+		// phase[currentvoice][2]=fmodf(phase[currentvoice][2], tabF);
+
 		if(phase[currentvoice][2]  >= tabF)
 		{
    			phase[currentvoice][2]-= tabF;
 			// if (*phase>=tabF) *phase = 0; //just in case of extreme fm
 		}
-		*/
+
 
 		#ifdef _PREFETCH
 			__builtin_prefetch(&param[14],0,0);
@@ -861,11 +924,7 @@ int process(jack_nframes_t nframes, void *arg) {
 // ------------- mix the 2 oscillators and sub pre filter -------------------
 		//temp=(parameter[currentvoice][14]-parameter[currentvoice][14]*ta1);
 		// Why was 1.0f-ta n ?? offset for mod<0 ?? -1..3
-		if(param[130]){
-			temp=osc1*param[14]*ta1;
-		}else{
-			temp=osc1*param[14]*(0.5+ta1*0.5);
-		}
+		temp=osc1*ta1_4;
 		temp+=osc2*ta2;
 		temp+=sub[currentvoice]*param[121];
 		temp*=0.333f; // 0.5f;// get the volume of the sum into a normal range	
@@ -1131,6 +1190,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		bufferMixRight[index] += result * pan;
 		}
 	}
+	first_time=0;
 	return 0;// thanks to Sean Bolton who was the first pointing to a bug when I returned 1
 }// end of process function
 
@@ -1282,55 +1342,57 @@ void init ()
 		d2 = 0;*/
 
 	// miditable for notes to frequency
-	// Make it tunable ?
-	// Allow different temperaments?
+	// Make it tunable ??
+	// Allow different temperaments??
 	for (i = 0;i<128;++i) midi2freq[i] = 8.1758f * pow(2,(i/12.f));
 
 } // end of initialization
 
 void doControlChange(int voice, int n, int v){
-	// voice number (not necessarily the same as channel)
+	// voice is voice number (not channel)
+	// Implement with a controller lookup table would be faster??
 	if  (voice <_MULTITEMP)
 	{
 		switch(n){ // Controller number
-			case 1:{ // Modulation
-				modulator[voice][16]=v*0.007874f; // /127.f
+			case 1:{ // Modulation wheel
+				modulator[voice][16]=v*scale127;
+				// printf("Modulation wheel %f\n", modulator[voice][16]);
 				break;
 			}
 			case 12:{ // Effect controller 1
-				modulator[voice][17]=v*0.007874f; // /127.f
+				modulator[voice][17]=v*scale127;
 				break;
 			}
 			case 2:{ // Breath controller
-				modulator[voice][20]=v*0.007874f; // /127.f
+				modulator[voice][20]=v*scale127;
 				break;
 			}
 			case 3:{ // Undefined
-				modulator[voice][21]=v*0.007874f; // /127.f
+				modulator[voice][21]=v*scale127;
 				break;
 			}
 			case 4:{ // Foot controller
-				modulator[voice][22]=v*0.007874f; // /127.f
+				modulator[voice][22]=v*scale127;
 				break;
 			}
 			case 5:{ // Portamento time
-				modulator[voice][23]=v*0.007874f; // /127.f
+				modulator[voice][23]=v*scale127;
 				break;
 			}
 			case 14:{ // Undefined
-				modulator[voice][24]=v*0.007874f; // /127.f
+				modulator[voice][24]=v*scale127;
 				break;
 			}
 			case 15:{ // Undefined
-				modulator[voice][25]=v*0.007874f; // /127.f
+				modulator[voice][25]=v*scale127;
 				break;
 			}
 			case 16:{ // General purpose
-				modulator[voice][26]=v*0.007874f; // /127.f
+				modulator[voice][26]=v*scale127;
 				break;
 			}
 			case 17:{ // General purpose
-				modulator[voice][27]=v*0.007874f; // /127.f
+				modulator[voice][27]=v*scale127;
 				break;
 			}
 			case 120:{ // All sound off
@@ -1385,11 +1447,12 @@ void doMidi(int status, int n, int v){
 					break;
 				}
 				case 0xE0:{ // Pitch bend ?? needs bias; f mod has a strange behaviour for <0
-					modulator[voice][2]=((v<<7)+n)*0.00012207f; // 0..2
-					// modulator[voice][2]=(((v<<7)+n)-8192)*0.00012207f; // -1..1
-#ifdef _DEBUG
+					// 14 bits means 16384 values; 1/8192=0.00012207f
+					// modulator[voice][2]=((v<<7)+n)*0.00012207f; // 0..2
+					modulator[voice][2]=(((v<<7)+n)-8192)*0.00012207f; // -1..1
+// #ifdef _DEBUG
 					printf("Pitch bend %u -> %u %f\n", c, voice, (((v<<7)+n)-8192)*0.0001221f);
-#endif
+// #endif
 					break;
 				}
 				case 0xB0:{ // Control change
@@ -1469,6 +1532,7 @@ void doReset(unsigned int voice){
 
 		memset(delayBuffer[voice],0,sizeof(delayBuffer[voice]));
 	}
+	first_time=1;
 #ifdef _DEBUG
 	printf("doReset: voice %u filters and delay buffer reset\n", voice);
 #endif
@@ -1942,17 +2006,18 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 static inline int foo_handler(const char *path, const char *types, lo_arg **argv, int argc,
 		 void *data, void *user_data)
 {
-	/* example showing pulling the argument values out of the argv array */
+	/* pull the argument values out of the argv array */
 	int voice =  argv[0]->i;
 	int i =  argv[1]->i;
 	if ((voice<_MULTITEMP) && (i>0) && (i<_PARACOUNT)) 
 	{
 		parameter[voice][i]=argv[2]->f;
+#ifdef _DEBUG
+		printf("foo_handler set voice %i, parameter %i = %f \n",voice,i,argv[2]->f);
+#endif   
+
 	}
 
-	//if ((i==10) && (parameter[10]!=0)) parameter[10]=1000.f;
-	// printf("%s <- f:%f, i:%d\n\n", path, argv[0]->f, argv[1]->i);
-	// fflush(stdout);
 	switch (i)
 	{
 	 // reset the filters and delay buffer
