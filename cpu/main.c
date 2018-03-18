@@ -41,6 +41,7 @@
 // defines
 #define _MODCOUNT 32
 #define _WAVECOUNT 32
+#define _USE_FMODF 1
 
 // Table size must be a power of 2 so that we can use & instead of %
 #define TableSize 4096
@@ -162,7 +163,7 @@ int quit = 0;
 jack_port_t* inbuf;
 jack_client_t *client;
 
-float temp=0.f,lfo;
+float to_filter=0.f,lfo;
 float sampleRate=48000.0f; // only default, going to be overriden by the actual, taken from jack
 float tabX = tabF / 48000.0f;
 float srate = 3.145f/ 48000.f;
@@ -485,7 +486,7 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 int process(jack_nframes_t nframes, void *arg) {
 
 	float tfo1, tfo2, ta1_1, ta1_2, ta1_3, ta1_4, ta2, ta3; // Osc related
-	float tf1, tf2, tf3, morph, mo, mf, result, tdelay, clib1, clib2; 
+	float tf1, tf2, tf3, morph1, morph2, mf, result, tdelay, clib1, clib2; 
 	float osc1, osc2, delayMod, pan;
 
 	// an union for a nice float to int casting trick which should be fast
@@ -568,9 +569,9 @@ int process(jack_nframes_t nframes, void *arg) {
 		// Modulation sources fall in different categories
 		// EG and midi controllers are between 0 and 1 (todo pitch bend -1..+1)
 		// Audio outputs (osc 3, filter, delay) are between -1 and 1
-		// FM outputs (Osc 1 and 2 FM) are between 0 and 2 ??
+		// ?? mod3 can exceed 1 on ramp down
+		// FM outputs (Osc 1 and 2 FM) were between 0 and 2 ??
 		// Maybe to spare a test on phase<0?
-		// but then this should apply to all possible sources
 		// Modulation destinations used to handle source in different ways:
 		//	osc1 amp mod 1 (ta1): +1 @ osc1 fm out (bug?); 1.0f-ta1 @ temp (pre-filter mix)
 		//	osc1 amp mod 2 (also ta1): same as above
@@ -585,18 +586,9 @@ int process(jack_nframes_t nframes, void *arg) {
 		//	amp mod: 1.0f-mod[ choi[13]]*param[100]
 		//	pan mod: (param[122]*mod[choi[16]])+param[107]
 		//	time mod (delayMod): 1.0f-(param[110]* mod[choi[14]])
-		//	Now we use modulation_bias and _scale so that all mods are 0..1
+		// Now we use modulation_bias and _scale so that all mods are 0..1 when needed
 
-		// Why the 1.0f- ??
-		// Maybe to compensate the 1.0f- when used: 1-(1-x)==x
-		// When using modulator "none", 1-0==1
-		// When using waves as mod, range -1..1 becomes 0..2
-		// mod[8] =1.0f-egCalc(currentvoice,1);
-		// mod[9] =1.0f-egCalc(currentvoice,2);
-		// mod[10]=1.0f-egCalc(currentvoice,3);
-		// mod[11]=1.0f-egCalc(currentvoice,4);
-		// mod[12]=1.0f-egCalc(currentvoice,5);
-		// mod[13]=1.0f-egCalc(currentvoice,6);
+		// Used to be 1.0f-egcalc
 		mod[8] =egCalc(currentvoice,1);
 		mod[9] =egCalc(currentvoice,2);
 		mod[10]=egCalc(currentvoice,3);
@@ -604,9 +596,10 @@ int process(jack_nframes_t nframes, void *arg) {
 		mod[12]=egCalc(currentvoice,5);
 		mod[13]=egCalc(currentvoice,6);
 
-		/**
-		 * calc the main audio signal
-		 */
+// ------------------------------------------------------------
+// --------------- calc the main audio signal -----------------
+// ------------------------------------------------------------
+
 		// get the parameter settings
 		float * param = parameter[currentvoice];
 		
@@ -644,6 +637,7 @@ int process(jack_nframes_t nframes, void *arg) {
 // --------------- create the next oscillator phase step for osc 3
 // Handle osc 3 first so that it is available as modulation for osc 1 & 2
 		phase[currentvoice][3]+= tabX * param[90];
+		
 		#ifdef _PREFETCH
 		__builtin_prefetch(&param[1],0,0);
 		__builtin_prefetch(&param[2],0,1);
@@ -656,19 +650,22 @@ int process(jack_nframes_t nframes, void *arg) {
 		
 		// Not sure what the perf cost of fmodf could be
 		// What about remainder? https://www.gnu.org/software/libc/manual/html_node/Remainder-Functions.html
-		// phase[currentvoice][3]=fmodf(phase[currentvoice][3], tabF);
+#ifdef _USE_FMODF
+		phase[currentvoice][3]=fmodf(phase[currentvoice][3], tabF);
+#else
 		if(phase[currentvoice][3] >= tabF)
 		{
 			phase[currentvoice][3]-= tabF;
 		}
 		// This cannot happen in the absence of modulation
+#ifdef _DEBUG
 		if(phase[currentvoice][3] < 0.f)
 		{
 			phase[currentvoice][3]+= tabF;
-			fprintf(stderr, "Phase glitch!\n");
+			fprintf(stderr, "Negative phase glitch on osc 3!\n");
 		}
-
-
+#endif
+#endif
 		unsigned int * choi = choice[currentvoice];
 		// write the oscillator 3 output to modulators
 		mod[14] = table[choi[12]][iP3] ;
@@ -683,45 +680,39 @@ int process(jack_nframes_t nframes, void *arg) {
 		tfo1 *=param[2]; // Fixed frequency enable
 
 		// osc1 ampmods 1 and 2
-		// modulators must be in range 0..1
+		// modulators must be in range 0..1 for multiplication
 		// param[9] ([11] for osc2) is  Amount -1..1
-		// Multiply by negative is not an issue:
+		// Final multiply by a negative number is not an issue:
 		// it's the same amplitude with phase reversal
-		/*
-		if(param[118]){ // Mult mode - 0 mod means no sound
-			ta1_1 = 1; // No modulation
-			if(choi[2]!=0) ta1_1 = (mod[choi[2]]+modulator_bias[choi[2]]) * modulator_scale[choi[2]] * param[9]; // -1..1, keep 1 for modulator "none"
-			ta1_2 = 1; // 0..1
-			if(choi[3]!=0) ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
-			ta1=ta1_1*ta1_2;
-		}else{ // Add mode - 0 mod means half volume
-			ta1_1 = mod[choi[2]]*param[9];
-			ta1_2 = mod[choi[3]]*param[11];
-			ta1=0.5+(ta1_1+ta1_2)*0.25f;
-		}
-		*/
 		if(param[130]){ // Mult mode amp mod 1
 			// Normalize mod 1 then multiply by signed amount
 			ta1_1 = 1; // No modulation 1
 			if(choi[2]) // Modulation 1 is not "none"
 				ta1_1 = (mod[choi[2]]+modulator_bias[choi[2]]) * modulator_scale[choi[2]] * param[9]; // -1..1, keep 1 for modulator "none"
+			ta1_2 = 1; // No modulation 2
+			if(choi[3]) // Modulation 2 is not "none"
+				ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
 			// Apply mod 2
 			if(param[118]){ // Mult mode amp mod 2 KO
-				ta1_2 = 1; // No modulation 2
-				if(choi[3]) // Modulation 2 is not "none"
-					ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
 				// case mult1 mult2
 				//   vol = mod1'*mod2'
-// #ifdef _DEBUG
-				if(first_time && index==0) printf("ta1 %u %f %f %f %f %f\n", choi[3], modulator_bias[choi[3]], modulator_scale[choi[3]], ta1_1, ta1_2, ta1_1*ta1_2);
-// #endif
+#ifdef _DEBUG
+				if(first_time && index==0)
+					printf("ta1 %u %f %f %f %f %f\n", choi[3], modulator_bias[choi[3]], modulator_scale[choi[3]], ta1_1, ta1_2, ta1_1*ta1_2);
+#endif
 				ta1_2=ta1_1*ta1_2; // -1..1
 			}else{ // Add mode amp mod 2 ok
-				ta1_2 = 0; // No modulation 2 -- addition neutral
-				if(choi[3]) // Modulation 2 is not none
-					ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
 				// case mult1 add2
 				//   vol = (mod1'+mod2')*0.5
+				/* Use full range for mod 1 when mod 2 is none ??
+				ta1_2 = 0; // No modulation 2 -- addition neutral
+				if(choi[3]){ // Modulation 2 is not none
+					ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
+					ta1_2=(ta1_1+ta1_2)*0.5f; // -1..1
+				}else{ // Modulation 2 is none
+					ta1_2=ta1_1; // Use only modulation 1 ?? is this consistent with mod 1 = "none"
+				}
+				*/
 				ta1_2=(ta1_1+ta1_2)*0.5f; // -1..1
 			}
 			// Apply volume to mix and FM out
@@ -745,32 +736,7 @@ int process(jack_nframes_t nframes, void *arg) {
 			ta1_3=param[13]*(0.5f+ta1_2*0.5f);
 			ta1_4=param[14]*(0.5f+ta1_2*0.5f);
 		}
-/*
-		if(param[130]){ // Mult mode amp mod 1
-			ta1_1 = 1; // No modulation
-			if(choi[2]!=0)
-				ta1_1 = (mod[choi[2]]+modulator_bias[choi[2]]) * modulator_scale[choi[2]] * param[9]; // -1..1, keep 1 for modulator "none"
-		}else{ // Add mode - 0 mod means half volume
-			ta1_1 = mod[choi[2]]*param[9]; // -1..1
-		}
 
-		if(param[118]){ // Mult mode amp mod 2
-			ta1_2 = 1; // No modulation
-			if(choi[3]!=0)
-				ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
-			ta1_2=ta1_1*ta1_2; // -1..1
-		}else{ // Add mode - 0 mod means half volume
-			ta1_2 = mod[choi[3]]*param[11];
-			ta1_2=(ta1_1+ta1_2)*0.5f; // -1..1
-		}
-		if(param[130]){ // Mult mode amp mod 1
-			ta1_3=param[13]*ta1_2;
-			ta1_4=param[14]*ta1_2;
-		}else{ // Add mode
-			ta1_3=param[13]*(0.5f+ta1_2*0.5f);
-			ta1_4=param[14]*(0.5f+ta1_2*0.5f);
-		}
-*/
 		#ifdef _PREFETCH
 		__builtin_prefetch(&phase[currentvoice][1],0,2);
 		__builtin_prefetch(&phase[currentvoice][2],0,2);
@@ -782,9 +748,9 @@ int process(jack_nframes_t nframes, void *arg) {
 		// What about tf *= instead of += ?
 		// Would 2 multiplications be faster than an if?
 		if(param[117]){ // Mult. ; param[4] is boost, 1 or 100
-			tfo1+=(param[4]*param[5])*mod[choi[0]]*param[7]*mod[choi[1]];
+			tfo1+=param[4] * param[5] * mod[choi[0]] * param[7] * mod[choi[1]];
 		}else{
-			tfo1+=(param[4]*param[5])*mod[choi[0]]+(param[7]*mod[choi[1]]);
+			tfo1+=(param[4] * param[5] * mod[choi[0]]) + (param[7]*mod[choi[1]]);
 		}
 
 		//static inline float Oscillator(float frequency,int wave,float *phase)
@@ -801,7 +767,9 @@ int process(jack_nframes_t nframes, void *arg) {
 
 		// iPsub=subMSB[currentvoice]+(iP1>>1); // 0..tabM
 		// sub[currentvoice]=(4.f*iPsub/tabF)-1.0f; // Ramp up -1..+1 (beware of int to float)
-		// phase[currentvoice][1]=fmodf(phase[currentvoice][1], tabF);
+#ifdef _USE_FMODF
+		phase[currentvoice][1]=fmodf(phase[currentvoice][1], tabF);
+#else
 		if(phase[currentvoice][1] >= tabF)
 		{
 			phase[currentvoice][1]-= tabF;
@@ -811,8 +779,23 @@ int process(jack_nframes_t nframes, void *arg) {
 			// sub[currentvoice]=(4.f*subMSB[currentvoice]/tabF)-1.0f; // Alt square, OK
 			// Mostly works but some regular glitches at phase 0
 			// subMSB[currentvoice]^=itabF>>1; // Halfway through table
-			// if (*phase>=tabF) *phase = 0; //just in case of extreme fm
+#ifdef _DEBUG
+			if (phase[currentvoice][1]>=tabF){ //just in case of extreme fm
+				fprintf(stderr, "Positive phase glitch on osc 1!\n");
+				phase[currentvoice][1] = 0;
+			}
+#endif
 		}
+		if(phase[currentvoice][1]< 0.f)
+		{
+			phase[currentvoice][1]+= tabF;
+			// subMSB[currentvoice]^=itabF>>1; // Halfway through table
+			//	if(*phase < 0.f) *phase = tabF-1;
+#ifdef _DEBUG
+			fprintf(stderr, "Negative phase glitch on osc 1!\n");
+#endif
+		}
+#endif
 
 		#ifdef _PREFETCH
 			__builtin_prefetch(&param[15],0,0);
@@ -828,29 +811,25 @@ int process(jack_nframes_t nframes, void *arg) {
 			__builtin_prefetch(&choice[currentvoice][9],0,0);
 		#endif
 
-		if(phase[currentvoice][1]< 0.f)
-				{
-					phase[currentvoice][1]+= tabF;
-					// subMSB[currentvoice]^=itabF>>1; // Halfway through table
-					//	if(*phase < 0.f) *phase = tabF-1;
-				}
-		osc1 = table[choi[4]][iP1] ;
+		osc1 = table[choi[4]][iP1];
 		// Osc 1 FM out
-		// param[13] is fm output vol for osc 1 (values 0..1)
-		// Why 1.0f+ ?? -1..3 if both inputs used, maybe intended to be 0..2
-		// mod[3]=osc1*(param[13]*(1.0f+ta1));
-		mod[3]=osc1*ta1_3; // param[13]*ta1;
+		mod[3]=osc1*ta1_3;
 
 // --------------- generate sub
 		phase[currentvoice][0]+= tabX * tfo1 / 2.0f;
-		/*
+#ifdef _USE_FMODF
+		phase[currentvoice][0]=fmodf(phase[currentvoice][0], tabF);
+#else
 		if(phase[currentvoice][0] >= tabF)
 			phase[currentvoice][0]-= tabF;
-		*/
-		phase[currentvoice][0]=fmodf(phase[currentvoice][0], tabF);
-		if(phase[currentvoice][0]< 0.f)
+		if(phase[currentvoice][0] < 0.f)
+		{
 			phase[currentvoice][0]+= tabF;
-		
+#ifdef _DEBUG
+			fprintf(stderr, "Negative phase glitch on sub!\n");
+#endif
+		}
+#endif
 		sub[currentvoice] = table[choi[15]][iPsub];
 
 // ------------------------ calculate oscillator 2 ---------------------
@@ -896,14 +875,29 @@ int process(jack_nframes_t nframes, void *arg) {
 
 		// then generate the actual phase:
 		phase[currentvoice][2]+= tabX * tfo2;
-		// phase[currentvoice][2]=fmodf(phase[currentvoice][2], tabF);
-
-		if(phase[currentvoice][2]  >= tabF)
+#ifdef _USE_FMODF
+		phase[currentvoice][2]=fmodf(phase[currentvoice][2], tabF);
+#else
+		if(phase[currentvoice][2] >= tabF)
 		{
-   			phase[currentvoice][2]-= tabF;
-			// if (*phase>=tabF) *phase = 0; //just in case of extreme fm
+			phase[currentvoice][2]-= tabF;
+#ifdef _DEBUG
+			if (phase[currentvoice][2]>=tabF){
+				fprintf(stderr, "Positive phase glitch on osc 2!\n");
+				phase[currentvoice][2] = 0;
+			}
+#endif
 		}
-
+		if(phase[currentvoice][2]< 0.f)
+		{
+			phase[currentvoice][2]+= tabF;
+#ifdef _DEBUG
+			fprintf(stderr, "Negative phase glitch on osc 2!\n");
+#endif
+		}
+		osc2 = table[choi[5]][iP2] ;
+		mod[4] *= osc2; // osc2 fm out
+#endif
 
 		#ifdef _PREFETCH
 			__builtin_prefetch(&param[14],0,0);
@@ -913,32 +907,46 @@ int process(jack_nframes_t nframes, void *arg) {
 			__builtin_prefetch(&param[56],0,0);
 		#endif
 
-		if(phase[currentvoice][2]< 0.f)
-		{
-			phase[currentvoice][2]+= tabF;
-			//	if(*phase < 0.f) *phase = tabF-1;
-		}
-		osc2 = table[choi[5]][iP2] ;
-		mod[4] *= osc2; // osc2 fm out
-
 // ------------- mix the 2 oscillators and sub pre filter -------------------
 		//temp=(parameter[currentvoice][14]-parameter[currentvoice][14]*ta1);
 		// Why was 1.0f-ta n ?? offset for mod<0 ?? -1..3
-		temp=osc1*ta1_4;
-		temp+=osc2*ta2;
-		temp+=sub[currentvoice]*param[121];
-		temp*=0.333f; // 0.5f;// get the volume of the sum into a normal range	
-		temp+=anti_denormal; // Does this really work in all cases?
+		to_filter=osc1*ta1_4;
+		to_filter+=osc2*ta2;
+		to_filter+=sub[currentvoice]*param[121];
+		to_filter*=0.333f; // 0.5f;// get the volume of the sum into a normal range	
+		to_filter+=anti_denormal; // Does this really work in all cases?
 
 // ------------- calculate the filter settings ------------------------------
-		mf = (1.0f-(param[38]*mod[choi[10]])); 
-		if(param[120]){
-			mf*=1.0f-(param[48]*mod[choi[11]]);
-		}else{
-			mf+=1.0f-(param[48]*mod[choi[11]]);
-		}
-		mo = param[56]*mf;
+// mod 1 is choice 10, amount 38 -2..2
+// mod 2 is choice 11, amount 48 -2..2, mult. 120
+// morph knob is parm 56, 0..0.5
+// We want to interpolate between left and right filter bank values
+// Assuming morph between 0 and 1
+// parm = parm1 + (parm2 -parm1) * morph
+//      = parm1 (1-morph) + parm2 * morph
 
+		morph1 = 2.0*param[56]; // 0..1
+		if(param[120]){
+			mf = 0.25f*param[38]*mod[choi[10]]*param[48]*mod[choi[11]]; // -1..1
+		}else{
+			mf = 0.25f*(param[38]*mod[choi[10]]+param[48]*mod[choi[11]]); // -1..1
+		}
+		// Prescaling ensures bounds are respected
+		if (morph1>0.5f) mf *= 1.0f-morph1; // * <0.5 --> -0.5..0.5
+		else mf *= morph1; // * <0.5 --> -0.5..0.5
+
+		morph1+=mf;
+
+		// Clip to range (should not be needed if prescaled)
+#ifdef _DEBUG
+		if ((morph1<0.0f) || (morph1>1.0f))
+			printf("Morph clipping %f*%f %f*%f, %f %f %f!\n",param[38],mod[choi[10]],param[48],mod[choi[11]], morph1, mf, morph1-2.0f*mf);
+#endif
+		if (morph1<0.0f) morph1=0.0f;
+		// "else" is useless if compiler can use conditional mov
+		if (morph1>1.0f) morph1=1.0f;
+		// doesn't sound good
+		
 		#ifdef _PREFETCH
 			__builtin_prefetch(&param[30],0,0);
 			__builtin_prefetch(&param[31],0,0);
@@ -950,26 +958,38 @@ int process(jack_nframes_t nframes, void *arg) {
 			__builtin_prefetch(&param[51],0,0);
 			__builtin_prefetch(&param[52],0,0);
 		#endif
+/*
+// Why 1.0f - ??
+		mf = (1.0f-(param[38]*mod[choi[10]])); // -1..+3 ??
+		if(param[120]){
+			mf*=1.0f-(param[48]*mod[choi[11]]); // -3..+9 ??
+		}else{
+			mf+=1.0f-(param[48]*mod[choi[11]]); // -2..+6 ??
+		}
+		morph1 = param[56]*mf; // -1.5..4.5 ??
+		// mf not used past this point
 
-		clib1 = fabs (mo);
-		clib2 = fabs (mo-1.0f);
-		mo = clib1 + 1.0f;
-		mo -= clib2;
-		mo *= 0.5f;
+		clib1 = fabs (morph1); // 0..4.5 ??
+		clib2 = fabs (morph1-1.0f); // 0..3.5 ??
+		morph1 = clib1 + 1.0f; // 1..5.5 ??
+		morph1 -= clib2; // -2.5..5.5 ??
+		// clib not used past this point
+		morph1 *= 0.5f; // -1.25..2.75 ??
+*/
 		/*
-		if (mo<0.f) mo = 0.f;
-		else if (mo>1.0f) mo = 1.0f;
+		if (morph1<0.f) morph1 = 0.f;
+		else if (morph1>1.0f) morph1 = 1.0f;
 		*/
+		morph2 = 1.0f-morph1;
 
-		morph=(1.0f-mo);
 		/*
-		tf= (srate * (parameter[currentvoice][30]*morph+parameter[currentvoice][33]*mo) );
+		tf= (srate * (parameter[currentvoice][30]*morph2+parameter[currentvoice][33]*morph1) );
 		f[currentvoice][0] = 2.f * tf - (tf*tf*tf) * 0.1472725f;// / 6.7901358;
 
-		tf= (srate * (parameter[currentvoice][40]*morph+parameter[currentvoice][43]*mo) );
+		tf= (srate * (parameter[currentvoice][40]*morph2+parameter[currentvoice][43]*morph1) );
 		f[currentvoice][1] = 2.f * tf - (tf*tf*tf)* 0.1472725f; // / 6.7901358;;
 
-		tf = (srate * (parameter[currentvoice][50]*morph+parameter[currentvoice][53]*mo) );
+		tf = (srate * (parameter[currentvoice][50]*morph2+parameter[currentvoice][53]*morph1) );
 		f[currentvoice][2] = 2.f * tf - (tf*tf*tf) * 0.1472725f;// / 6.7901358; 
 		*/
 		
@@ -977,7 +997,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		#ifdef _VECTOR
 			union f4vector a __attribute__((aligned (16))), b __attribute__((aligned (16))),  c __attribute__((aligned (16))), d __attribute__((aligned (16))),e __attribute__((aligned (16)));
 
-			b.f[0] = morph; b.f[1] = morph; b.f[2] = morph; b.f[3] = morph;
+			b.f[0] = morph2; b.f[1] = morph2; b.f[2] = morph2; b.f[3] = morph2;
 			a.f[0] = param[30]; a.f[1] =param[31]; a.f[2] = param[32]; a.f[3] = param[40];
 			d.f[0] = param[41]; d.f[1] =param[42]; d.f[2] = param[50]; d.f[3] = param[51];
 			c.v = a.v * b.v;
@@ -993,20 +1013,19 @@ int process(jack_nframes_t nframes, void *arg) {
 			v[currentvoice][1] = e.f[1];
 			tf3 = e.f[2];
 			q[currentvoice][2] = e.f[3];
-
+			v[currentvoice][2] = param[52];
 		#else
-			tf1= param[30];
+			// Load left filter bank parameters
+			tf1 = param[30];
 			q[currentvoice][0] = param[31];
 			v[currentvoice][0] = param[32];
-			tf2= param[40];
-
+			tf2 = param[40];
 			q[currentvoice][1] = param[41];
 			v[currentvoice][1] = param[42];
-			tf3= param[50];
+			tf3 = param[50];
 			q[currentvoice][2] = param[51];
+			v[currentvoice][2] = param[52];
 		#endif
-
-		v[currentvoice][2] = param[52];
 
 		#ifdef _PREFETCH
 		__builtin_prefetch(&param[33],0,0);
@@ -1020,68 +1039,50 @@ int process(jack_nframes_t nframes, void *arg) {
 		__builtin_prefetch(&param[55],0,0);
 		#endif
 
-		#ifndef _VECTOR
-			tf1*= morph;
-			tf2*= morph;
-			q[currentvoice][0] *= morph;
-			v[currentvoice][0] *= morph;
-
-			tf3 *=  morph;
-			v[currentvoice][1] *= morph;
-			q[currentvoice][1] *= morph;
-			q[currentvoice][2] *= morph;
-		#endif
-
-		v[currentvoice][2] *= morph;
-
 		#ifdef _VECTOR
+			v[currentvoice][2] *= morph2;
 			a.f[0] = param[33]; a.f[1] =param[34]; a.f[2] = param[35]; a.f[3] = param[43];
 			d.f[0] = param[44]; d.f[1] =param[45]; d.f[2] = param[53]; d.f[3] = param[54];
-			b.f[0] = mo; b.f[1] = mo; b.f[2] = mo; b.f[3] = mo;
+			b.f[0] = morph1; b.f[1] = morph1; b.f[2] = morph1; b.f[3] = morph1;
 			c.v = a.v * b.v;
 			//c.v = __builtin_ia32_mulps (a.v, b.v);
 			e.v = d.v * b.v;
 			//e.v = __builtin_ia32_mulps (d.v, b.v);
 
-			tf1+= c.f[0];
-			tf2+=c.f[3];
+			tf1 += c.f[0];
+			tf2 += c.f[3];
 			tf3 += e.f[2];
-			q[currentvoice][0] += c.f[1];//parameter[currentvoice][34]*mo;
-			q[currentvoice][1] += e.f[0];//parameter[currentvoice][44]*mo;
-			q[currentvoice][2] += e.f[3];//parameter[currentvoice][54]*mo;
-			v[currentvoice][0] += c.f[2];//parameter[currentvoice][35]*mo;
-			v[currentvoice][1] += e.f[1];//parameter[currentvoice][45]*mo;
-
+			q[currentvoice][0] += c.f[1];//parameter[currentvoice][34]*morph1;
+			q[currentvoice][1] += e.f[0];//parameter[currentvoice][44]*morph1;
+			q[currentvoice][2] += e.f[3];//parameter[currentvoice][54]*morph1;
+			v[currentvoice][0] += c.f[2];//parameter[currentvoice][35]*morph1;
+			v[currentvoice][1] += e.f[1];//parameter[currentvoice][45]*morph1;
 		#else
-			tf1+= param[33]*mo;
-			tf2+= param[43]*mo;
-			tf3+= param[53]*mo;
+			tf1 *= morph2;
+			tf2 *= morph2;
+			tf3 *= morph2;
+			q[currentvoice][0] *= morph2;
+			q[currentvoice][1] *= morph2;
+			q[currentvoice][2] *= morph2;
+			v[currentvoice][0] *= morph2;
+			v[currentvoice][1] *= morph2;
+			v[currentvoice][2] *= morph2;
+			// Right filter bank frequencies
+			tf1 += param[33]*morph1;
+			tf2 += param[43]*morph1;
+			tf3 += param[53]*morph1;
 		#endif
 
-
-		#ifndef _VECTOR
-			q[currentvoice][0] += param[34]*mo;
-			q[currentvoice][1] += param[44]*mo;
-			q[currentvoice][2] += param[54]*mo;
-
-			v[currentvoice][0] += param[35]*mo;
-			v[currentvoice][1] += param[45]*mo;
-
-			tf1*=srate;
-			tf2*=srate;
-			tf3*=srate;
-		#endif
 
 		#ifdef _VECTOR
 		// prepare next calculations
-
 			a.f[0] = param[55]; a.f[1] =tf1; a.f[2] = tf2; a.f[3] = tf3;
-			g.f[0] = mo;// b.f[1] = 2.f; b.f[2] = 2.f; b.f[3] = 2.f;
+			g.f[0] = morph1;// b.f[1] = 2.f; b.f[2] = 2.f; b.f[3] = 2.f;
 			j.v = a.v * i.v; // tf * srate
 			c.v = j.v * g.v; // tf * 2
 			//c.v = __builtin_ia32_mulps (a.v, g.v);
 
-			v[currentvoice][2] += c.f[0];//parameter[currentvoice][55]*mo;
+			v[currentvoice][2] += c.f[0];//parameter[currentvoice][55]*morph1;
 
 			//f[currentvoice][0] = c.f[1];//2.f * tf1;
 			//f[currentvoice][1] = c.f[2];//2.f * tf2;
@@ -1089,64 +1090,71 @@ int process(jack_nframes_t nframes, void *arg) {
 			//pow(c.v,3);
 			d.v = c.v - ((j.v * j.v * j.v) * h.v);
 
-			f[currentvoice][0] = d.f[1];//(tf1*tf1*tf1) * 0.1472725f;// / 6.7901358;
-
-			f[currentvoice][1] = d.f[2];//(tf2*tf2*tf2)* 0.1472725f; // / 6.7901358;;
-
-			f[currentvoice][2] = d.f[3];//(tf3*tf3*tf3) * 0.1472725f;// / 6.7901358; 
+			f[currentvoice][0] = d.f[1];
+			f[currentvoice][1] = d.f[2];
+			f[currentvoice][2] = d.f[3];
 		#else
-			v[currentvoice][2] += param[55]*mo;
+			// Right filter bank parameters
+			q[currentvoice][0] += param[34]*morph1;
+			q[currentvoice][1] += param[44]*morph1;
+			q[currentvoice][2] += param[54]*morph1;
 
+			v[currentvoice][0] += param[35]*morph1;
+			v[currentvoice][1] += param[45]*morph1;
+			v[currentvoice][2] += param[55]*morph1;
+
+			tf1*=srate;
+			tf2*=srate;
+			tf3*=srate;
+			
+			// Sin approximation sin(x) = x - x^3 / 6.7901358
+			// Why 2.f * ?
 			f[currentvoice][0] = 2.f * tf1;
 			f[currentvoice][1] = 2.f * tf2;
 			f[currentvoice][2] = 2.f * tf3; 
 
 			f[currentvoice][0] -= (tf1*tf1*tf1) * 0.1472725f;// / 6.7901358;
-
-			f[currentvoice][1] -= (tf2*tf2*tf2)* 0.1472725f; // / 6.7901358;;
-
+			f[currentvoice][1] -= (tf2*tf2*tf2) * 0.1472725f; // / 6.7901358;;
 			f[currentvoice][2] -= (tf3*tf3*tf3) * 0.1472725f;// / 6.7901358; 
 		#endif
+		// morph1 and morph2 not used past this point
 //----------------------- actual filter calculation -------------------------
 		// first filter
 		float reso = q[currentvoice][0]; // for better scaling the volume with rising q
 		low[currentvoice][0] = low[currentvoice][0] + f[currentvoice][0] * band[currentvoice][0];
-		high[currentvoice][0] = ((reso + ((1.0f-reso)*0.1f))*temp) - low[currentvoice][0] - (reso*band[currentvoice][0]);
-		//high[currentvoice][0] = (reso *temp) - low[currentvoice][0] - (q[currentvoice][0]*band[currentvoice][0]);
+		high[currentvoice][0] = ((reso + ((1.0f-reso)*0.1f))*to_filter) - low[currentvoice][0] - (reso*band[currentvoice][0]);
+		//high[currentvoice][0] = (reso *to_filter) - low[currentvoice][0] - (q[currentvoice][0]*band[currentvoice][0]);
 		band[currentvoice][0]= f[currentvoice][0] * high[currentvoice][0] + band[currentvoice][0];
 
 		// second filter
 		reso = q[currentvoice][1];
 		low[currentvoice][1] = low[currentvoice][1] + f[currentvoice][1] * band[currentvoice][1];
-		high[currentvoice][1] = ((reso + ((1.0f-reso)*0.1f))*temp) - low[currentvoice][1] - (reso*band[currentvoice][1]);
+		high[currentvoice][1] = ((reso + ((1.0f-reso)*0.1f))*to_filter) - low[currentvoice][1] - (reso*band[currentvoice][1]);
+		// high[currentvoice][1] = (q[currentvoice][1] * band[currentvoice][1]) - low[currentvoice][1] - (q[currentvoice][1]*band[currentvoice][1]);
 		band[currentvoice][1]= f[currentvoice][1] * high[currentvoice][1] + band[currentvoice][1];
-		/*
-			low[currentvoice][1] = low[currentvoice][1] + f[currentvoice][1] * band[currentvoice][1];
-			high[currentvoice][1] = (q[currentvoice][1] * band[currentvoice][1]) - low[currentvoice][1] - (q[currentvoice][1]*band[currentvoice][1]);
-		band[currentvoice][1]= f[currentvoice][1] * high[currentvoice][1] + band[currentvoice][1];
-		*/
 		// third filter
 		reso = q[currentvoice][2];
 		low[currentvoice][2] = low[currentvoice][2] + f[currentvoice][2] * band[currentvoice][2];
-		high[currentvoice][2] = ((reso + ((1.0f-reso)*0.1f))*temp) - low[currentvoice][2] - (reso*band[currentvoice][2]);
+		high[currentvoice][2] = ((reso + ((1.0f-reso)*0.1f))*to_filter) - low[currentvoice][2] - (reso*band[currentvoice][2]);
 		band[currentvoice][2]= f[currentvoice][2] * high[currentvoice][2] + band[currentvoice][2];
 
+		// Total filter modulation output
 		mod [7] = (low[currentvoice][0]*v[currentvoice][0])+band[currentvoice][1]*v[currentvoice][1]+band[currentvoice][2]*v[currentvoice][2];
 
-		//---------------------------------- amplitude shaping
-
-		result = 1.0f-mod[ choi[13]]*param[100];
+//---------------------------------- amplitude shaping
+		result = 1.0f-mod[choi[13]]*param[100];
 		result *= mod[7];
 		result *= egCalc(currentvoice,0);// the final shaping envelope
 
-		// --------------------------------- delay unit
+// --------------------------------- delay unit
 		if( delayI[currentvoice] >= delayBufferSize )
 		{
 			delayI[currentvoice] = 0;
 	
 			//printf("clear %d : %d : %d\n",currentvoice,delayI[currentvoice],delayJ[currentvoice]);
 		}
-		delayMod = 1.0f-(param[110]* mod[choi[14]]);
+		// param[110] is mod. amount 0..1
+		delayMod = 1.0f-(param[110]* mod[choi[14]]); // Why 1.0f- ?? 0..2
 
 		delayJ[currentvoice] = delayI[currentvoice] - ((param[111]* maxDelayTime)*delayMod);
 
@@ -1173,11 +1181,11 @@ int process(jack_nframes_t nframes, void *arg) {
 			fflush(stdout);
 		}
 		*/
-		mod[18]= tdelay;
-		result += tdelay * param[113];
+		mod[18]=tdelay; // delay as modulation source
+		result += tdelay * param[113]; // add to final mix
 		delayI[currentvoice]=delayI[currentvoice]+1;
 
-		// --------------------------------- output
+// --------------------------------- output
 		float *buffer = (float*) jack_port_get_buffer(port[currentvoice], nframes);
 		buffer[index] = result * param[101];
 		bufferAux1[index] += result * param[108];
@@ -1253,19 +1261,19 @@ void init ()
 		}
 	}
 
-	float PI=3.145;
+	float PI=3.14159265359;
 	float increment = (float)(PI*2) / (float)TableSize;
 	float x = 0.0f;
 	float tri = -0.9f;
 	// calculate wavetables (values between -1.0 and 1.0)
 	for (i=0; i<TableSize; i++)
 	{
-		table[0][i] = (float)((float)sin(x+(
-				(float)2.0f*(float)PI))); // sin x+2pi == sin x ??
-		x += increment;
+		x = i*increment;
+		table[0][i] = sin(x);
 		table[1][i] = (float)i/tabF*2.f-1.0f;// ramp up
 			
-		table[2][i] = 0.9f-(i/tabF*1.8f-0.5f);// tabF-((float)i/tabF*2.f-1.0f);//ramp down
+		table[2][i] = (float)(TableSize-i-1)/tabF*2.f-1.0f; //ramp down
+		// 0.9f-(i/tabF*1.8f-0.5f);// tabF-((float)i/tabF*2.f-1.0f);
 			
 		if (i<TableSize/2) 
 		{ 

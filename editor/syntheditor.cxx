@@ -1717,12 +1717,63 @@ int Fl_SteinerKnob::handle(int event) {
 }
 */
 // ---------------------------------------------------------------
-// 			screen initialization
+// -------------------- screen initialization --------------------
 // ---------------------------------------------------------------
 
 // These should be members of UserInterface?
 static unsigned char idata_miniMini2[_LOGO_WIDTH*_LOGO_HEIGHT*3];
 Fl_RGB_Image image_miniMini2(idata_miniMini2, _LOGO_WIDTH, _LOGO_HEIGHT, 3, 0);
+
+void make_EG(int voice, int EG_base, int x, int y, const char* EG_label){
+	  // ----------- knobs for envelope generator n ---------------
+	  { Fl_Group* o = new Fl_Group(x, y, 200, 45, EG_label); // 608 31
+		o->box(FL_ROUNDED_FRAME);
+		o->color(FL_FOREGROUND_COLOR);
+		o->labelsize(8);
+		{ Fl_Dial* o = new Fl_Dial(x+10, y+6, 25, 25, "A");
+		  o->labelsize(8); 
+		  o->argument(EG_base);  
+		  o->minimum(0.15);
+		  o->maximum(0.01);
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[voice][o->argument()] = o;
+		}
+		{ Fl_Dial* o = new Fl_Dial(x+40, y+6, 25, 25, "D");
+		  o->labelsize(8);
+		  o->argument(EG_base+1);
+		  o->minimum(0.15);
+		  o->maximum(0.01);
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[voice][o->argument()] = o;
+		}
+		
+		{ Fl_Dial* o = new Fl_Dial(x+70, y+6, 25, 25, "S");
+		  o->labelsize(8);
+		  o->argument(EG_base+2);
+		 // o->minimum(0);
+		 // o->maximum(0.001);
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[voice][o->argument()] = o;
+		}
+		{ Fl_Dial* o = new Fl_Dial(x+100, y+6, 25, 25, "R");
+		  o->labelsize(8);
+		  o->argument(EG_base+3);
+		  o->minimum(0.15);
+		  o->maximum(0.02);
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[voice][o->argument()] = o;
+		}
+		{ Fl_Light_Button* o = new Fl_Light_Button(x+136, y+11, 55, 15, "repeat");
+		  o->box(FL_BORDER_BOX);
+		  o->selection_color((Fl_Color)89);
+		  o->labelsize(8);
+		  o->argument(EG_base+4);
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[voice][o->argument()] = o;
+		}
+		o->end();
+	  }
+}
 
 Fenster* UserInterface::make_window(const char* title) {    
  // Fl_Double_Window* w;
@@ -2482,228 +2533,15 @@ Fenster* UserInterface::make_window(const char* title) {
 	  d->labelsize(8);
 	  d->labelcolor(FL_BACKGROUND2_COLOR);
 	  }
-	  // ----------- knobs for envelope generator 1 ---------------
-	  { Fl_Group* o = new Fl_Group(608, 31, 200, 45, "EG 1");
-		o->box(FL_ROUNDED_FRAME);
-		o->color(FL_FOREGROUND_COLOR);
-		o->labelsize(8);
-		{ Fl_Dial* o = new Fl_Dial(618, 37, 25, 25, "A");
-		  o->labelsize(8); 
-		  o->argument(60);  
-		  o->minimum(0.2);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);
-		  Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(648, 37, 25, 25, "D");
-		  o->labelsize(8);
-		  o->argument(61);
-		  o->minimum(0.15);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);
-		  Knob[i][o->argument()] = o;
-		}
-		
-		{ Fl_Dial* o = new Fl_Dial(678, 37, 25, 25, "S");
-		  o->labelsize(8);
-		  o->argument(62);
-		 // o->minimum(0);
-		 // o->maximum(0.001);
-		  o->callback((Fl_Callback*)parmCallback);
-		  Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(708, 37, 25, 25, "R");
-		  o->labelsize(8);
-		  o->argument(63);
-		  o->minimum(0.15);
-		  o->maximum(0.02);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Light_Button* o = new Fl_Light_Button(744, 42, 55, 15, "repeat");
-		  o->box(FL_BORDER_BOX);
-		  o->selection_color((Fl_Color)89);
-		  o->labelsize(8);
-		  o->argument(64);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		o->end();
-	  }
-	  // ----------- knobs for envelope generator 2 ---------------
-	  { Fl_Group* o = new Fl_Group(608, 90, 200, 45, "EG 2");
-		o->box(FL_ROUNDED_FRAME);
-		o->color(FL_FOREGROUND_COLOR);
-		o->labelsize(8);
-		{ Fl_Dial* o = new Fl_Dial(618, 96, 25, 25, "A");
-		  o->labelsize(8);o->argument(65);
-		  o->minimum(0.2);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(648, 96, 25, 25, "D");
-		  o->labelsize(8);o->argument(66);
-		  o->minimum(0.15);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(678, 96, 25, 25, "S");
-		  o->labelsize(8);o->argument(67);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(708, 96, 25, 25, "R");
-		  o->labelsize(8);o->argument(68);
-		  o->minimum(0.15);
-		  o->maximum(0.02);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Light_Button* o = new Fl_Light_Button(744, 101, 55, 15, "repeat");
-		  o->box(FL_BORDER_BOX);
-		  o->selection_color((Fl_Color)89);
-		  o->labelsize(8);o->argument(69);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		o->end();
-	  }
-	  // ----------- knobs for envelope generator 3 ---------------
-	  { Fl_Group* o = new Fl_Group(608, 147, 200, 45, "EG 3");
-		o->box(FL_ROUNDED_FRAME);
-		o->color(FL_FOREGROUND_COLOR);
-		o->labelsize(8);
-		{ Fl_Dial* o = new Fl_Dial(618, 153, 25, 25, "A");
-		  o->labelsize(8);o->argument(70);
-		  o->minimum(0.2);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(648, 153, 25, 25, "D");
-		  o->labelsize(8);o->argument(71);
-		  o->minimum(0.15);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(678, 153, 25, 25, "S");
-		  o->labelsize(8);o->argument(72);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(708, 153, 25, 25, "R");
-		  o->labelsize(8);o->argument(73);
-		  o->minimum(0.15);
-		  o->maximum(0.02);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Light_Button* o = new Fl_Light_Button(744, 158, 55, 15, "repeat");
-		  o->box(FL_BORDER_BOX);
-		  o->selection_color((Fl_Color)89);
-		  o->labelsize(8);o->argument(74);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		o->end();
-	  }
-	  // ----------- knobs for envelope generator 4 ---------------
-	  { Fl_Group* o = new Fl_Group(608, 204, 200, 45, "EG 4");
-		o->box(FL_ROUNDED_FRAME);
-		o->color(FL_FOREGROUND_COLOR);
-		o->labelsize(8);
-		{ Fl_Dial* o = new Fl_Dial(618, 210, 25, 25, "A");
-		  o->labelsize(8);o->argument(75);
-		  o->minimum(0.2);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(648, 210, 25, 25, "D");
-		  o->labelsize(8);o->argument(76);
-		  o->minimum(0.15);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(678, 210, 25, 25, "S");
-		  o->labelsize(8);o->argument(77);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(708, 210, 25, 25, "R");
-		  o->labelsize(8);o->argument(78);
-		  o->minimum(0.15);
-		  o->maximum(0.02);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Light_Button* o = new Fl_Light_Button(744, 215, 55, 15, "repeat");
-		  o->box(FL_BORDER_BOX);
-		  o->selection_color((Fl_Color)89);
-		  o->labelsize(8);o->argument(79);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		o->end();
-	  }
-	  // ----------- knobs for envelope generator 5 ---------------
-	  { Fl_Group* o = new Fl_Group(608, 263, 200, 45, "EG 5");
-		o->box(FL_ROUNDED_FRAME);
-		o->color(FL_FOREGROUND_COLOR);
-		o->labelsize(8);
-		{ Fl_Dial* o = new Fl_Dial(618, 269, 25, 25, "A");
-		  o->labelsize(8);o->argument(80);
-		  o->minimum(0.2);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(648, 269, 25, 25, "D");
-		  o->labelsize(8);o->argument(81);
-		  o->minimum(0.15);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(678, 269, 25, 25, "S");
-		  o->labelsize(8);o->argument(82);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(708, 269, 25, 25, "R");
-		  o->labelsize(8);o->argument(83);
-		  o->minimum(0.15);
-		  o->maximum(0.02);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Light_Button* o = new Fl_Light_Button(744, 274, 55, 15, "repeat");
-		  o->box(FL_BORDER_BOX);
-		  o->selection_color((Fl_Color)89);
-		  o->labelsize(8);o->argument(84);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		o->end();
-	  }
-	  // ------ knobs for envelope generator 6 -----
-	  { Fl_Group* o = new Fl_Group(608, 324, 200, 45, "EG 6");
-		o->box(FL_ROUNDED_FRAME);
-		o->color(FL_FOREGROUND_COLOR);
-		o->labelsize(8);
-		{ Fl_Dial* o = new Fl_Dial(618, 330, 25, 25, "A");
-		  o->labelsize(8);o->argument(85); 
-		  o->minimum(0.2);
-		  o->maximum(0.01);
-		  Knob[i][o->argument()] = o;
-		  o->callback((Fl_Callback*)parmCallback);
-		}
-		{ Fl_Dial* o = new Fl_Dial(648, 330, 25, 25, "D");
-		  o->labelsize(8);o->argument(86);
-		  o->minimum(0.15);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(678, 330, 25, 25, "S");
-		  o->labelsize(8);o->argument(87);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = new Fl_Dial(708, 330, 25, 25, "R");
-		  o->labelsize(8);o->argument(88); 
-		  o->minimum(0.15);
-		  o->maximum(0.02);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Light_Button* o = new Fl_Light_Button(744, 335, 55, 15, "repeat");
-		  o->box(FL_BORDER_BOX);
-		  o->selection_color((Fl_Color)89);
-		  o->labelsize(8);o->argument(89);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		o->end();
-	  }
+	  // ----------- knobs for envelope generators ---------------
+	  make_EG(i, 60, 608, 31, "EG 1");
+	  make_EG(i, 65, 608, 90, "EG 2");
+	  make_EG(i, 70, 608, 147, "EG 3");
+	  make_EG(i, 75, 608, 204, "EG 4");
+	  make_EG(i, 80, 608, 263, "EG 5");
+	  make_EG(i, 85, 608, 324, "EG 6");
+	  
+	  // ----------- knobs for oscillators ---------------
 	  { Fl_Group* o = new Fl_Group(608, 380, 200, 54, "mod osc");
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
@@ -2877,28 +2715,33 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelsize(8);o->argument(102); 
 		o->minimum(0.20);
 		o->maximum(0.01);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Dial* o = new Fl_Dial(874, 83, 25, 25, "D");
 		o->labelsize(8);o->argument(103); 
 		o->minimum(0.15);
 		o->maximum(0.01);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Dial* o = new Fl_Dial(904, 83, 25, 25, "S");
 		o->labelsize(8);o->argument(104);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Dial* o = new Fl_Dial(934, 83, 25, 25, "R");
 		o->labelsize(8);o->argument(105); 
 		o->minimum(0.15);
 		o->maximum(0.02);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Dial* o = new Fl_Dial(934, 29, 25, 25, "amount");
 		o->labelsize(8);
 		o->argument(100);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
 	  { Fl_Choice* o = new Fl_Choice(844, 35, 85, 15, "amp modulator");
 		o->box(FL_BORDER_BOX);
