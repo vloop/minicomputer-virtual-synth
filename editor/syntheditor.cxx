@@ -1961,6 +1961,14 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
+	{ Fl_Light_Button* o = new Fl_Light_Button(92, 136, 40, 15, "mult.");
+		o->box(FL_BORDER_BOX);
+		o->selection_color((Fl_Color)89);
+		o->labelsize(8);
+		o->argument(118);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	}
 	  { Fl_Choice* o = new Fl_Choice(134, 102, 120, 15, "amp modulator 1");
 		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
@@ -1972,14 +1980,14 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->menu(menu_amod);
 		auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(260, 131, 25, 25, "amount");
+	{ Fl_Light_Button* o = new Fl_Light_Button(92, 102, 40, 15, "mult.");
+		o->box(FL_BORDER_BOX);
+		o->selection_color((Fl_Color)89);
 		o->labelsize(8);
-		o->argument(11);  
-		o->minimum(-1);
-		o->maximum(1);
+		o->argument(130);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
-	  }
+	}
 	  { Fl_Choice* o = new Fl_Choice(134, 136, 120, 15, "amp modulator 2");
 		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
@@ -1991,11 +1999,11 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->menu(menu_amod);
 		auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(248, 23, 25, 25, "amount");
+	  { Fl_Dial* o = new Fl_Dial(260, 131, 25, 25, "amount");
 		o->labelsize(8);
-		o->argument(5);  
-		o->minimum(-1000);
-		o->maximum(1000);
+		o->argument(11);  
+		o->minimum(-1);
+		o->maximum(1);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
@@ -2010,13 +2018,23 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->menu(menu_fmod);
 		auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(248, 59, 25, 25, "amount");
+	  { Fl_Dial* o = new Fl_Dial(248, 23, 25, 25, "amount");
 		o->labelsize(8);
-		o->argument(7); 
+		o->argument(5);  
 		o->minimum(-1000);
 		o->maximum(1000);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
+	// Mult button OSC 1
+	{ Fl_Light_Button* o = new Fl_Light_Button(80, 64, 40, 15, "mult.");
+		o->box(FL_BORDER_BOX);
+		o->selection_color((Fl_Color)89);
+		o->labelsize(8);
+		o->argument(117);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	}
 	  { Fl_Choice* o = new Fl_Choice(122, 64, 120, 15, "freq modulator 2");
 		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
@@ -2028,8 +2046,15 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->menu(menu_fmod);
 		auswahl[i][o->argument()]=o;
 	  }
-	  
-	  
+	  { Fl_Dial* o = new Fl_Dial(248, 59, 25, 25, "amount");
+		o->labelsize(8);
+		o->argument(7); 
+		o->minimum(-1000);
+		o->maximum(1000);
+		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+	  }
+ 
+  
 	  { Fl_Choice* j = new Fl_Choice(134, 167, 120, 15, "waveform");
 		j->box(FL_BORDER_BOX);
 		j->down_box(FL_BORDER_BOX);
@@ -2335,7 +2360,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->argument(11);
 		o->callback((Fl_Callback*)choiceCallback);auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Light_Button* o = new Fl_Light_Button(325, 430, 85, 15, "bypass filter");
+	  { Fl_Light_Button* o = new Fl_Light_Button(325, 430, 85, 15, "bypass filters");
 		// o->tooltip("reset the filter and delay");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(8);
@@ -2753,31 +2778,6 @@ Fenster* UserInterface::make_window(const char* title) {
 	{ Fl_Dial* o = new Fl_Dial(52, 221, 25, 25, "glide");
 		o->labelsize(8);
 		o->argument(116);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	}
-	// Mult buttons OSC 1
-	{ Fl_Light_Button* o = new Fl_Light_Button(80, 64, 40, 15, "mult.");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(117);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	}
-	{ Fl_Light_Button* o = new Fl_Light_Button(92, 136, 40, 15, "mult.");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(118);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	}
-	{ Fl_Light_Button* o = new Fl_Light_Button(92, 102, 40, 15, "mult.");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(130);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}

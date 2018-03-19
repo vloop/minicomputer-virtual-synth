@@ -848,7 +848,6 @@ int process(jack_nframes_t nframes, void *arg) {
 			ta2 = (0.5 + mod[choi[8]] * param[23] *0.5) * param[29]; // 0..1
 		}
 
-
 		tfo2+=midif[currentvoice]*(1.0f-param[17])*param[18];
 		tfo2-=glide[currentvoice];
 
@@ -881,31 +880,35 @@ int process(jack_nframes_t nframes, void *arg) {
 		if(phase[currentvoice][2] >= tabF)
 		{
 			phase[currentvoice][2]-= tabF;
-#ifdef _DEBUG
+	#ifdef _DEBUG
 			if (phase[currentvoice][2]>=tabF){
 				fprintf(stderr, "Positive phase glitch on osc 2!\n");
 				phase[currentvoice][2] = 0;
 			}
-#endif
+	#endif
 		}
 		if(phase[currentvoice][2]< 0.f)
 		{
 			phase[currentvoice][2]+= tabF;
-#ifdef _DEBUG
+	#ifdef _DEBUG
 			fprintf(stderr, "Negative phase glitch on osc 2!\n");
-#endif
+	#endif
 		}
+#endif
 		osc2 = table[choi[5]][iP2] ;
 		mod[4] *= osc2; // osc2 fm out
+#ifdef _DEBUG
+		if(first_time && index==0 && currentvoice==0)
+			printf("phase osc 2 voice %u %f index %u result %f\n", currentvoice, phase[currentvoice][2], iP2, osc2);
 #endif
 
-		#ifdef _PREFETCH
-			__builtin_prefetch(&param[14],0,0);
-			__builtin_prefetch(&param[29],0,0);
-			__builtin_prefetch(&param[38],0,0);
-			__builtin_prefetch(&param[48],0,0);
-			__builtin_prefetch(&param[56],0,0);
-		#endif
+#ifdef _PREFETCH
+		__builtin_prefetch(&param[14],0,0);
+		__builtin_prefetch(&param[29],0,0);
+		__builtin_prefetch(&param[38],0,0);
+		__builtin_prefetch(&param[48],0,0);
+		__builtin_prefetch(&param[56],0,0);
+#endif
 
 // ------------- mix the 2 oscillators and sub pre filter -------------------
 		//temp=(parameter[currentvoice][14]-parameter[currentvoice][14]*ta1);
@@ -1461,9 +1464,9 @@ void doMidi(int status, int n, int v){
 					// 14 bits means 16384 values; 1/8192=0.00012207f
 					// modulator[voice][2]=((v<<7)+n)*0.00012207f; // 0..2
 					modulator[voice][2]=(((v<<7)+n)-8192)*0.00012207f; // -1..1
-// #ifdef _DEBUG
+#ifdef _DEBUG
 					printf("Pitch bend %u -> %u %f\n", c, voice, (((v<<7)+n)-8192)*0.0001221f);
-// #endif
+#endif
 					break;
 				}
 				case 0xB0:{ // Control change
