@@ -1501,7 +1501,21 @@ static inline void doNoteOn(int voice, int note, int velocity){
 				if(EGstate[voice][0]==4){
 					glide[voice]=0; // Don't glide from finished note
 				}
-
+				// Reset phase if needed
+				if(parameter[voice][134]){
+					phase[voice][1]=parameter[voice][133]*TableSize/360.0;
+					phase[voice][0]=parameter[voice][133]*TableSize/720.0; // sub-osc
+#ifdef _DEBUG
+					printf("Osc 1 voice %u phase set to %f\n", voice, parameter[voice][133]);
+#endif
+				}
+				if(parameter[voice][136]){
+					phase[voice][2]=parameter[voice][135]*TableSize/360.0;
+#ifdef _DEBUG
+					printf("Osc 2 voice %u phase set to %f\n", voice, parameter[voice][135]);
+#endif
+				}
+				
 				midif[voice]=midi2freq[note];// lookup the frequency
 				// 1/127=0,007874015748...
 				modulator[voice][19]=note*0.007874f;// fill the value in as normalized modulator
@@ -1515,6 +1529,9 @@ static inline void doNoteOn(int voice, int note, int velocity){
 				if (EGrepeat[voice][4] == 0) egStart(voice,4);
 				if (EGrepeat[voice][5] == 0) egStart(voice,5);
 				if (EGrepeat[voice][6] == 0) egStart(voice,6);
+#ifdef _DEBUG
+					printf("Note on %u voice %u velocity %u\n", note, voice, velocity);
+#endif
 			}else{ // if velo == 0 it should be handled as noteoff...
 				doNoteOff(voice, note, velocity);
 			}
@@ -2021,7 +2038,7 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 	{
 		parameter[voice][i]=argv[2]->f;
 #ifdef _DEBUG
-		printf("foo_handler set voice %i, parameter %i = %f \n",voice,i,argv[2]->f);
+		printf("foo_handler set voice %i, parameter %i = %f \n", voice, i, argv[2]->f);
 #endif   
 
 	}
