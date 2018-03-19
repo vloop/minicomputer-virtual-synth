@@ -476,6 +476,7 @@ switch (currentParameter)
 	case 132:
 	case 134:
 	case 136:
+	case 137:
 	{
 		if (((Fl_Light_Button *)o)->value()==0)
 		{
@@ -988,6 +989,7 @@ static void storesound(Fl_Widget* o, void* e)
 	case 132:
 	case 134:
 	case 136:
+	case 137:
 	{
 		if (((Fl_Light_Button *)Knob[currentsound][i])->value()==0)
 		{
@@ -1214,6 +1216,7 @@ static void recall(unsigned int preset)
 	case 132:
 	case 134:
 	case 136:
+	case 137:
 	{
 		#ifdef _DEBUG
 		printf("handle: %d\n",i);
@@ -2260,107 +2263,39 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
 		o->labelsize(8);
-		 make_filter(i, 30, 4, 340, 31);
-		/*
-		{Fl_Positioner* o = new Fl_Positioner(340,31,70,79,"cut");
-		o->xbounds(0,9000);
-		o->ybounds(499,0); o->selection_color(0);
-		o->box(FL_BORDER_BOX);
-		o->xstep(500);
-		o->labelsize(8);
-		o->argument(30);
-		o->yvalue(200.5);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-
-		}
-		{ Fl_Dial* o = f1q1 = new Fl_Dial(415, 33, 25, 25, "q");
-		  o->labelsize(8);
-		  o->argument(31);
-		  o->minimum(0.9);
-		  o->value(0.9);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);
-		  Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = f1vol1 = new Fl_Dial(425, 70, 20, 20, "vol");
-		  o->labelsize(8);
-		  o->argument(32);
-		  o->callback((Fl_Callback*)parmCallback);o->minimum(-1);
-		  o->value(0.5);
-		  o->maximum(1);
-		  Knob[i][o->argument()] = o;
-		}
-		*/
-		/*
-		{ Fl_Value_Input* o = new Fl_Value_Input(412, 100, 38, 15);
-		  o->box(FL_ROUNDED_BOX);
-		  o->labelsize(8);
-		  o->textsize(8);
-		  o->maximum(10000);
-		  o->step(0.01);
-		  o->value(200);
-		  o->argument(30);
-		  o->callback((Fl_Callback*)cutoffCallback);
-		  miniDisplay[i][4]=o;
-		}
-*/
+		make_filter(i, 30, 4, 340, 31);
 		make_filter(i, 33, 5, 456, 31);
-/*
-		{ Fl_Positioner* o = new Fl_Positioner(456,31,70,79,"cut");
-		o->xbounds(0,9000);
-		o->ybounds(499,0);
-		o->box(FL_BORDER_BOX);
-		o->xstep(500); o->selection_color(0);
-		o->labelsize(8);
-		o->yvalue(20);
-		o->callback((Fl_Callback*)parmCallback);
-		o->argument(33);
-		Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = f1q2 = new Fl_Dial(531, 32, 25, 25, "q");
-		  o->labelsize(8); 
-		  o->argument(34);
-		  o->minimum(0.9);
-		  o->value(0.5);
-		  o->maximum(0.01);
-		  o->callback((Fl_Callback*)parmCallback);
-		  Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = f1vol2 = new Fl_Dial(541, 70, 20, 20, "vol");
-		  o->labelsize(8); 
-		  o->labelsize(8);
-		  o->minimum(-1);
-		  o->value(0.5);
-		  o->maximum(1);
-		   o->argument(35);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-		}
-		{ Fl_Value_Input* o = new Fl_Value_Input(528, 100, 38, 15);
-		  o->box(FL_ROUNDED_BOX);
-		  o->labelsize(8);
-		  o->textsize(8);
-		  o->maximum(10000);
-		  o->step(0.01);
-		  o->value(20);
-		  o->argument(33);
-		  o->callback((Fl_Callback*)cutoffCallback);
-		  miniDisplay[i][5]=o;
-		}
-*/
-	/*
-		{ Fl_Button* o = new Fl_Button(426, 35, 45, 15, "copy ->");
-		  o->box(FL_BORDER_BOX);
-		  o->labelsize(8);
-		}
-		{ Fl_Button* o = new Fl_Button(426, 59, 45, 15, "<- copy");
-		  o->box(FL_BORDER_BOX);
-		  o->labelsize(8);
-		}
-	*/
 		o->end();
 	  }
+	  { Fl_Group* o = new Fl_Group(330, 132, 239, 92, "filter 2");
+		o->box(FL_ROUNDED_FRAME);
+		o->color(FL_FOREGROUND_COLOR);
+		o->labelsize(8);
+		make_filter(i, 40, 6, 340, 135);
+		make_filter(i, 43, 7, 456, 135);
+	/*
+		{ Fl_Button* o = new Fl_Button(426, 139, 45, 15, "copy ->");
+		  o->box(FL_BORDER_BOX);
+		  o->labelsize(8);
+		  o->argument(21);
+		//o->callback((Fl_Callback*)copyparmCallback);
+		}
+		{ Fl_Button* o = new Fl_Button(426, 163, 45, 15, "<- copy");
+		  o->box(FL_BORDER_BOX);
+		  o->labelsize(8);
+		  o->argument(22);
+	  //o->callback((Fl_Callback*)copyparmCallback);
+		}*/
+		o->end();
+	  }
+	  { Fl_Group* o = new Fl_Group(330, 238, 239, 92, "filter 3");
+		o->box(FL_ROUNDED_FRAME);
+		o->color(FL_FOREGROUND_COLOR);
+		o->labelsize(8);
+		make_filter(i, 50, 8, 340, 241);
+		make_filter(i, 53, 9, 456, 241);
+		o->end();
+	  } 
 	  { Fl_Dial* o = new Fl_Dial(418, 360, 60, 57, "morph");
 		o->type(1);
 		o->labelsize(8);
@@ -2400,200 +2335,15 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->argument(11);
 		o->callback((Fl_Callback*)choiceCallback);auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Group* o = new Fl_Group(330, 132, 239, 92, "filter 2");
-		o->box(FL_ROUNDED_FRAME);
-		o->color(FL_FOREGROUND_COLOR);
-		o->labelsize(8);
-		make_filter(i, 40, 6, 340, 135);
-		/*
-		{ Fl_Positioner* o = new Fl_Positioner(340,135,70,79,"cut");
-		o->xbounds(0,7000);
-		o->ybounds(499,0); o->selection_color(0);
-		o->xstep(500);
+	  { Fl_Light_Button* o = new Fl_Light_Button(325, 430, 85, 15, "bypass filter");
+		// o->tooltip("reset the filter and delay");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(8);
-		o->argument(40);Knob[i][o->argument()] = o;
+		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+		o->argument(137);
 		o->callback((Fl_Callback*)parmCallback);
-		}
-		{ Fl_Dial* o = f1q1 = new Fl_Dial(415, 137, 25, 25, "q");
-		  o->labelsize(8);
-		  o->argument(41);
-		  o->minimum(0.9);
-		  o->maximum(0.001);
-		  o->value(0.5);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = f1vol1 = new Fl_Dial(425, 174, 20, 20, "vol");
-		  o->labelsize(8);
-		  o->argument(42);
-		  o->callback((Fl_Callback*)parmCallback);
-		  o->minimum(-1);
-		  o->value(0);
-		  o->maximum(1);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Value_Input* o = new Fl_Value_Input(412, 204, 38, 15);
-		  o->box(FL_ROUNDED_BOX);
-		  o->labelsize(8);
-		  o->maximum(10000);
-		  o->argument(40);
-		  o->step(0.01);
-		  o->callback((Fl_Callback*)cutoffCallback);
-		  o->textsize(8);
-		  miniDisplay[i][6]=o;
-		}
-		*/
-		make_filter(i, 43, 7, 456, 135);
-		/*
-		{ Fl_Positioner* o = new Fl_Positioner(456,135,70,79,"cut");
-		o->xbounds(0,7000);
-		o->ybounds(499,0); o->selection_color(0);
-		o->box(FL_BORDER_BOX);
-		o->xstep(500);
-		o->labelsize(8);
-		o->argument(43);Knob[i][o->argument()] = o;
-		o->callback((Fl_Callback*)parmCallback);
-		}
-		{ Fl_Dial* o = f1q2 = new Fl_Dial(531, 136, 25, 25, "q");
-		  o->labelsize(8);
-		  o->labelsize(8);
-		  o->argument(44);
-		  o->minimum(0.9);
-		  o->value(0.5);
-		  o->maximum(0.001);
-		  o->callback((Fl_Callback*)parmCallback);
-		  Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = f1vol2 = new Fl_Dial(541, 174, 20, 20, "vol");
-		  o->labelsize(8);
-		  o->labelsize(8);
-		  o->argument(45);
-		  o->maximum(1);
-		  o->callback((Fl_Callback*)parmCallback);
-		  o->minimum(-1);
-		  o->value(0);
-		  Knob[i][o->argument()] = o;
-		}
-		{ Fl_Value_Input* o = new Fl_Value_Input(528, 204, 38, 15);
-		  o->box(FL_ROUNDED_BOX);
-		  o->labelsize(8);
-		  o->argument(43);
-		  o->maximum(10000);
-		  o->step(0.01);
-		  o->callback((Fl_Callback*)cutoffCallback);
-		  o->textsize(8);
-		  miniDisplay[i][7]=o;
-		}
-		*/ 
-	/*
-		{ Fl_Button* o = new Fl_Button(426, 139, 45, 15, "copy ->");
-		  o->box(FL_BORDER_BOX);
-		  o->labelsize(8);
-		  o->argument(21);
-		//o->callback((Fl_Callback*)copyparmCallback);
-		}
-		{ Fl_Button* o = new Fl_Button(426, 163, 45, 15, "<- copy");
-		  o->box(FL_BORDER_BOX);
-		  o->labelsize(8);
-		  o->argument(22);
-	  //o->callback((Fl_Callback*)copyparmCallback);
-		}*/
-		o->end();
 	  }
-	  { Fl_Group* o = new Fl_Group(330, 238, 239, 92, "filter 3");
-		o->box(FL_ROUNDED_FRAME);
-		o->color(FL_FOREGROUND_COLOR);
-		o->labelsize(8);
-		make_filter(i, 50, 8, 340, 241);
-		/*
-		{Fl_Positioner* o = new Fl_Positioner(340,241,70,79,"cut");
-		o->xbounds(0,7000);
-		o->ybounds(499,0); o->selection_color(0);
-		o->box(FL_BORDER_BOX);
-		o->xstep(500);
-		o->labelsize(8);
-		o->argument(50);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = f1q1 = new Fl_Dial(415, 243, 25, 25, "q");
-		  o->labelsize(8); 
-		  o->argument(51);
-		  o->minimum(0.9);
-		  o->maximum(0.001);
-		  o->value(0.5);
-		  o->callback((Fl_Callback*)parmCallback);
-		  Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = f1vol1 = new Fl_Dial(425, 280, 20, 20, "vol");
-		  o->labelsize(8);
-		  o->argument(52);
-		  o->maximum(1);o->minimum(-1);
-		  o->value(0);
-		  o->callback((Fl_Callback*)parmCallback);
-		  Knob[i][o->argument()] = o;
-		}
-		{ Fl_Value_Input* o = new Fl_Value_Input(412, 310, 38, 15);
-		  o->box(FL_ROUNDED_BOX);
-		  o->labelsize(8);
-		  o->maximum(10000);
-		  o->step(0.01);
-		  o->argument(50);
-		  o->callback((Fl_Callback*)cutoffCallback);
-		  o->textsize(8);
-		  miniDisplay[i][8]=o;
-		}
-		*/
-		make_filter(i, 53, 9, 456, 241);
-		/*
-		{ Fl_Positioner* o = new Fl_Positioner(456,241,70,79,"cut");
-		o->xbounds(0,7000);
-		o->ybounds(499,0); o->selection_color(0);
-		o->box(FL_BORDER_BOX);
-		o->xstep(500);
-		o->labelsize(8);
-		o->argument(53);
-		Knob[i][o->argument()] = o;
-		o->callback((Fl_Callback*)parmCallback);
-		}
-		{ Fl_Dial* o = f1q2 = new Fl_Dial(531, 242, 25, 25, "q");
-		  o->labelsize(8);
-		  o->argument(54);
-		  o->minimum(0.9);
-		  o->value(0.5);
-		  o->maximum(0.001);
-		  o->callback((Fl_Callback*)parmCallback);
-		  Knob[i][o->argument()] = o;
-		}
-		{ Fl_Dial* o = f1vol2 = new Fl_Dial(541, 280, 20, 20, "vol");
-		  o->labelsize(8); 
-		  o->labelsize(8);
-		  o->argument(55);o->maximum(1);o->minimum(-1);
-		  o->value(0);
-		  o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-		}
-		{ Fl_Value_Input* o = new Fl_Value_Input(528, 310, 38, 15);
-		  o->box(FL_ROUNDED_BOX);
-		  o->labelsize(8);
-		  o->maximum(10000);
-		  o->argument(53);
-		  o->step(0.01);
-		  o->callback((Fl_Callback*)cutoffCallback);
-		  o->textsize(8);
-		  miniDisplay[i][9]=o;
-		}
-		*/
-	/*
-		{ Fl_Button* o = new Fl_Button(426, 245, 45, 15, "copy ->");
-		  o->box(FL_BORDER_BOX);
-		  o->labelsize(8);
-		}
-		{ Fl_Button* o = new Fl_Button(426, 269, 45, 15, "<- copy");
-		  o->box(FL_BORDER_BOX);
-		  o->labelsize(8);
-		}*/
-		o->end();
-	  } 
-	  { Fl_Button* o = new Fl_Button(486, 430, 50, 15, "clear state");
+	  { Fl_Button* o = new Fl_Button(492, 430, 85, 15, "clear state");
 		o->tooltip("reset the filter and delay");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(8);

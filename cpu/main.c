@@ -924,7 +924,9 @@ int process(jack_nframes_t nframes, void *arg) {
 // Assuming morph between 0 and 1
 // parm = parm1 + (parm2 -parm1) * morph
 //      = parm1 (1-morph) + parm2 * morph
-
+		if (param[137]){ // Filter bypass
+			mod[7] = to_filter; // Pass input unchanged
+		}else{
 		morph1 = 2.0*param[56]; // 0..1
 		if(param[120]){
 			mf = 0.25f*param[38]*mod[choi[10]]*param[48]*mod[choi[11]]; // -1..1
@@ -1132,6 +1134,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		high[currentvoice][1] = ((reso + ((1.0f-reso)*0.1f))*to_filter) - low[currentvoice][1] - (reso*band[currentvoice][1]);
 		// high[currentvoice][1] = (q[currentvoice][1] * band[currentvoice][1]) - low[currentvoice][1] - (q[currentvoice][1]*band[currentvoice][1]);
 		band[currentvoice][1]= f[currentvoice][1] * high[currentvoice][1] + band[currentvoice][1];
+		
 		// third filter
 		reso = q[currentvoice][2];
 		low[currentvoice][2] = low[currentvoice][2] + f[currentvoice][2] * band[currentvoice][2];
@@ -1139,8 +1142,8 @@ int process(jack_nframes_t nframes, void *arg) {
 		band[currentvoice][2]= f[currentvoice][2] * high[currentvoice][2] + band[currentvoice][2];
 
 		// Total filter modulation output
-		mod [7] = (low[currentvoice][0]*v[currentvoice][0])+band[currentvoice][1]*v[currentvoice][1]+band[currentvoice][2]*v[currentvoice][2];
-
+		mod[7] = (low[currentvoice][0]*v[currentvoice][0])+band[currentvoice][1]*v[currentvoice][1]+band[currentvoice][2]*v[currentvoice][2];
+		} // End of if filter bypass
 //---------------------------------- amplitude shaping
 		result = 1.0f-mod[choi[13]]*param[100];
 		result *= mod[7];
