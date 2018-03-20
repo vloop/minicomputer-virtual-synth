@@ -41,7 +41,8 @@
 // defines
 #define _MODCOUNT 32
 #define _WAVECOUNT 32
-#define _USE_FMODF 1
+// #define _USE_FMODF 1
+#define _UPDATE_GUI 1
 
 // Table size must be a power of 2 so that we can use & instead of %
 #define TableSize 4096
@@ -122,13 +123,24 @@ float modulator_scale[_MODCOUNT] __attribute__((aligned (16)))={
 	1.0f, // 25 cc 17
 };
 float midif[_MULTITEMP] __attribute__((aligned (16)));
+
+/*
+typedef struct _envelope_generator {
+	float state __attribute__((aligned (16)));
+	float Faktor __attribute__((aligned (16)));
+	
+	unsigned int EGtrigger __attribute__((aligned (16)));
+	unsigned int EGstate __attribute__((aligned (16)));
+} EG;
+*/
 float EG[_MULTITEMP][8][8] __attribute__((aligned (16)));
 float EGFaktor[_MULTITEMP][8] __attribute__((aligned (16)));
-float phase[_MULTITEMP][4] __attribute__((aligned (16)));
-unsigned int choice[_MULTITEMP][_CHOICECOUNT] __attribute__((aligned (16)));
 int EGrepeat[_MULTITEMP][8] __attribute__((aligned (16)));
 unsigned int EGtrigger[_MULTITEMP][8] __attribute__((aligned (16)));
 unsigned int EGstate[_MULTITEMP][8] __attribute__((aligned (16)));
+
+float phase[_MULTITEMP][4] __attribute__((aligned (16)));
+unsigned int choice[_MULTITEMP][_CHOICECOUNT] __attribute__((aligned (16)));
 float high[_MULTITEMP][4],band[_MULTITEMP][4],low[_MULTITEMP][4];
 float f[_MULTITEMP][4],q[_MULTITEMP][4],v[_MULTITEMP][4],faktor[_MULTITEMP][4];
 unsigned int lastnote[_MULTITEMP];
@@ -173,7 +185,7 @@ jack_nframes_t bufsize;
 int done = 0;
 static const float anti_denormal = 1e-20;// magic number to get rid of denormalizing
 
-// I experiment with optimization
+// An experience with optimization
 #ifdef _VECTOR  
 	typedef float v4sf __attribute__ ((vector_size(16),aligned(16)));//((mode(V4SF))); // vector of four single floats
 	union f4vector 
@@ -183,69 +195,58 @@ static const float anti_denormal = 1e-20;// magic number to get rid of denormali
 	};
 #endif
 
-//void midi_action(snd_seq_t *seq_handle);
-
 /** \brief function to create Alsa Midiport
  *
  * \return handle on alsa seq
  */
 snd_seq_t *open_seq() {
-
-  snd_seq_t *seq_handle;
-  int portid;
+	snd_seq_t *seq_handle;
+	int portid;
 // switch for blocking behaviour for experimenting which one is better
 #ifdef _MIDIBLOCK
-  if (snd_seq_open(&seq_handle, "hw", SND_SEQ_OPEN_INPUT,0) < 0) 
+	if (snd_seq_open(&seq_handle, "hw", SND_SEQ_OPEN_INPUT,0) < 0) 
 #else
 // open Alsa for input, nonblocking mode so it returns
-  if (snd_seq_open(&seq_handle, "hw", SND_SEQ_OPEN_INPUT,SND_SEQ_NONBLOCK) < 0) 
+	if (snd_seq_open(&seq_handle, "hw", SND_SEQ_OPEN_INPUT,SND_SEQ_NONBLOCK) < 0) 
 #endif
- {
-	fprintf(stderr, "Error opening ALSA sequencer.\n");
-	exit(1);
- }
-  snd_seq_set_client_name(seq_handle, jackName);
-  if ((portid = snd_seq_create_simple_port(seq_handle, jackName,
+	{
+		fprintf(stderr, "Error opening ALSA sequencer.\n");
+		exit(1);
+	}
+	snd_seq_set_client_name(seq_handle, jackName);
+	if ((portid = snd_seq_create_simple_port(seq_handle, jackName,
 			SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE,
 			SND_SEQ_PORT_TYPE_APPLICATION)) < 0) {
-	fprintf(stderr, "Error creating sequencer port.\n");
-	exit(1);
-  }
+		fprintf(stderr, "Error creating sequencer port.\n");
+		exit(1);
+	}
+
 // filter out mididata which is not processed anyway, thanks to Karsten Wiese for the hint
-	snd_seq_client_info_t * info;	 
-
-
+	snd_seq_client_info_t * info;
 	snd_seq_client_info_malloc(&info);
-	if ( snd_seq_get_client_info	( seq_handle,
-info) != 0){
+	if ( snd_seq_get_client_info( seq_handle, info) != 0){
+		fprintf(stderr, "Error getting info for eventfiltersetup.\n");
+		exit(1);
+	}
+	// its a bit strange, you set what you want to get, not what you want filtered out...
+	// actually Karsten told me so but I got misguided by the term filter
 
-	fprintf(stderr, "Error getting info for eventfiltersetup.\n");
-	exit(1);
-}
-// its a bit strange, you set what you want to get, not what you want filtered out...
-// actually Karsten told me so but I got misguided by the term filter
-
-// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_SYSEX);
-// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_TICK);
-
- snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_NOTEON);
- snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_NOTEOFF);
- snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_PITCHBEND);
- snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CONTROLLER);
- snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CHANPRESS);
-
-// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CLOCK);
-// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_SONGPOS);
-// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_QFRAME);
-	if ( snd_seq_set_client_info	( seq_handle,
-info) != 0){
-
-	fprintf(stderr, "Error setting info for eventfiltersetup.\n");
-	exit(1);
-}	
- snd_seq_client_info_free(info);
-
-  return(seq_handle);
+	// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_SYSEX);
+	// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_TICK);
+	snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_NOTEON);
+	snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_NOTEOFF);
+	snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_PITCHBEND);
+	snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CONTROLLER);
+	snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CHANPRESS);
+	// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CLOCK);
+	// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_SONGPOS);
+	// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_QFRAME);
+	if ( snd_seq_set_client_info( seq_handle, info) != 0){
+		fprintf(stderr, "Error setting info for event filter setup.\n");
+		exit(1);
+	}
+	snd_seq_client_info_free(info);
+	return(seq_handle);
 }
 
 // some forward declarations
@@ -259,36 +260,6 @@ static inline void doNoteOff(int voice, int note, int velocity);
 static void doMidi(int t, int n, int v);
 void doReset(unsigned int voice);
 
-/* inlined manually
-static inline float Oscillator(float frequency,int wave,float *phase)
-{
-	int i = (int) *phase ;// float to int, cost some cycles
-
-	i=i&tabM;//i%=TableSize;
-	//if (i>tabM) i=tabM;
-	if (i<0) i=tabM;
-	*phase += tabX * frequency;
-
-	if(*phase >= tabF)
-	{
-   		 *phase -= tabF;
-		// if (*phase>=tabF) *phase = 0; //just in case of extreme fm
-	}
-
-
-		if(*phase < 0.f)
-				{
-					*phase += tabF;
-			//	if(*phase < 0.f) *phase = tabF-1;
-				}
-		return table[wave][i] ;
-}
-*/
-//inline float filter (float input,float f, float q)
-//{
-//
-//
-//}
 /**
  * start the envelope generator
  * called by a note on event for that voice
@@ -301,10 +272,12 @@ static inline void egStart (const unsigned int voice,const unsigned int number)
 	EGtrigger[voice][number]=1;
 	EG[voice][number][0] = 1.0f; // triggerd
 	EG[voice][number][5] = 1.0f; // target
-	EG[voice][number][7] = 0.0f;// state ? keep value, retrigger
-	EGstate[voice][number] = 0;// state  
+	EG[voice][number][7] = 0.0f; // state ? keep value, retrigger
+	EGstate[voice][number] = 0; // state  
 	EGFaktor[voice][number] = 0.f;
+#ifdef _UPDATE_GUI
 	lo_send(t, "/Minicomputer/EG", "iii", voice, number, 1);
+#endif
 }
 /**
  * set the envelope to release mode
@@ -317,10 +290,12 @@ static inline void egStop (const unsigned int voice,const unsigned int number)
 	// if (EGrepeat[voice][number] == 0) 
 	EGtrigger[voice][number] = 0; // triggerd
 	EGstate[voice][number] = 0; // target
+#ifdef _UPDATE_GUI
 	if(EG[voice][number][6]>0.0f)
 	  lo_send(t, "/Minicomputer/EG", "iii", voice, number, 4);
 	else
 	  lo_send(t, "/Minicomputer/EG", "iii", voice, number, 0);
+#endif
 }
 
 static inline void egOff (const unsigned int voice)
@@ -329,7 +304,9 @@ static inline void egOff (const unsigned int voice)
 	EG[voice][0][6] = 0.0f;
 	EGtrigger[voice][0] = 0;
 	EGstate[voice][0] = 0;
-	lo_send(t, "/Minicomputer/EG", "iii", voice, 0, EGstate[voice][0]);
+#ifdef _UPDATE_GUI
+	lo_send(t, "/Minicomputer/EG", "iii", voice, 0, 0);
+#endif
 }
 
 /**
@@ -348,11 +325,11 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 	 * 5 = target
 	 * 6 = state (value between 0.0 and 1.0)
 	 * EGstate - 1:Attack 2:Decay 3:Sustain 0:Release 4:Idle
-	 * OSC messages - 0:Idle 1:Attack 2:Sustain 3:Decay 4:Release
+	 * OSC messages - 0:Idle 1:Attack 2:Decay 3:Sustain 4:Release
 	 */
 	if (EGtrigger[voice][number] != 1) 
 	{
-	int i = EGstate[voice][number]; 
+		int i = EGstate[voice][number]; 
 		if (i == 1){ // attack
 			if (EGFaktor[voice][number]<1.00f) EGFaktor[voice][number] += 0.002f;
 			
@@ -362,8 +339,10 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 			{
 				EG[voice][number][6]=1.0f;
 				EGstate[voice][number]=2;
-				EGFaktor[voice][number] = 1.0f; // triggerd
+				EGFaktor[voice][number] = 1.0f;
+#ifdef _UPDATE_GUI
 				lo_send(t, "/Minicomputer/EG", "iii", voice, number, 2);
+#endif
 			}
 		}
 		else if (i == 2){ // decay
@@ -376,7 +355,9 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 				if (EGrepeat[voice][number]==0)
 				{
 					EGstate[voice][number]=3; // stay on sustain
+#ifdef _UPDATE_GUI
 					lo_send(t, "/Minicomputer/EG", "iii", voice, number, 3);
+#endif
 				}
 				else // Repeat ON
 				{
@@ -384,14 +365,16 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 					egStop(voice,number); // continue to release
 				}
 			}
-			// what happens if sustain = 0? envelope should go in stop mode when decay reached ground
+			// what happens if sustain = 0? envelope should go in stop mode when decay reaches ground
 			if (EG[voice][number][6]<0.0f) 
 			{	
 				EG[voice][number][6]=0.0f;
 				if (EGrepeat[voice][number]==0)
 				{
 					EGstate[voice][number]=4; // released
+#ifdef _UPDATE_GUI
 					lo_send(t, "/Minicomputer/EG", "iii", voice, number, 0);
+#endif
 				}
 				else
 				{
@@ -400,9 +383,7 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 			}
 		} // end of decay
 		else if ((i == 0) && (EG[voice][number][6]>0.0f))
-		{
-			/* release */
-			
+		{	// release
 			if (EGFaktor[voice][number]>0.025f) EGFaktor[voice][number] -= 0.002f;
 			EG[voice][number][6] -= EG[voice][number][4]*srDivisor*EGFaktor[voice][number];
 
@@ -412,7 +393,9 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 				if (EGrepeat[voice][number]==0)
 				{
 					EGstate[voice][number]=4; // released
+#ifdef _UPDATE_GUI
 					lo_send(t, "/Minicomputer/EG", "iii", voice, number, 0);
+#endif
 				}
 				else
 				{
@@ -420,54 +403,15 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 				}
 			}
 		}
-//		if (EG[number][5] == 1.0f){
-//		    /* attack */
-//		   
-//		    EG[number][6] += EG[number][1]*(1.0f - EG[number][6]);
-//		    EG[number][5] = (EG[number][6] > 1.0f) ? EG[number][3] : 1.0f;
-//		}
-//		else if ((EG[number][5] == 0.0f) && (EG[number][6]>0.0f))
-//		{
-//		    /* release */
-//		    
-//		    EG[number][6] -= EG[number][4];//*EG[number][6];
-//		    if (EG[number][6]<0.0f) EG[number][6]=0.0f;
-//		}
-//		else{
-//		    /* decay */
-//		    EG[number][6] -= EG[number][2]*(EG[number][6]-EG[number][3]);
-//		}
 	}
 	else
 	{ // EGtrigger is 1
-	//	if (EGtrigger[voice][number] == 1) // declick ramp down processing
-	//	{
-			
-		/*	EG[voice][number][6] -= 0.005f;
-			if (EG[voice][number][6]<0.0f) 
-			{  
-				if  (EG[voice][number][7]< EG[voice][number][6])
-				{
-			   	 EG[voice][number][7] += EG[voice][number][1]*(1.0f - EG[voice][number][7]);
-				}
-				else
-				{*/
-					EGtrigger[voice][number] = 0;
-				//	EGstate[voice][number] = 1;
-		/*	    }
-				
-			}*/
-	//	}
-	//	else if (EG[voice][number][0] == 2.f) // actual start
-	//	{
-	//		EG[voice][number][0] = 0.f;
-			
-		EG[voice][number][0] = 1.0f; // triggerd
+		EGtrigger[voice][number] = 0;
+		EG[voice][number][0] = 1.0f; // triggered
 		EGstate[voice][number] = 1; // target
+#ifdef _UPDATE_GUI
 		lo_send(t, "/Minicomputer/EG", "iii", voice, number, 1);
-			//EG[voice][number][6] = 0.0f;// state
-	//	}
-		
+#endif
 	}
 	return EG[voice][number][6];
 }
@@ -486,7 +430,8 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 int process(jack_nframes_t nframes, void *arg) {
 
 	float tfo1, tfo2, ta1_1, ta1_2, ta1_3, ta1_4, ta2, ta3; // Osc related
-	float tf1, tf2, tf3, morph1, morph2, mf, result, tdelay, clib1, clib2; 
+	float tf1, tf2, tf3, morph1, morph2, mf, final_mix, tdelay;
+	// float clib1, clib2; 
 	float osc1, osc2, delayMod, pan;
 
 	// an union for a nice float to int casting trick which should be fast
@@ -538,16 +483,16 @@ int process(jack_nframes_t nframes, void *arg) {
 			printf("jack midi in event size %u\n", ev.size);
 #endif
 			if(ev.size==3){
-				int t, n, v, c;
 				doMidi(ev.buffer[0], ev.buffer[1], ev.buffer[2]);
 			} else if(ev.size==2){ // For example channel pressure
 				doMidi(ev.buffer[0], ev.buffer[1], 0);
 			}
 			++index1;
 		}
-	
 
-	/* main loop */
+// ------------------------------------------------------------
+// ------------------------ main loop -------------------------
+// ------------------------------------------------------------
 	register unsigned int index;
 	for (index = 0; index < nframes; ++index) // for each sample 
 	{
@@ -569,26 +514,8 @@ int process(jack_nframes_t nframes, void *arg) {
 		// Modulation sources fall in different categories
 		// EG and midi controllers are between 0 and 1 (todo pitch bend -1..+1)
 		// Audio outputs (osc 3, filter, delay) are between -1 and 1
-		// ?? mod3 can exceed 1 on ramp down
-		// FM outputs (Osc 1 and 2 FM) were between 0 and 2 ??
-		// Maybe to spare a test on phase<0?
-		// Modulation destinations used to handle source in different ways:
-		//	osc1 amp mod 1 (ta1): +1 @ osc1 fm out (bug?); 1.0f-ta1 @ temp (pre-filter mix)
-		//	osc1 amp mod 2 (also ta1): same as above
-		//	osc1 freq mod 1 (tfo1): no change except boost, 1 or 100
-		//	osc1 freq mod 2 (also tfo1): no change
-		//	osc2 amp mod 1 (ta2): 1.0f-ta2 @ temp (pre-filter mix)
-		//	osc2 amp mod 2 (ta3): 1.0f-ta3 @ osc2 fm out
-		//	osc2 freq mod 1 (tfo2): no change except boost, 1 or 100
-		//	osc2 freq mod 2 (also tfo2): no change
-		//	morph mod 1 (mf; mo; morph): 1.0f-(param[38]*mod[ choi[10]])
-		//	morph mod 2 (also mf; mo; morph): 1.0f-(param[48]*mod[ choi[11]])
-		//	amp mod: 1.0f-mod[ choi[13]]*param[100]
-		//	pan mod: (param[122]*mod[choi[16]])+param[107]
-		//	time mod (delayMod): 1.0f-(param[110]* mod[choi[14]])
 		// Now we use modulation_bias and _scale so that all mods are 0..1 when needed
 
-		// Used to be 1.0f-egcalc
 		mod[8] =egCalc(currentvoice,1);
 		mod[9] =egCalc(currentvoice,2);
 		mod[10]=egCalc(currentvoice,3);
@@ -600,43 +527,46 @@ int process(jack_nframes_t nframes, void *arg) {
 // --------------- calc the main audio signal -----------------
 // ------------------------------------------------------------
 
-		// get the parameter settings
+		// compute pointers for this voice
 		float * param = parameter[currentvoice];
-		
+		unsigned int * choi = choice[currentvoice];
+		float * current_phase = phase[currentvoice];
+
 		// casting floats to int for indexing the 3 oscillator wavetables with custom typecaster
-		P1.f =  phase[currentvoice][1];
-		P2.f =  phase[currentvoice][2];
-		P3.f =  phase[currentvoice][3];
-		Psub.f =  phase[currentvoice][0];
+		Psub.f =  current_phase[0];
+		P1.f =  current_phase[1];
+		P2.f =  current_phase[2];
+		P3.f =  current_phase[3];
+		Psub.f += bias.f;
 		P1.f += bias.f;
 		P2.f += bias.f;
 		P3.f += bias.f;
-		Psub.f += bias.f;
+		Psub.i -= bias.i;
 		P1.i -= bias.i;
 		P2.i -= bias.i;
 		P3.i -= bias.i;
-		Psub.i -= bias.i;
 		// tabM is a power of 2 minus one
 		// We can use bitwise & instead of modulus  
+		iPsub=Psub.i&tabM;
 		iP1=P1.i&tabM;
 		iP2=P2.i&tabM;
 		iP3=P3.i&tabM;
-		iPsub=Psub.i&tabM;
 		/*
-		int iP1 = (int) phase[currentvoice][1];// float to int, cost some cycles
-		int iP2 = (int) phase[currentvoice][2];// hopefully this got optimized by compiler
-		int iP3 = (int) phase[currentvoice][3];// hopefully this got optimized by compiler
+		int iP1 = (int) current_phase[1];// float to int, cost some cycles
+		int iP2 = (int) current_phase[2];// hopefully this got optimized by compiler
+		int iP3 = (int) current_phase[3];// hopefully this got optimized by compiler
 		*/
 
 		// Can this ever happen??
+		/*
 		if (iP1<0) iP1=tabM;
 		if (iP2<0) iP2=tabM;
 		if (iP3<0) iP3=tabM;
 		if (iPsub<0) iPsub=tabM;
-
+		*/
 // --------------- create the next oscillator phase step for osc 3
 // Handle osc 3 first so that it is available as modulation for osc 1 & 2
-		phase[currentvoice][3]+= tabX * param[90];
+		current_phase[3]+= tabX * param[90];
 		
 		#ifdef _PREFETCH
 		__builtin_prefetch(&param[1],0,0);
@@ -651,22 +581,21 @@ int process(jack_nframes_t nframes, void *arg) {
 		// Not sure what the perf cost of fmodf could be
 		// What about remainder? https://www.gnu.org/software/libc/manual/html_node/Remainder-Functions.html
 #ifdef _USE_FMODF
-		phase[currentvoice][3]=fmodf(phase[currentvoice][3], tabF);
+		current_phase[3]=fmodf(current_phase[3], tabF);
 #else
-		if(phase[currentvoice][3] >= tabF)
+		if(current_phase[3] >= tabF)
 		{
-			phase[currentvoice][3]-= tabF;
+			current_phase[3]-= tabF;
 		}
 		// This cannot happen in the absence of modulation
-#ifdef _DEBUG
-		if(phase[currentvoice][3] < 0.f)
+	#ifdef _DEBUG
+		if(current_phase[3] < 0.f)
 		{
-			phase[currentvoice][3]+= tabF;
+			current_phase[3]+= tabF;
 			fprintf(stderr, "Negative phase glitch on osc 3!\n");
 		}
+	#endif
 #endif
-#endif
-		unsigned int * choi = choice[currentvoice];
 		// write the oscillator 3 output to modulators
 		mod[14] = table[choi[12]][iP3] ;
 
@@ -674,7 +603,6 @@ int process(jack_nframes_t nframes, void *arg) {
 		glide[currentvoice]*=param[116]; // *srDivisor?? or may be unconsistent across sample rates
 		// what about denormal ??
 		// if(glide[currentvoice]< FLT_MIN/param[116]) glide[currentvoice]=0;
-		// guard values
 
 		tfo1 = param[1]; // Fixed frequency
 		tfo1 *=param[2]; // Fixed frequency enable
@@ -693,7 +621,7 @@ int process(jack_nframes_t nframes, void *arg) {
 			if(choi[3]) // Modulation 2 is not "none"
 				ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
 			// Apply mod 2
-			if(param[118]){ // Mult mode amp mod 2 KO
+			if(param[118]){ // Mult mode amp mod 2
 				// case mult1 mult2
 				//   vol = mod1'*mod2'
 #ifdef _DEBUG
@@ -738,8 +666,8 @@ int process(jack_nframes_t nframes, void *arg) {
 		}
 
 		#ifdef _PREFETCH
-		__builtin_prefetch(&phase[currentvoice][1],0,2);
-		__builtin_prefetch(&phase[currentvoice][2],0,2);
+		__builtin_prefetch(&current_phase[1],0,2);
+		__builtin_prefetch(&current_phase[2],0,2);
 		#endif
 
 		tfo1+=(midif[currentvoice]*(1.0f-param[2])*param[3]); // Note-dependant frequency
@@ -753,42 +681,32 @@ int process(jack_nframes_t nframes, void *arg) {
 			tfo1+=(param[4] * param[5] * mod[choi[0]]) + (param[7]*mod[choi[1]]);
 		}
 
-		//static inline float Oscillator(float frequency,int wave,float *phase)
-		//{
-		/*   int iP1 = (int) phase[currentvoice][1];// float to int, cost some cycles
-		int iP2 = (int) phase[currentvoice][2];// hopefully this got optimized by compiler
-
-		iP1=iP1&tabM;//i%=TableSize;
-		iP2=iP2&tabM;//i%=TableSize;*/
-		//if (i>tabM) i=tabM;
-
 // --------------- generate phase of oscillator 1
-		phase[currentvoice][1]+= tabX * tfo1;
+		current_phase[1]+= tabX * tfo1;
 
 		// iPsub=subMSB[currentvoice]+(iP1>>1); // 0..tabM
 		// sub[currentvoice]=(4.f*iPsub/tabF)-1.0f; // Ramp up -1..+1 (beware of int to float)
 #ifdef _USE_FMODF
-		phase[currentvoice][1]=fmodf(phase[currentvoice][1], tabF);
+		current_phase[1]=fmodf(current_phase[1], tabF);
 #else
-		if(phase[currentvoice][1] >= tabF)
+		if(current_phase[1] >= tabF)
 		{
-			phase[currentvoice][1]-= tabF;
+			current_phase[1]-= tabF;
 			// branchless sync osc2 to osc1 (param[115] is 0 or 1):
-			phase[currentvoice][2]-= phase[currentvoice][2]*param[115];
+			current_phase[2]-= current_phase[2]*param[115];
 			// sub[currentvoice]=-sub[currentvoice]; // Square
 			// sub[currentvoice]=(4.f*subMSB[currentvoice]/tabF)-1.0f; // Alt square, OK
 			// Mostly works but some regular glitches at phase 0
 			// subMSB[currentvoice]^=itabF>>1; // Halfway through table
 #ifdef _DEBUG
-			if (phase[currentvoice][1]>=tabF){ //just in case of extreme fm
+			if (current_phase[1]>=tabF){ //just in case of extreme fm
 				fprintf(stderr, "Positive phase glitch on osc 1!\n");
-				phase[currentvoice][1] = 0;
+				current_phase[1] = 0;
 			}
 #endif
-		}
-		if(phase[currentvoice][1]< 0.f)
+		}else if(current_phase[1]< 0.f)
 		{
-			phase[currentvoice][1]+= tabF;
+			current_phase[1]+= tabF;
 			// subMSB[currentvoice]^=itabF>>1; // Halfway through table
 			//	if(*phase < 0.f) *phase = tabF-1;
 #ifdef _DEBUG
@@ -816,15 +734,15 @@ int process(jack_nframes_t nframes, void *arg) {
 		mod[3]=osc1*ta1_3;
 
 // --------------- generate sub
-		phase[currentvoice][0]+= tabX * tfo1 / 2.0f;
+		current_phase[0]+= tabX * tfo1 / 2.0f;
 #ifdef _USE_FMODF
-		phase[currentvoice][0]=fmodf(phase[currentvoice][0], tabF);
+		current_phase[0]=fmodf(current_phase[0], tabF);
 #else
-		if(phase[currentvoice][0] >= tabF)
-			phase[currentvoice][0]-= tabF;
-		if(phase[currentvoice][0] < 0.f)
+		if(current_phase[0] >= tabF)
+			current_phase[0]-= tabF;
+		if(current_phase[0] < 0.f)
 		{
-			phase[currentvoice][0]+= tabF;
+			current_phase[0]+= tabF;
 #ifdef _DEBUG
 			fprintf(stderr, "Negative phase glitch on sub!\n");
 #endif
@@ -873,23 +791,23 @@ int process(jack_nframes_t nframes, void *arg) {
 		mod[4] = param[28]*ta3; // osc2 fm out coeff
 
 		// then generate the actual phase:
-		phase[currentvoice][2]+= tabX * tfo2;
+		current_phase[2]+= tabX * tfo2;
 #ifdef _USE_FMODF
-		phase[currentvoice][2]=fmodf(phase[currentvoice][2], tabF);
+		current_phase[2]=fmodf(current_phase[2], tabF);
 #else
-		if(phase[currentvoice][2] >= tabF)
+		if(current_phase[2] >= tabF)
 		{
-			phase[currentvoice][2]-= tabF;
+			current_phase[2]-= tabF;
 	#ifdef _DEBUG
-			if (phase[currentvoice][2]>=tabF){
+			if (current_phase[2]>=tabF){
 				fprintf(stderr, "Positive phase glitch on osc 2!\n");
-				phase[currentvoice][2] = 0;
+				current_phase[2] = 0;
 			}
 	#endif
 		}
-		if(phase[currentvoice][2]< 0.f)
+		if(current_phase[2]< 0.f)
 		{
-			phase[currentvoice][2]+= tabF;
+			current_phase[2]+= tabF;
 	#ifdef _DEBUG
 			fprintf(stderr, "Negative phase glitch on osc 2!\n");
 	#endif
@@ -899,7 +817,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		mod[4] *= osc2; // osc2 fm out
 #ifdef _DEBUG
 		if(first_time && index==0 && currentvoice==0)
-			printf("phase osc 2 voice %u %f index %u result %f\n", currentvoice, phase[currentvoice][2], iP2, osc2);
+			printf("phase osc 2 voice %u %f index %u result %f\n", currentvoice, current_phase[2], iP2, osc2);
 #endif
 
 #ifdef _PREFETCH
@@ -943,6 +861,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		morph1+=mf;
 
 		// Clip to range (should not be needed if prescaled)
+		// clipping doesn't sound good
 #ifdef _DEBUG
 		if ((morph1<0.0f) || (morph1>1.0f))
 			printf("Morph clipping %f*%f %f*%f, %f %f %f!\n",param[38],mod[choi[10]],param[48],mod[choi[11]], morph1, mf, morph1-2.0f*mf);
@@ -950,8 +869,13 @@ int process(jack_nframes_t nframes, void *arg) {
 		if (morph1<0.0f) morph1=0.0f;
 		// "else" is useless if compiler can use conditional mov
 		if (morph1>1.0f) morph1=1.0f;
-		// doesn't sound good
-		
+		// Is the abs trick actually faster?
+		/*
+		float clib1 = fabs (morph1);
+		float clib2 = fabs (morph1-1.0f);
+		morph1 = 0.5*(clib1 + 1.0f-clib2);
+		*/
+
 		#ifdef _PREFETCH
 			__builtin_prefetch(&param[30],0,0);
 			__builtin_prefetch(&param[31],0,0);
@@ -973,18 +897,22 @@ int process(jack_nframes_t nframes, void *arg) {
 		}
 		morph1 = param[56]*mf; // -1.5..4.5 ??
 		// mf not used past this point
-
+		
+		//The next four lines just clip to the [0,1] interval
 		clib1 = fabs (morph1); // 0..4.5 ??
 		clib2 = fabs (morph1-1.0f); // 0..3.5 ??
 		morph1 = clib1 + 1.0f; // 1..5.5 ??
 		morph1 -= clib2; // -2.5..5.5 ??
 		// clib not used past this point
+		
+		//The next three lines just clip to the [0,1] interval
+		float clib1 = fabs (mo);
+		float clib2 = fabs (mo-1.0f);
+		mo = 0.5*(clib1 + 1.0f-clib2);
+ 
+		
 		morph1 *= 0.5f; // -1.25..2.75 ??
 */
-		/*
-		if (morph1<0.f) morph1 = 0.f;
-		else if (morph1>1.0f) morph1 = 1.0f;
-		*/
 		morph2 = 1.0f-morph1;
 
 		/*
@@ -1112,15 +1040,15 @@ int process(jack_nframes_t nframes, void *arg) {
 			tf2*=srate;
 			tf3*=srate;
 			
-			// Sin approximation sin(x) = x - x^3 / 6.7901358
+			// Sin approximation sin(x) ~~ x - x^3 / 6.7901358
+			// 1 / 6.7901358 = 0.1472725f
 			// Why 2.f * ?
 			f[currentvoice][0] = 2.f * tf1;
 			f[currentvoice][1] = 2.f * tf2;
 			f[currentvoice][2] = 2.f * tf3; 
-
-			f[currentvoice][0] -= (tf1*tf1*tf1) * 0.1472725f;// / 6.7901358;
-			f[currentvoice][1] -= (tf2*tf2*tf2) * 0.1472725f; // / 6.7901358;;
-			f[currentvoice][2] -= (tf3*tf3*tf3) * 0.1472725f;// / 6.7901358; 
+			f[currentvoice][0] -= (tf1*tf1*tf1) * 0.1472725f;
+			f[currentvoice][1] -= (tf2*tf2*tf2) * 0.1472725f;
+			f[currentvoice][2] -= (tf3*tf3*tf3) * 0.1472725f;
 		#endif
 		// morph1 and morph2 not used past this point
 //----------------------- actual filter calculation -------------------------
@@ -1148,35 +1076,38 @@ int process(jack_nframes_t nframes, void *arg) {
 		mod[7] = (low[currentvoice][0]*v[currentvoice][0])+band[currentvoice][1]*v[currentvoice][1]+band[currentvoice][2]*v[currentvoice][2];
 		} // End of if filter bypass
 //---------------------------------- amplitude shaping
-		result = 1.0f-mod[choi[13]]*param[100];
-		result *= mod[7];
-		result *= egCalc(currentvoice,0);// the final shaping envelope
+		final_mix = 1.0f-mod[choi[13]]*param[100];
+		final_mix *= mod[7];
+		final_mix *= egCalc(currentvoice,0); // the final shaping envelope
 
 // --------------------------------- delay unit
 		if( delayI[currentvoice] >= delayBufferSize )
 		{
 			delayI[currentvoice] = 0;
-	
 			//printf("clear %d : %d : %d\n",currentvoice,delayI[currentvoice],delayJ[currentvoice]);
 		}
+		
 		// param[110] is mod. amount 0..1
 		delayMod = 1.0f-(param[110]* mod[choi[14]]); // Why 1.0f- ?? 0..2
 
+		// param[111] is delay time 0..1 (seconds?)
 		delayJ[currentvoice] = delayI[currentvoice] - ((param[111]* maxDelayTime)*delayMod);
 
+		// Clip or wrap ??
 		if( delayJ[currentvoice]  < 0 )
 		{
-			delayJ[currentvoice]  += delayBufferSize;
+			delayJ[currentvoice]  += delayBufferSize; // ??
 		}
 		else if (delayJ[currentvoice]>delayBufferSize)
 		{
-			delayJ[currentvoice] = 0;
+			delayJ[currentvoice] = 0; // ??
 		}
 
-		//if (delayI[currentvoice]>95000)
-		//printf("jab\n");
+		//if (delayI[currentvoice]>95000) printf("jab\n");
 
-		tdelay = result * param[114] + (delayBuffer[currentvoice] [ delayJ[currentvoice] ] * param[112] );
+		// param[114] is "to delay" knob 0..1
+		// param[112] is "feedback" knob 0..1
+		tdelay = final_mix * param[114] + (delayBuffer[currentvoice] [ delayJ[currentvoice] ] * param[112] );
 		tdelay += anti_denormal;
 		//tdelay -= anti_denormal;
 		delayBuffer[currentvoice] [delayI[currentvoice] ] = tdelay;
@@ -1188,20 +1119,20 @@ int process(jack_nframes_t nframes, void *arg) {
 		}
 		*/
 		mod[18]=tdelay; // delay as modulation source
-		result += tdelay * param[113]; // add to final mix
+		final_mix += tdelay * param[113]; // add to final mix
 		delayI[currentvoice]=delayI[currentvoice]+1;
 
 // --------------------------------- output
 		float *buffer = (float*) jack_port_get_buffer(port[currentvoice], nframes);
-		buffer[index] = result * param[101];
-		bufferAux1[index] += result * param[108];
-		bufferAux2[index] += result * param[109];
-		result *= param[106]; // mix volume
+		buffer[index] = final_mix * param[101];
+		bufferAux1[index] += final_mix * param[108];
+		bufferAux2[index] += final_mix * param[109];
+		final_mix *= param[106]; // mix volume
 		pan=(param[122]*mod[choi[16]])+param[107];
 		if (pan<0.f) pan=0.f;
 		if (pan>1.0f) pan=1.0f;
-		bufferMixLeft[index] += result * (1.0f-pan);
-		bufferMixRight[index] += result * pan;
+		bufferMixLeft[index] += final_mix * (1.0f-pan);
+		bufferMixRight[index] += final_mix * pan;
 		}
 	}
 	first_time=0;
@@ -1443,7 +1374,6 @@ void doMidi(int status, int n, int v){
 #ifdef _DEBUG      
 	fprintf(stderr,"doMidi %u %u %u\n", status, n, v);
 #endif
-	// if (voice<_MULTITEMP){
 	for(voice=0; voice<_MULTITEMP; voice++){
 		if(channel[voice]==c){
 			switch(t){
@@ -1759,7 +1689,7 @@ return 0;// its insisited on this although it should be a void function
  *
  * @param argc the amount of arguments we get from the commandline
  * @param pointer to array of the arguments
- * @return int the result, should be 0 if program terminates nicely
+ * @return int the final_mix, should be 0 if program terminates nicely
  */
 int main(int argc, char **argv) {
 printf("minicomputer version %s\n",_VERSION);
@@ -1975,6 +1905,7 @@ static inline int generic_handler(const char *path, const char *types, lo_arg **
 static inline int midi_handler(const char *path, const char *types, lo_arg **argv,
 			int argc, void *data, void *user_data)
 {
+	// Beware that midi parameters (channel, note range) don't apply to osc
 	int i, c;
 	// first byte argv[0] is 0 for 3-byte messages such as note on/off
 #ifdef _DEBUG
@@ -1984,6 +1915,7 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 		if(argv[1]->i == 0){ // At most 2 bytes follow
 			if(argv[2]->i == 0){ // Single byte message follows
 				if(argv[3]->i == 0xFE){ // Active sense
+					// Do this even if UPDATE_GUI is not set !!
 					lo_send(t, "/Minicomputer/sense", "");
 				}
 			}
