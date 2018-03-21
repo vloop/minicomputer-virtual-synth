@@ -35,6 +35,15 @@
 // #include <cmath.h>
 // double epsilon = std::numeric_limits<float>::min();
 
+// #define __SSE2__
+
+// Intrinsic declarations
+// see https://software.intel.com/sites/landingpage/IntrinsicsGuide/#
+#if defined(__SSE2__)
+#include <emmintrin.h>
+#endif
+
+
 // some common definitions
 #include "../common.h" 
 
@@ -43,12 +52,13 @@
 #define _WAVECOUNT 32
 // #define _USE_FMODF 1
 #define _UPDATE_GUI 1
+#define _CHECK_DENORM 1
 
 // Table size must be a power of 2 so that we can use & instead of %
 #define TableSize 4096
+#define samples_per_degree (TableSize/360.0)
 #define tabM 4095
 #define tabF 4096.f
-//#define itabF 4096
 
 //#define _DEBUG
 
@@ -141,8 +151,16 @@ unsigned int EGstate[_MULTITEMP][8] __attribute__((aligned (16)));
 
 float phase[_MULTITEMP][4] __attribute__((aligned (16)));
 unsigned int choice[_MULTITEMP][_CHOICECOUNT] __attribute__((aligned (16)));
-float high[_MULTITEMP][4],band[_MULTITEMP][4],low[_MULTITEMP][4];
-float f[_MULTITEMP][4],q[_MULTITEMP][4],v[_MULTITEMP][4],faktor[_MULTITEMP][4];
+
+// Filter-related variables
+// Use alignas(__mm_128i) ?
+float high[_MULTITEMP][4] __attribute__((aligned (16)));
+float band[_MULTITEMP][4] __attribute__((aligned (16)));
+float low[_MULTITEMP][4] __attribute__((aligned (16)));
+float f[_MULTITEMP][4] __attribute__((aligned (16)));
+float q[_MULTITEMP][4] __attribute__((aligned (16)));
+float v[_MULTITEMP][4] __attribute__((aligned (16)));
+
 unsigned int lastnote[_MULTITEMP];
 unsigned int hold[_MULTITEMP];
 unsigned int heldnote[_MULTITEMP];
@@ -179,11 +197,11 @@ float to_filter=0.f,lfo;
 float sampleRate=48000.0f; // only default, going to be overriden by the actual, taken from jack
 float tabX = tabF / 48000.0f;
 float srate = 3.145f/ 48000.f;
-float srDivisor = 1.0f / 48000.f*100000.f;
+float srDivisor = 1.0f / 48000.f*100000.f; // Sample rate divisor
 int i,delayBufferSize=0,maxDelayBufferSize=0,maxDelayTime=0;
 jack_nframes_t bufsize;
 int done = 0;
-static const float anti_denormal = 1e-20;// magic number to get rid of denormalizing
+static const float anti_denormal = 1e-20; // magic number to get rid of denormalizing
 
 // An experience with optimization
 #ifdef _VECTOR  
@@ -430,9 +448,14 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 int process(jack_nframes_t nframes, void *arg) {
 
 	float tfo1, tfo2, ta1_1, ta1_2, ta1_3, ta1_4, ta2, ta3; // Osc related
-	float tf1, tf2, tf3, morph1, morph2, mf, final_mix, tdelay;
+	float tf1, tf2, tf3, morph1, morph2, modmax, mf, final_mix, tdelay;
 	// float clib1, clib2; 
 	float osc1, osc2, delayMod, pan;
+	
+#ifdef _CHECK_DENORM
+	// Clear FPU exceptions (denormal flag)
+	__asm ("fclex");
+#endif
 
 	// an union for a nice float to int casting trick which should be fast
 	typedef union
@@ -601,9 +624,7 @@ int process(jack_nframes_t nframes, void *arg) {
 
 // --------------- calculate the parameters and modulations of main oscillators 1 and 2
 		glide[currentvoice]*=param[116]; // *srDivisor?? or may be unconsistent across sample rates
-		// what about denormal ??
-		// if(glide[currentvoice]< FLT_MIN/param[116]) glide[currentvoice]=0;
-
+		glide[currentvoice]+=copysign(anti_denormal, glide[currentvoice]);
 		tfo1 = param[1]; // Fixed frequency
 		tfo1 *=param[2]; // Fixed frequency enable
 
@@ -693,7 +714,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		{
 			current_phase[1]-= tabF;
 			// branchless sync osc2 to osc1 (param[115] is 0 or 1):
-			current_phase[2]-= current_phase[2]*param[115];
+			current_phase[2]+= (param[135]*samples_per_degree-current_phase[2])*param[115];
 			// sub[currentvoice]=-sub[currentvoice]; // Square
 			// sub[currentvoice]=(4.f*subMSB[currentvoice]/tabF)-1.0f; // Alt square, OK
 			// Mostly works but some regular glitches at phase 0
@@ -834,8 +855,8 @@ int process(jack_nframes_t nframes, void *arg) {
 		to_filter=osc1*ta1_4;
 		to_filter+=osc2*ta2;
 		to_filter+=sub[currentvoice]*param[121];
-		to_filter*=0.333f; // 0.5f;// get the volume of the sum into a normal range	
-		to_filter+=anti_denormal; // Does this really work in all cases?
+		to_filter*=0.333f; // get the volume of the sum into a normal range	
+		to_filter+=copysign(anti_denormal, to_filter); // Absorb denormals
 
 // ------------- calculate the filter settings ------------------------------
 // mod 1 is choice 10, amount 38 -2..2
@@ -848,294 +869,355 @@ int process(jack_nframes_t nframes, void *arg) {
 		if (param[137]){ // Filter bypass
 			mod[7] = to_filter; // Pass input unchanged
 		}else{
-		morph1 = 2.0*param[56]; // 0..1
-		if(param[120]){
-			mf = 0.25f*param[38]*mod[choi[10]]*param[48]*mod[choi[11]]; // -1..1
-		}else{
-			mf = 0.25f*(param[38]*mod[choi[10]]+param[48]*mod[choi[11]]); // -1..1
-		}
-		// Prescaling ensures bounds are respected
-		if (morph1>0.5f) mf *= 1.0f-morph1; // * <0.5 --> -0.5..0.5
-		else mf *= morph1; // * <0.5 --> -0.5..0.5
-
-		morph1+=mf;
-
-		// Clip to range (should not be needed if prescaled)
-		// clipping doesn't sound good
-#ifdef _DEBUG
-		if ((morph1<0.0f) || (morph1>1.0f))
-			printf("Morph clipping %f*%f %f*%f, %f %f %f!\n",param[38],mod[choi[10]],param[48],mod[choi[11]], morph1, mf, morph1-2.0f*mf);
-#endif
-		if (morph1<0.0f) morph1=0.0f;
-		// "else" is useless if compiler can use conditional mov
-		if (morph1>1.0f) morph1=1.0f;
-		// Is the abs trick actually faster?
-		/*
-		float clib1 = fabs (morph1);
-		float clib2 = fabs (morph1-1.0f);
-		morph1 = 0.5*(clib1 + 1.0f-clib2);
-		*/
-
-		#ifdef _PREFETCH
-			__builtin_prefetch(&param[30],0,0);
-			__builtin_prefetch(&param[31],0,0);
-			__builtin_prefetch(&param[32],0,0);
-			__builtin_prefetch(&param[40],0,0);
-			__builtin_prefetch(&param[41],0,0);
-			__builtin_prefetch(&param[42],0,0);
-			__builtin_prefetch(&param[50],0,0);
-			__builtin_prefetch(&param[51],0,0);
-			__builtin_prefetch(&param[52],0,0);
-		#endif
-/*
-// Why 1.0f - ??
-		mf = (1.0f-(param[38]*mod[choi[10]])); // -1..+3 ??
-		if(param[120]){
-			mf*=1.0f-(param[48]*mod[choi[11]]); // -3..+9 ??
-		}else{
-			mf+=1.0f-(param[48]*mod[choi[11]]); // -2..+6 ??
-		}
-		morph1 = param[56]*mf; // -1.5..4.5 ??
-		// mf not used past this point
-		
-		//The next four lines just clip to the [0,1] interval
-		clib1 = fabs (morph1); // 0..4.5 ??
-		clib2 = fabs (morph1-1.0f); // 0..3.5 ??
-		morph1 = clib1 + 1.0f; // 1..5.5 ??
-		morph1 -= clib2; // -2.5..5.5 ??
-		// clib not used past this point
-		
-		//The next three lines just clip to the [0,1] interval
-		float clib1 = fabs (mo);
-		float clib2 = fabs (mo-1.0f);
-		mo = 0.5*(clib1 + 1.0f-clib2);
- 
-		
-		morph1 *= 0.5f; // -1.25..2.75 ??
-*/
-		morph2 = 1.0f-morph1;
-
-		/*
-		tf= (srate * (parameter[currentvoice][30]*morph2+parameter[currentvoice][33]*morph1) );
-		f[currentvoice][0] = 2.f * tf - (tf*tf*tf) * 0.1472725f;// / 6.7901358;
-
-		tf= (srate * (parameter[currentvoice][40]*morph2+parameter[currentvoice][43]*morph1) );
-		f[currentvoice][1] = 2.f * tf - (tf*tf*tf)* 0.1472725f; // / 6.7901358;;
-
-		tf = (srate * (parameter[currentvoice][50]*morph2+parameter[currentvoice][53]*morph1) );
-		f[currentvoice][2] = 2.f * tf - (tf*tf*tf) * 0.1472725f;// / 6.7901358; 
-		*/
-		
-		// parallel calculation:
-		#ifdef _VECTOR
-			union f4vector a __attribute__((aligned (16))), b __attribute__((aligned (16))),  c __attribute__((aligned (16))), d __attribute__((aligned (16))),e __attribute__((aligned (16)));
-
-			b.f[0] = morph2; b.f[1] = morph2; b.f[2] = morph2; b.f[3] = morph2;
-			a.f[0] = param[30]; a.f[1] =param[31]; a.f[2] = param[32]; a.f[3] = param[40];
-			d.f[0] = param[41]; d.f[1] =param[42]; d.f[2] = param[50]; d.f[3] = param[51];
-			c.v = a.v * b.v;
-			//c.v = __builtin_ia32_mulps (a.v, b.v);
-			e.v = d.v * b.v;
-			//e.v = __builtin_ia32_mulps (d.v, b.v);
-
-			tf1 = c.f[0];
-			q[currentvoice][0]=c.f[1];
-			v[currentvoice][0]=c.f[2];
-			tf2 = c.f[3];
-			q[currentvoice][1] = e.f[0];
-			v[currentvoice][1] = e.f[1];
-			tf3 = e.f[2];
-			q[currentvoice][2] = e.f[3];
-			v[currentvoice][2] = param[52];
-		#else
-			// Load left filter bank parameters
-			tf1 = param[30];
-			q[currentvoice][0] = param[31];
-			v[currentvoice][0] = param[32];
-			tf2 = param[40];
-			q[currentvoice][1] = param[41];
-			v[currentvoice][1] = param[42];
-			tf3 = param[50];
-			q[currentvoice][2] = param[51];
-			v[currentvoice][2] = param[52];
-		#endif
-
-		#ifdef _PREFETCH
-		__builtin_prefetch(&param[33],0,0);
-		__builtin_prefetch(&param[34],0,0);
-		__builtin_prefetch(&param[35],0,0);
-		__builtin_prefetch(&param[43],0,0);
-		__builtin_prefetch(&param[44],0,0);
-		__builtin_prefetch(&param[45],0,0);
-		__builtin_prefetch(&param[53],0,0);
-		__builtin_prefetch(&param[54],0,0);
-		__builtin_prefetch(&param[55],0,0);
-		#endif
-
-		#ifdef _VECTOR
-			v[currentvoice][2] *= morph2;
-			a.f[0] = param[33]; a.f[1] =param[34]; a.f[2] = param[35]; a.f[3] = param[43];
-			d.f[0] = param[44]; d.f[1] =param[45]; d.f[2] = param[53]; d.f[3] = param[54];
-			b.f[0] = morph1; b.f[1] = morph1; b.f[2] = morph1; b.f[3] = morph1;
-			c.v = a.v * b.v;
-			//c.v = __builtin_ia32_mulps (a.v, b.v);
-			e.v = d.v * b.v;
-			//e.v = __builtin_ia32_mulps (d.v, b.v);
-
-			tf1 += c.f[0];
-			tf2 += c.f[3];
-			tf3 += e.f[2];
-			q[currentvoice][0] += c.f[1];//parameter[currentvoice][34]*morph1;
-			q[currentvoice][1] += e.f[0];//parameter[currentvoice][44]*morph1;
-			q[currentvoice][2] += e.f[3];//parameter[currentvoice][54]*morph1;
-			v[currentvoice][0] += c.f[2];//parameter[currentvoice][35]*morph1;
-			v[currentvoice][1] += e.f[1];//parameter[currentvoice][45]*morph1;
-		#else
-			tf1 *= morph2;
-			tf2 *= morph2;
-			tf3 *= morph2;
-			q[currentvoice][0] *= morph2;
-			q[currentvoice][1] *= morph2;
-			q[currentvoice][2] *= morph2;
-			v[currentvoice][0] *= morph2;
-			v[currentvoice][1] *= morph2;
-			v[currentvoice][2] *= morph2;
-			// Right filter bank frequencies
-			tf1 += param[33]*morph1;
-			tf2 += param[43]*morph1;
-			tf3 += param[53]*morph1;
-		#endif
-
-
-		#ifdef _VECTOR
-		// prepare next calculations
-			a.f[0] = param[55]; a.f[1] =tf1; a.f[2] = tf2; a.f[3] = tf3;
-			g.f[0] = morph1;// b.f[1] = 2.f; b.f[2] = 2.f; b.f[3] = 2.f;
-			j.v = a.v * i.v; // tf * srate
-			c.v = j.v * g.v; // tf * 2
-			//c.v = __builtin_ia32_mulps (a.v, g.v);
-
-			v[currentvoice][2] += c.f[0];//parameter[currentvoice][55]*morph1;
-
-			//f[currentvoice][0] = c.f[1];//2.f * tf1;
-			//f[currentvoice][1] = c.f[2];//2.f * tf2;
-			//f[currentvoice][2] = c.f[3];//2.f * tf3;
-			//pow(c.v,3);
-			d.v = c.v - ((j.v * j.v * j.v) * h.v);
-
-			f[currentvoice][0] = d.f[1];
-			f[currentvoice][1] = d.f[2];
-			f[currentvoice][2] = d.f[3];
-		#else
-			// Right filter bank parameters
-			q[currentvoice][0] += param[34]*morph1;
-			q[currentvoice][1] += param[44]*morph1;
-			q[currentvoice][2] += param[54]*morph1;
-
-			v[currentvoice][0] += param[35]*morph1;
-			v[currentvoice][1] += param[45]*morph1;
-			v[currentvoice][2] += param[55]*morph1;
-
-			tf1*=srate;
-			tf2*=srate;
-			tf3*=srate;
+			morph1 = 2.0*param[56]; // 0..1
+			if(param[120]){
+				mf = 0.25f*param[38]*mod[choi[10]]*param[48]*mod[choi[11]]; // -1..1
+				modmax=0.25*fabs(param[38])*fabs(param[48]);
+			}else{
+				mf = 0.25f*(param[38]*mod[choi[10]]+param[48]*mod[choi[11]]); // -1..1
+				modmax=0.25*(fabs(param[38])+fabs(param[48]));
+			}
 			
-			// Sin approximation sin(x) ~~ x - x^3 / 6.7901358
-			// 1 / 6.7901358 = 0.1472725f
-			// Why 2.f * ?
-			f[currentvoice][0] = 2.f * tf1;
-			f[currentvoice][1] = 2.f * tf2;
-			f[currentvoice][2] = 2.f * tf3; 
-			f[currentvoice][0] -= (tf1*tf1*tf1) * 0.1472725f;
-			f[currentvoice][1] -= (tf2*tf2*tf2) * 0.1472725f;
-			f[currentvoice][2] -= (tf3*tf3*tf3) * 0.1472725f;
-		#endif
-		// morph1 and morph2 not used past this point
-//----------------------- actual filter calculation -------------------------
-		// first filter
-		float reso = q[currentvoice][0]; // for better scaling the volume with rising q
-		low[currentvoice][0] = low[currentvoice][0] + f[currentvoice][0] * band[currentvoice][0];
-		high[currentvoice][0] = ((reso + ((1.0f-reso)*0.1f))*to_filter) - low[currentvoice][0] - (reso*band[currentvoice][0]);
-		//high[currentvoice][0] = (reso *to_filter) - low[currentvoice][0] - (q[currentvoice][0]*band[currentvoice][0]);
-		band[currentvoice][0]= f[currentvoice][0] * high[currentvoice][0] + band[currentvoice][0];
+			
+			// Prescaling ensures bounds are respected
+			/*
+			if (morph1>0.5f) mf *= 1.0f-morph1; // * <0.5 --> -0.5..0.5
+			else mf *= morph1; // * <0.5 --> -0.5..0.5
+			*/
+			// The conditions will never be met for modmax==0
+			// We don't need to habdle divide by zero
+			if (morph1<modmax) mf*=morph1/modmax;
+			if (1-morph1<modmax) mf*=(1-morph1)/modmax;
 
-		// second filter
-		reso = q[currentvoice][1];
-		low[currentvoice][1] = low[currentvoice][1] + f[currentvoice][1] * band[currentvoice][1];
-		high[currentvoice][1] = ((reso + ((1.0f-reso)*0.1f))*to_filter) - low[currentvoice][1] - (reso*band[currentvoice][1]);
-		// high[currentvoice][1] = (q[currentvoice][1] * band[currentvoice][1]) - low[currentvoice][1] - (q[currentvoice][1]*band[currentvoice][1]);
-		band[currentvoice][1]= f[currentvoice][1] * high[currentvoice][1] + band[currentvoice][1];
-		
-		// third filter
-		reso = q[currentvoice][2];
-		low[currentvoice][2] = low[currentvoice][2] + f[currentvoice][2] * band[currentvoice][2];
-		high[currentvoice][2] = ((reso + ((1.0f-reso)*0.1f))*to_filter) - low[currentvoice][2] - (reso*band[currentvoice][2]);
-		band[currentvoice][2]= f[currentvoice][2] * high[currentvoice][2] + band[currentvoice][2];
+			morph1+=mf;
 
-		// Total filter modulation output
-		mod[7] = (low[currentvoice][0]*v[currentvoice][0])+band[currentvoice][1]*v[currentvoice][1]+band[currentvoice][2]*v[currentvoice][2];
+			// Clip to range (should not be needed if prescaled)
+			// clipping doesn't sound good
+	#ifdef _DEBUG
+			if ((morph1<0.0f) || (morph1>1.0f))
+				printf("Morph clipping %f*%f %f*%f, %f %f %f!\n",param[38],mod[choi[10]],param[48],mod[choi[11]], morph1, mf, morph1-2.0f*mf);
+	#endif
+			if (morph1<0.0f) morph1=0.0f;
+			// "else" is useless if the compiler can use conditional mov
+			if (morph1>1.0f) morph1=1.0f;
+			// Is the abs trick actually faster?
+			/*
+			float clib1 = fabs (morph1);
+			float clib2 = fabs (morph1-1.0f);
+			morph1 = 0.5*(clib1 + 1.0f-clib2);
+			*/
+
+			#ifdef _PREFETCH
+				__builtin_prefetch(&param[30],0,0);
+				__builtin_prefetch(&param[31],0,0);
+				__builtin_prefetch(&param[32],0,0);
+				__builtin_prefetch(&param[40],0,0);
+				__builtin_prefetch(&param[41],0,0);
+				__builtin_prefetch(&param[42],0,0);
+				__builtin_prefetch(&param[50],0,0);
+				__builtin_prefetch(&param[51],0,0);
+				__builtin_prefetch(&param[52],0,0);
+			#endif
+	/*
+	// Why 1.0f - ??
+			mf = (1.0f-(param[38]*mod[choi[10]])); // -1..+3 ??
+			if(param[120]){
+				mf*=1.0f-(param[48]*mod[choi[11]]); // -3..+9 ??
+			}else{
+				mf+=1.0f-(param[48]*mod[choi[11]]); // -2..+6 ??
+			}
+			morph1 = param[56]*mf; // -1.5..4.5 ??
+			// mf not used past this point
+			
+			//The next four lines just clip to the [0,1] interval
+			clib1 = fabs (morph1); // 0..4.5 ??
+			clib2 = fabs (morph1-1.0f); // 0..3.5 ??
+			morph1 = clib1 + 1.0f; // 1..5.5 ??
+			morph1 -= clib2; // -2.5..5.5 ??
+
+			//The next three lines just clip to the [0,1] interval
+			float clib1 = fabs (mo);
+			float clib2 = fabs (mo-1.0f);
+			mo = 0.5*(clib1 + 1.0f-clib2);
+ 
+			morph1 *= 0.5f; // -1.25..2.75 ??
+	*/
+			morph2 = 1.0f-morph1;
+
+			/*
+			tf= (srate * (parameter[currentvoice][30]*morph2+parameter[currentvoice][33]*morph1) );
+			f[currentvoice][0] = 2.f * tf - (tf*tf*tf) * 0.1472725f;// / 6.7901358;
+
+			tf= (srate * (parameter[currentvoice][40]*morph2+parameter[currentvoice][43]*morph1) );
+			f[currentvoice][1] = 2.f * tf - (tf*tf*tf)* 0.1472725f; // / 6.7901358;;
+
+			tf = (srate * (parameter[currentvoice][50]*morph2+parameter[currentvoice][53]*morph1) );
+			f[currentvoice][2] = 2.f * tf - (tf*tf*tf) * 0.1472725f;// / 6.7901358; 
+			*/
+			
+			// parallel calculation:
+			#ifdef _VECTOR
+				union f4vector a __attribute__((aligned (16))), b __attribute__((aligned (16))),  c __attribute__((aligned (16))), d __attribute__((aligned (16))),e __attribute__((aligned (16)));
+
+				b.f[0] = morph2; b.f[1] = morph2; b.f[2] = morph2; b.f[3] = morph2;
+				a.f[0] = param[30]; a.f[1] =param[31]; a.f[2] = param[32]; a.f[3] = param[40];
+				d.f[0] = param[41]; d.f[1] =param[42]; d.f[2] = param[50]; d.f[3] = param[51];
+				c.v = a.v * b.v;
+				//c.v = __builtin_ia32_mulps (a.v, b.v);
+				e.v = d.v * b.v;
+				//e.v = __builtin_ia32_mulps (d.v, b.v);
+
+				tf1 = c.f[0];
+				q[currentvoice][0]=c.f[1];
+				v[currentvoice][0]=c.f[2];
+				tf2 = c.f[3];
+				q[currentvoice][1] = e.f[0];
+				v[currentvoice][1] = e.f[1];
+				tf3 = e.f[2];
+				q[currentvoice][2] = e.f[3];
+				v[currentvoice][2] = param[52];
+			#else
+				// Load left filter bank parameters
+				tf1 = param[30];
+				q[currentvoice][0] = param[31];
+				v[currentvoice][0] = param[32];
+				tf2 = param[40];
+				q[currentvoice][1] = param[41];
+				v[currentvoice][1] = param[42];
+				tf3 = param[50];
+				q[currentvoice][2] = param[51];
+				v[currentvoice][2] = param[52];
+			#endif
+
+			#ifdef _PREFETCH
+			__builtin_prefetch(&param[33],0,0);
+			__builtin_prefetch(&param[34],0,0);
+			__builtin_prefetch(&param[35],0,0);
+			__builtin_prefetch(&param[43],0,0);
+			__builtin_prefetch(&param[44],0,0);
+			__builtin_prefetch(&param[45],0,0);
+			__builtin_prefetch(&param[53],0,0);
+			__builtin_prefetch(&param[54],0,0);
+			__builtin_prefetch(&param[55],0,0);
+			#endif
+
+			#ifdef _VECTOR
+				v[currentvoice][2] *= morph2;
+				a.f[0] = param[33]; a.f[1] =param[34]; a.f[2] = param[35]; a.f[3] = param[43];
+				d.f[0] = param[44]; d.f[1] =param[45]; d.f[2] = param[53]; d.f[3] = param[54];
+				b.f[0] = morph1; b.f[1] = morph1; b.f[2] = morph1; b.f[3] = morph1;
+				c.v = a.v * b.v;
+				//c.v = __builtin_ia32_mulps (a.v, b.v);
+				e.v = d.v * b.v;
+				//e.v = __builtin_ia32_mulps (d.v, b.v);
+
+				tf1 += c.f[0];
+				tf2 += c.f[3];
+				tf3 += e.f[2];
+				q[currentvoice][0] += c.f[1];//parameter[currentvoice][34]*morph1;
+				q[currentvoice][1] += e.f[0];//parameter[currentvoice][44]*morph1;
+				q[currentvoice][2] += e.f[3];//parameter[currentvoice][54]*morph1;
+				v[currentvoice][0] += c.f[2];//parameter[currentvoice][35]*morph1;
+				v[currentvoice][1] += e.f[1];//parameter[currentvoice][45]*morph1;
+			#else
+				tf1 *= morph2;
+				tf2 *= morph2;
+				tf3 *= morph2;
+				q[currentvoice][0] *= morph2;
+				q[currentvoice][1] *= morph2;
+				q[currentvoice][2] *= morph2;
+				v[currentvoice][0] *= morph2;
+				v[currentvoice][1] *= morph2;
+				v[currentvoice][2] *= morph2;
+				// Right filter bank frequencies
+				tf1 += param[33]*morph1;
+				tf2 += param[43]*morph1;
+				tf3 += param[53]*morph1;
+			#endif
+
+
+			#ifdef _VECTOR
+			// prepare next calculations
+				a.f[0] = param[55]; a.f[1] =tf1; a.f[2] = tf2; a.f[3] = tf3;
+				g.f[0] = morph1;// b.f[1] = 2.f; b.f[2] = 2.f; b.f[3] = 2.f;
+				j.v = a.v * i.v; // tf * srate
+				c.v = j.v * g.v; // tf * 2
+				//c.v = __builtin_ia32_mulps (a.v, g.v);
+
+				v[currentvoice][2] += c.f[0];//parameter[currentvoice][55]*morph1;
+
+				//f[currentvoice][0] = c.f[1];//2.f * tf1;
+				//f[currentvoice][1] = c.f[2];//2.f * tf2;
+				//f[currentvoice][2] = c.f[3];//2.f * tf3;
+				//pow(c.v,3);
+				d.v = c.v - ((j.v * j.v * j.v) * h.v);
+
+				f[currentvoice][0] = d.f[1];
+				f[currentvoice][1] = d.f[2];
+				f[currentvoice][2] = d.f[3];
+			#else
+				// Right filter bank parameters
+				q[currentvoice][0] += param[34]*morph1;
+				q[currentvoice][1] += param[44]*morph1;
+				q[currentvoice][2] += param[54]*morph1;
+
+				v[currentvoice][0] += param[35]*morph1;
+				v[currentvoice][1] += param[45]*morph1;
+				v[currentvoice][2] += param[55]*morph1;
+
+				tf1*=srate;
+				tf2*=srate;
+				tf3*=srate;
+				
+				// Sin approximation sin(x) ~~ x - x^3 / 6.7901358
+				// 1 / 6.7901358 = 0.1472725f
+				// Why 2.f * ?
+				f[currentvoice][0] = 2.f * tf1;
+				f[currentvoice][1] = 2.f * tf2;
+				f[currentvoice][2] = 2.f * tf3; 
+				f[currentvoice][0] -= (tf1*tf1*tf1) * 0.1472725f;
+				f[currentvoice][1] -= (tf2*tf2*tf2) * 0.1472725f;
+				f[currentvoice][2] -= (tf3*tf3*tf3) * 0.1472725f;
+			#endif
+			// morph1 and morph2 not used past this point
+	//----------------------- actual filter calculation -------------------------
+			// filters
+#ifdef __SSE2__
+			__m128 f4 = _mm_load_ps(f[currentvoice]);
+			__m128 band4 = _mm_load_ps(band[currentvoice]);
+			__m128 low4 = _mm_load_ps(low[currentvoice]);
+			__m128 temp4 = _mm_mul_ps(f4, band4); // f*band
+			low4 = _mm_add_ps(temp4, low4); // low + f*band
+			__m128 q4 = _mm_load_ps(q[currentvoice]);
+			_mm_store_ps(low[currentvoice], low4);
+			temp4 = _mm_mul_ps(q4, band4); // q*band
+			__m128 temp4b = _mm_set_ps1(0.9f);
+			temp4 = _mm_add_ps(temp4, low4); // q*band+low
+			temp4b = _mm_mul_ps(q4, temp4b); // 0.9f * q
+			__m128 temp4c = _mm_set_ps1(0.1f);
+			__m128 hi4 = _mm_load_ps1(&to_filter);
+			temp4b = _mm_add_ps(temp4c, temp4b); // 0.9f * q + 0.1f
+			hi4 = _mm_mul_ps(temp4b, hi4); // (0.9f * q + 0.1f)*to_filter
+			hi4 = _mm_sub_ps(hi4, temp4); // (0.9f * q + 0.1f)*to_filter - (q*band + low)
+			_mm_store_ps(high[currentvoice], hi4);
+			
+			hi4 = _mm_mul_ps(f4, hi4); // f*hi
+			band4 = _mm_add_ps(band4, hi4); // band + f*hi
+			_mm_store_ps(band[currentvoice], band4);
+
+			// Total filter modulation output
+			// __m128 v4 = _mm_load_ps(v[currentvoice]);
+			// No madd for float in sse2
+			// use _mm_shuffle_ps?
+			// Use masking and/or?
+			// Beware of endianness?
+			mod[7] = (low[currentvoice][0]*v[currentvoice][0])+band[currentvoice][1]*v[currentvoice][1]+band[currentvoice][2]*v[currentvoice][2];
+#else
+			low[currentvoice][0] += f[currentvoice][0] * band[currentvoice][0];
+			low[currentvoice][1] += f[currentvoice][1] * band[currentvoice][1];
+			low[currentvoice][2] += f[currentvoice][2] * band[currentvoice][2];
+
+			// x+((1-x)*.1) = x + 1*.1 - x*.1 = 0.9 x + 0.1
+			high[currentvoice][0] = (0.9f*q[currentvoice][0]+0.1f)*to_filter - low[currentvoice][0] - q[currentvoice][0]*band[currentvoice][0];
+			//high[currentvoice][0] = (q[currentvoice] *to_filter) - low[currentvoice][0] - (q[currentvoice][0]*band[currentvoice][0]);
+			high[currentvoice][1] = (0.9f*q[currentvoice][1]+0.1f)*to_filter - low[currentvoice][1] - q[currentvoice][1]*band[currentvoice][1];
+			high[currentvoice][2] = (0.9f*q[currentvoice][2]+0.1f)*to_filter - low[currentvoice][2] - q[currentvoice][2]*band[currentvoice][2];
+
+			band[currentvoice][0] += f[currentvoice][0] * high[currentvoice][0];
+			band[currentvoice][1] += f[currentvoice][1] * high[currentvoice][1];
+			band[currentvoice][2] += f[currentvoice][2] * high[currentvoice][2];
+/*			// first filter
+			float reso = q[currentvoice][0]; // for better scaling the volume with rising q
+			low[currentvoice][0] = low[currentvoice][0] + f[currentvoice][0] * band[currentvoice][0];
+			high[currentvoice][0] = ((reso + ((1.0f-reso)*0.1f))*to_filter) - low[currentvoice][0] - (reso*band[currentvoice][0]);
+			//high[currentvoice][0] = (reso *to_filter) - low[currentvoice][0] - (q[currentvoice][0]*band[currentvoice][0]);
+			band[currentvoice][0]= f[currentvoice][0] * high[currentvoice][0] + band[currentvoice][0];
+
+			// second filter
+			reso = q[currentvoice][1];
+			low[currentvoice][1] = low[currentvoice][1] + f[currentvoice][1] * band[currentvoice][1];
+			high[currentvoice][1] = ((reso + ((1.0f-reso)*0.1f))*to_filter) - low[currentvoice][1] - (reso*band[currentvoice][1]);
+			// high[currentvoice][1] = (q[currentvoice][1] * band[currentvoice][1]) - low[currentvoice][1] - (q[currentvoice][1]*band[currentvoice][1]);
+			band[currentvoice][1]= f[currentvoice][1] * high[currentvoice][1] + band[currentvoice][1];
+			
+			// third filter
+			reso = q[currentvoice][2];
+			low[currentvoice][2] = low[currentvoice][2] + f[currentvoice][2] * band[currentvoice][2];
+			high[currentvoice][2] = ((reso + ((1.0f-reso)*0.1f))*to_filter) - low[currentvoice][2] - (reso*band[currentvoice][2]);
+			band[currentvoice][2]= f[currentvoice][2] * high[currentvoice][2] + band[currentvoice][2];
+*/
+			// Total filter modulation output
+			mod[7] = (low[currentvoice][0]*v[currentvoice][0])+band[currentvoice][1]*v[currentvoice][1]+band[currentvoice][2]*v[currentvoice][2];
+#endif
 		} // End of if filter bypass
-//---------------------------------- amplitude shaping
-		final_mix = 1.0f-mod[choi[13]]*param[100];
-		final_mix *= mod[7];
-		final_mix *= egCalc(currentvoice,0); // the final shaping envelope
+	//---------------------------------- amplitude shaping
+			final_mix = 1.0f-mod[choi[13]]*param[100];
+			final_mix *= mod[7];
+			final_mix *= egCalc(currentvoice,0); // the final shaping envelope
 
-// --------------------------------- delay unit
-		if( delayI[currentvoice] >= delayBufferSize )
-		{
-			delayI[currentvoice] = 0;
-			//printf("clear %d : %d : %d\n",currentvoice,delayI[currentvoice],delayJ[currentvoice]);
+	// --------------------------------- delay unit
+			if( delayI[currentvoice] >= delayBufferSize )
+			{
+				delayI[currentvoice] = 0;
+				//printf("clear %d : %d : %d\n",currentvoice,delayI[currentvoice],delayJ[currentvoice]);
+			}
+			
+			// param[110] is mod. amount 0..1
+			delayMod = 1.0f-(param[110]* mod[choi[14]]); // Why 1.0f- ?? 0..2
+
+			// param[111] is delay time 0..1 (seconds?)
+			delayJ[currentvoice] = delayI[currentvoice] - ((param[111]* maxDelayTime)*delayMod);
+
+			// Clip or wrap ??
+			if( delayJ[currentvoice]  < 0 )
+			{
+				delayJ[currentvoice]  += delayBufferSize; // ??
+			}
+			else if (delayJ[currentvoice]>delayBufferSize)
+			{
+				delayJ[currentvoice] = 0; // ??
+			}
+
+			//if (delayI[currentvoice]>95000) printf("jab\n");
+
+			// param[114] is "to delay" knob 0..1
+			// param[112] is "feedback" knob 0..1
+			tdelay = final_mix * param[114] + (delayBuffer[currentvoice] [ delayJ[currentvoice] ] * param[112] );
+			tdelay += copysign(anti_denormal, tdelay);
+			delayBuffer[currentvoice] [delayI[currentvoice] ] = tdelay;
+			/*
+			if (delayI[currentvoice]>95000)
+			{
+				printf("lll %d : %d : %d\n",currentvoice,delayI[currentvoice],delayJ[currentvoice]);
+				fflush(stdout);
+			}
+			*/
+			mod[18]=tdelay; // delay as modulation source
+			final_mix += tdelay * param[113]; // add to final mix
+			delayI[currentvoice]=delayI[currentvoice]+1;
+
+	// --------------------------------- output
+			float *buffer = (float*) jack_port_get_buffer(port[currentvoice], nframes);
+			buffer[index] = final_mix * param[101];
+			bufferAux1[index] += final_mix * param[108];
+			bufferAux2[index] += final_mix * param[109];
+			final_mix *= param[106]; // mix volume
+			pan=(param[122]*mod[choi[16]])+param[107];
+			if (pan<0.f) pan=0.f;
+			if (pan>1.0f) pan=1.0f;
+			bufferMixLeft[index] += final_mix * (1.0f-pan);
+			bufferMixRight[index] += final_mix * pan;
+			}
 		}
-		
-		// param[110] is mod. amount 0..1
-		delayMod = 1.0f-(param[110]* mod[choi[14]]); // Why 1.0f- ?? 0..2
-
-		// param[111] is delay time 0..1 (seconds?)
-		delayJ[currentvoice] = delayI[currentvoice] - ((param[111]* maxDelayTime)*delayMod);
-
-		// Clip or wrap ??
-		if( delayJ[currentvoice]  < 0 )
-		{
-			delayJ[currentvoice]  += delayBufferSize; // ??
-		}
-		else if (delayJ[currentvoice]>delayBufferSize)
-		{
-			delayJ[currentvoice] = 0; // ??
-		}
-
-		//if (delayI[currentvoice]>95000) printf("jab\n");
-
-		// param[114] is "to delay" knob 0..1
-		// param[112] is "feedback" knob 0..1
-		tdelay = final_mix * param[114] + (delayBuffer[currentvoice] [ delayJ[currentvoice] ] * param[112] );
-		tdelay += anti_denormal;
-		//tdelay -= anti_denormal;
-		delayBuffer[currentvoice] [delayI[currentvoice] ] = tdelay;
-		/*
-		if (delayI[currentvoice]>95000)
-		{
-			printf("lll %d : %d : %d\n",currentvoice,delayI[currentvoice],delayJ[currentvoice]);
-			fflush(stdout);
-		}
-		*/
-		mod[18]=tdelay; // delay as modulation source
-		final_mix += tdelay * param[113]; // add to final mix
-		delayI[currentvoice]=delayI[currentvoice]+1;
-
-// --------------------------------- output
-		float *buffer = (float*) jack_port_get_buffer(port[currentvoice], nframes);
-		buffer[index] = final_mix * param[101];
-		bufferAux1[index] += final_mix * param[108];
-		bufferAux2[index] += final_mix * param[109];
-		final_mix *= param[106]; // mix volume
-		pan=(param[122]*mod[choi[16]])+param[107];
-		if (pan<0.f) pan=0.f;
-		if (pan>1.0f) pan=1.0f;
-		bufferMixLeft[index] += final_mix * (1.0f-pan);
-		bufferMixRight[index] += final_mix * pan;
-		}
-	}
 	first_time=0;
+#ifdef _CHECK_DENORM
+	// Retrieve FPU status word
+	// Not sure this actually works ??
+	short int fpu_status;
+	short int* fpu_status_ptr=&fpu_status;
+	__asm("fstsw %0" : "=r" (fpu_status_ptr));
+	if(fpu_status & 0x0002) printf("Denormal!\n");
+#endif
 	return 0;// thanks to Sean Bolton who was the first pointing to a bug when I returned 1
 }// end of process function
 
@@ -1439,8 +1521,8 @@ static inline void doNoteOn(int voice, int note, int velocity){
 				}
 				// Reset phase if needed
 				if(parameter[voice][134]){
-					phase[voice][1]=parameter[voice][133]*TableSize/360.0;
-					phase[voice][0]=parameter[voice][133]*TableSize/720.0; // sub-osc
+					phase[voice][1]=parameter[voice][133]*samples_per_degree;
+					phase[voice][0]=parameter[voice][133]*samples_per_degree*0.5; // sub-osc
 #ifdef _DEBUG
 					printf("Osc 1 voice %u phase set to %f\n", voice, parameter[voice][133]);
 #endif

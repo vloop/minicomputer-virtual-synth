@@ -19,7 +19,7 @@ if ARGUMENTS.get('k7', 0):
 
 # env.Append(CCFLAGS = '  -O3 -mfpmath=sse -msse -msse2  -fverbose-asm  -ffast-math -funit-at-a-time -fpeel-loops -ftracer -funswitch-loops -Wall -fmessage-length=0')
 
-env.Append(CCFLAGS = ['-g','-O2','-msse','-fwhole-program','-ftree-vectorize','-ffast-math', '-funit-at-a-time', '-fpeel-loops', '-ftracer','-funswitch-loops','-fprefetch-loop-arrays','-mfpmath=sse'])
+env.Append(CCFLAGS = ['-g','-O2','-pg','-msse','-fwhole-program','-ftree-vectorize','-ffast-math', '-funit-at-a-time', '-fpeel-loops', '-ftracer','-funswitch-loops','-fprefetch-loop-arrays','-mfpmath=sse'])
 
 if ARGUMENTS.get('native', 0):
 	env.Append(CCFLAGS = ['-march=native','-mtune=native'])
@@ -47,7 +47,7 @@ if not conf.CheckLibWithHeader('pthread', 'pthread.h','c'):
 	Exit(1)
 
 env.Append(LIBS=['m'])
-# env.Append(LINKFLAGS = ['-pg'])
+env.Append(LINKFLAGS = ['-pg'])
 env = conf.Finish()
 
 print"-                    checking dependencies for the editor:"

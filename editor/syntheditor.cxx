@@ -324,7 +324,7 @@ if (o != NULL)
 {
 currentParameter = ((Fl_Valuator*)o)->argument();
 
-	// show parameter on finetune only when relevant (not a frequency...)
+	// show parameter on fine tune only when relevant (not a frequency...)
 	switch (currentParameter)
 	{
 		case 1: // Osc 1 fixed frequency
@@ -684,7 +684,7 @@ static void copyparmCallback(Fl_Widget* o, void*) {
  * @param Fl_Widget the calling widget
  * @param defined by FLTK but not used
  */
-static void finetune(Fl_Widget* o, void*)
+static void finetuneCallback(Fl_Widget* o, void*)
 {
 	if (currentParameter<_PARACOUNT)// range check
 	{
@@ -701,7 +701,7 @@ static void finetune(Fl_Widget* o, void*)
 			case 50:
 			case 53:
 			case 90:
-			 break; // do nothin
+			 break; // do nothing
 			default: 
 			Fl::lock();
 				((Fl_Valuator* )Knob[currentsound][currentParameter])->value(((Fl_Valuator* )o)->value());
@@ -2361,10 +2361,9 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);auswahl[i][o->argument()]=o;
 	  }
 	  { Fl_Light_Button* o = new Fl_Light_Button(325, 430, 85, 15, "bypass filters");
-		// o->tooltip("reset the filter and delay");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(8);
-		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+		// o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 		o->argument(137);
 		o->callback((Fl_Callback*)parmCallback);
 	  }
@@ -3081,7 +3080,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	  //o->menubutton()->textsize(8);
 	  o->align(FL_ALIGN_TOP_LEFT);
 	  o->step(0.0001);
-	  o->callback((Fl_Callback*)finetune);
+	  o->callback((Fl_Callback*)finetuneCallback);
 	  paramon = o;
 	}
 	{ Fl_Toggle_Button* o = new Fl_Toggle_Button(700, 465, 50, 39, "Audition");
