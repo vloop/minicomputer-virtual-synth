@@ -2,6 +2,7 @@
  * industrial grade digital synthesizer
  *
  * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -35,7 +36,7 @@
 // #include <cmath.h>
 // double epsilon = std::numeric_limits<float>::min();
 
-// #define __SSE2__
+// #undefine __SSE2__
 
 // Intrinsic declarations
 // see https://software.intel.com/sites/landingpage/IntrinsicsGuide/#
@@ -50,9 +51,9 @@
 // defines
 #define _MODCOUNT 32
 #define _WAVECOUNT 32
-// #define _USE_FMODF 1
+#define _USE_FMODF 1
 #define _UPDATE_GUI 1
-#define _CHECK_DENORM 1
+// #define _CHECK_DENORM 1
 
 // Table size must be a power of 2 so that we can use & instead of %
 #define TableSize 4096
@@ -1083,6 +1084,7 @@ int process(jack_nframes_t nframes, void *arg) {
 	//----------------------- actual filter calculation -------------------------
 			// filters
 #ifdef __SSE2__
+			// Could compute a 4th filter without penalty
 			__m128 f4 = _mm_load_ps(f[currentvoice]);
 			__m128 band4 = _mm_load_ps(band[currentvoice]);
 			__m128 low4 = _mm_load_ps(low[currentvoice]);
@@ -1106,12 +1108,21 @@ int process(jack_nframes_t nframes, void *arg) {
 			_mm_store_ps(band[currentvoice], band4);
 
 			// Total filter modulation output
-			// __m128 v4 = _mm_load_ps(v[currentvoice]);
+			float from_filter[4];
+			__m128 v4 = _mm_load_ps(v[currentvoice]);
 			// No madd for float in sse2
 			// use _mm_shuffle_ps?
-			// Use masking and/or?
+			// Use masking and/or
 			// Beware of endianness?
-			mod[7] = (low[currentvoice][0]*v[currentvoice][0])+band[currentvoice][1]*v[currentvoice][1]+band[currentvoice][2]*v[currentvoice][2];
+			temp4 = (__m128) _mm_set_epi32(0, 0, 0, 0xFFFFFFFF); // Mask array item [0]
+			low4 = (__m128) _mm_and_si128((__m128i) temp4,(__m128i) low4);
+			band4 = (__m128) _mm_andnot_si128((__m128i)temp4,(__m128i) band4);
+			band4 = (__m128) _mm_or_si128((__m128i)low4, (__m128i)band4);
+			band4 = _mm_mul_ps(v4, band4);
+			_mm_store_ps(from_filter, band4);
+			mod[7] = from_filter[0]+from_filter[1]+from_filter[2];
+
+			// mod[7] = (low[currentvoice][0]*v[currentvoice][0])+band[currentvoice][1]*v[currentvoice][1]+band[currentvoice][2]*v[currentvoice][2];
 #else
 			low[currentvoice][0] += f[currentvoice][0] * band[currentvoice][0];
 			low[currentvoice][1] += f[currentvoice][1] * band[currentvoice][1];

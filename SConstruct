@@ -15,7 +15,9 @@ if ARGUMENTS.get('k8', 0):
 if ARGUMENTS.get('k7', 0):
 	env.Append(CCFLAGS = ['-march=athlon-xp','-mtune=athlon-xp'])
 	guienv.Append(CPPFLAGS = ['-march=athlon-xp','-mtune=athlon-xp'])
-
+if ARGUMENTS.get('pg', 0):
+	env.Append(CCFLAGS = ['-pg'])
+	env.Append(LINKFLAGS = ['-pg'])
 
 # env.Append(CCFLAGS = '  -O3 -mfpmath=sse -msse -msse2  -fverbose-asm  -ffast-math -funit-at-a-time -fpeel-loops -ftracer -funswitch-loops -Wall -fmessage-length=0')
 
