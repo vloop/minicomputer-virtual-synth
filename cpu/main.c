@@ -850,13 +850,14 @@ int process(jack_nframes_t nframes, void *arg) {
 		__builtin_prefetch(&param[56],0,0);
 #endif
 
-// ------------- mix the 2 oscillators and sub pre filter -------------------
+// ------------- mix the 2 oscillators, sub and ring pre filter -------------------
 		//temp=(parameter[currentvoice][14]-parameter[currentvoice][14]*ta1);
 		// Why was 1.0f-ta n ?? offset for mod<0 ?? -1..3
 		to_filter=osc1*ta1_4;
 		to_filter+=osc2*ta2;
 		to_filter+=sub[currentvoice]*param[121];
-		to_filter*=0.333f; // get the volume of the sum into a normal range	
+		to_filter+=osc1*osc2*param[138];
+		to_filter*=0.25f; // get the volume of the sum into a normal range	
 		to_filter+=copysign(anti_denormal, to_filter); // Absorb denormals
 
 // ------------- calculate the filter settings ------------------------------
@@ -1550,14 +1551,21 @@ static inline void doNoteOn(int voice, int note, int velocity){
 				modulator[voice][19]=note*0.007874f;// fill the value in as normalized modulator
 				modulator[voice][1]=(float)1.0f-(velocity*0.007874f);// fill in the velocity as modulator
 				// why is velocity inverted??
-				egStart(voice,0);// start the engines!
-				// Maybe optionally restart repeatable envelopes too, i.e free-run boutton?
-				if (EGrepeat[voice][1] == 0) egStart(voice,1);
-				if (EGrepeat[voice][2] == 0) egStart(voice,2);
-				if (EGrepeat[voice][3] == 0) egStart(voice,3);
-				if (EGrepeat[voice][4] == 0) egStart(voice,4);
-				if (EGrepeat[voice][5] == 0) egStart(voice,5);
-				if (EGrepeat[voice][6] == 0) egStart(voice,6);
+				// Parameter 139 is legato, don't retrigger unless released (0) or idle (4)
+				if(parameter[voice][139]==0 || EGstate[voice][0]==4 || EGstate[voice][0]==0){
+					egStart(voice,0);// start the engines!
+					// Maybe optionally restart repeatable envelopes too, i.e free-run boutton?
+					if (EGrepeat[voice][1] == 0) egStart(voice,1);
+					if (EGrepeat[voice][2] == 0) egStart(voice,2);
+					if (EGrepeat[voice][3] == 0) egStart(voice,3);
+					if (EGrepeat[voice][4] == 0) egStart(voice,4);
+					if (EGrepeat[voice][5] == 0) egStart(voice,5);
+					if (EGrepeat[voice][6] == 0) egStart(voice,6);
+#ifdef _DEBUG
+				}else{
+					printf("Legato\n");
+#endif
+				}
 #ifdef _DEBUG
 					printf("Note on %u voice %u velocity %u\n", note, voice, velocity);
 #endif

@@ -21,7 +21,7 @@
  */
 Memory::Memory()
 {
-	int i;
+	int i, result;
 	for (i=0;i<_MULTITEMP;++i)
 	{
 		choice[i] = 0;
@@ -55,8 +55,10 @@ Memory::Memory()
 			if (access(folder, R_OK) != 0)
 			{
 				sprintf(kommand,"mkdir %s",folder);
-				system(kommand);
-					cout<<kommand<<endl;
+				result=system(kommand);
+				cout<<kommand<<endl;
+				printf("mkdir result: %u", result);
+
 			}
 		}
 		#ifdef _DEBUG
@@ -110,13 +112,8 @@ unsigned int Memory::getChoice(unsigned int voice)
 }
 /**
  * save the complete soundmemory to disk
- * two fileformats are possible, the historical
- * but depricated binary format with is just a memory dump
- * and not extensible and the textformat, which takes more space
- * on harddisk but is human editable and extensible
- * per default the binary format is switched off and can
- * be enabled with the _BINFILE option in common.h
- * the filenames are fix
+ * two fileformats were possible, the historical
+ * but deprecated binary format was removed.
  */
 void Memory::save()
 {
@@ -131,36 +128,13 @@ char kommand[1200];
   //oa << sounds[i];
 	}
   ofs.close();*/
-  //................................binary format, deprecated! ............................
-#ifdef _BINFILE
-FILE *fh; // file handle
-
-	system("mv minicomputerMemory.mcm minicomputerMemory.bak");// make a backup
-	if ((fh=fopen("minicomputerMemory.mcm","wb")) ==NULL)
-	{
-		printf("can't open file minicomputerMemory.mcm\n");
-		
-	}
-	else
-	{
-	for (int i=0;i<512;++i) // dump the whole stuff to disk
-	{
-		if ((fwrite(&sounds[i],sizeof(patch),1,fh)) == -1)
-			{
-		 		printf("can't write into minicomputerMemory.mcm\n");
-		 		break;
-			}
-			fseek(fh,0,SEEK_END);
-	}
-	fclose(fh);
-	}
-#endif
 // *************************************************************
 // new fileoutput as textfile with a certain coding which is
 // documented in the docs
 	sprintf(kommand,"%s/minicomputerMemory.temp",folder);
 
 ofstream File (kommand); // temporary file
+int result;
 int p,j;
 for (int i=0;i<512;++i)
  {  
@@ -183,10 +157,12 @@ File.close();
 	if (access(kommand, R_OK) == 0) // check if there a previous file which need to be backed up
 	{
 		sprintf(kommand,"mv %s/minicomputerMemory.txt %s/minicomputerMemory.txt.bak",folder,folder);
-		system(kommand);// make a backup
+		result=system(kommand);// make a backup
+		printf("mv to .bak result: %u", result);
 	}
 	sprintf(kommand,"mv %s/minicomputerMemory.temp %s/minicomputerMemory.txt",folder,folder);
-	system(kommand);// commit the file finally
+	result=system(kommand);// commit the file finally
+	printf("mv to .txt result: %u", result);
 }
 
 /**
@@ -209,33 +185,6 @@ void Memory::load()
 	ifs.close();
 	printf("so ...\n");
 	choice=2;*/
-// the depricated binary format, enabled with the _BINFILE parameter in common.h
-#ifdef _BINFILE
-	FILE *fh; // file handle
-	if ((fh=fopen("minicomputerMemory.mcm","rb")) ==NULL)
-	{
-		printf("cant open file minicomputerMemory.mcm\n");
-		
-	}
-	else
-	{
-	for (int i=0;i<512;++i) //read the whole stuff into memory
-	{
-		if ((fread(&sounds[i],sizeof(patch),1,fh)) == -1)
-			{
-		 		printf("cant read  minicomputerMemory.mcm\n");
-		 		break;
-			}
-			
-			//if (fseek(fh,sizeof(patch),SEEK_CUR)==-1)
-			//	{
-			//		break;
-			//	}
-	}
-	fclose(fh);
-	}
-#endif
-// *************************************************************
 // new fileinput in textformat which is the way to go
 char path[1200];
 sprintf(path,"%s/minicomputerMemory.txt",folder);
@@ -440,30 +389,9 @@ save();
 void Memory::saveMulti()
 {
 	char kommand[1200];
-	  int i;
+	int i;
+	int result;
 	  //************* the binary depricated fileformat
-#ifdef _BINFILE      
-	FILE *fh; // file handle
-  	system("minicomputerMulti.mcm minicomputerMulti.bak");
-	if ((fh=fopen("minicomputerMulti.mcm","wb")) ==NULL)
-	{
-		printf("can't open file minicomputerMulti.mcm\n");
-		
-	}
-	else
-	{
-	for (int i=0;i<128;++i) // write the 128 multis
-	{
-		if ((fwrite(&multis[i],sizeof(multi),1,fh)) == -1)
-			{
-		 		printf("can't write into minicomputerMulti.mcm\n");
-		 		break;
-			}
-			fseek(fh,0,SEEK_END);
-	}
-	fclose(fh);
-	}
-#endif
 //---------------------- new text format
 // first write in temporary file, just in case
 
@@ -485,52 +413,25 @@ for (i=0;i<128;++i)// write the whole 128 multis
 }
 
 File.close();// done
-	
 	sprintf(kommand,"%s/minicomputerMulti.txt",folder);
 	if (access(kommand, R_OK) == 0) // check if there a previous file which need to be backed up
  	{
 		sprintf(kommand,"mv %s/minicomputerMulti.txt %s/minicomputerMulti.txt.bak",folder,folder);
-  		system(kommand);// make a backup of the original file
-  	}
-  sprintf(kommand,"mv %s/minicomputerMulti.temp %s/minicomputerMulti.txt",folder,folder);
-  system(kommand);// commit the file
+		result=system(kommand);// make a backup of the original file
+		printf("mv to .bak result: %u", result);
+	}
+	sprintf(kommand,"mv %s/minicomputerMulti.temp %s/minicomputerMulti.txt",folder,folder);
+	result=system(kommand);// commit the file
+	printf("mv to .txt result: %u", result);
 }
 /**
  * load the multitemperal setups which are stored in an extrafile
- * supports the depricated binary format, enabled via _BINFILE in common.h
- * and the new textformat
+ * no longer supports the deprecated binary format
  * @see Memory::load
  * @see Memory::save
  */
 void Memory::loadMulti()
 {
-//***************** the depricated binary format, only for my personal backwards compatility
-#ifdef _BINFILE
-int i;
-FILE *fh; // file handle
-	if ((fh=fopen("minicomputerMulti.mcm","rb")) ==NULL)
-	{
-		printf("cant open file minicomputerMulti.mcm\n");
-		
-	}
-	else
-	{
-	for (i=0;i<128;++i)// load all the setups
-	{
-		if ((fread(&multis[i],sizeof(multi),1,fh)) == -1)
-			{
-		 		printf("cant read  minicomputerMulti.mcm\n");
-		 		break;
-			}
-			
-			/*if (fseek(fh,sizeof(patch),SEEK_CUR)==-1)
-				{
-					break;
-				}*/
-	}
-	fclose(fh);
-	}
-#endif
 // *********************************** the new text format **********************
 string str,sValue,sParameter;
 int iParameter,i2Parameter;

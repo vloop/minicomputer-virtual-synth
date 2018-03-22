@@ -477,6 +477,7 @@ switch (currentParameter)
 	case 134:
 	case 136:
 	case 137:
+	case 139:
 	{
 		if (((Fl_Light_Button *)o)->value()==0)
 		{
@@ -990,6 +991,7 @@ static void storesound(Fl_Widget* o, void* e)
 	case 134:
 	case 136:
 	case 137:
+	case 139:
 	{
 		if (((Fl_Light_Button *)Knob[currentsound][i])->value()==0)
 		{
@@ -1217,6 +1219,7 @@ static void recall(unsigned int preset)
 	case 134:
 	case 136:
 	case 137:
+	case 139:
 	{
 		#ifdef _DEBUG
 		printf("handle: %d\n",i);
@@ -2503,14 +2506,14 @@ Fenster* UserInterface::make_window(const char* title) {
 	  }
 
 	  { Fl_Button* o = new Fl_Button(516, 465, 55, 19, "store sound");
-		o->tooltip("store this sound on current entry");
+		o->tooltip("store current sound in dialed memory");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(8);
 		o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
 		o->callback((Fl_Callback*)storesound,soundchoice[i]);
 	  }
 	  { Fl_Button* o = new Fl_Button(436, 465, 70, 19, "load sound");
-		o->tooltip("actually load the chosen sound");
+		o->tooltip("actually load the dialed sound");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(8);
 		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
@@ -2605,6 +2608,15 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		auswahl[i][o->argument()]=o;
 	  }
+		{ Fl_Light_Button* o = new Fl_Light_Button(844, 55, 40, 15, "legato");
+		  o->box(FL_BORDER_BOX);
+		  o->selection_color((Fl_Color)89);
+		  o->labelsize(8);
+		  o->argument(139);
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[i][o->argument()] = o;
+		}
+
 	  /*
 	  { Fl_Counter* o = new Fl_Counter(844, 151, 115, 14, "sound");
 		o->type(1);
@@ -2747,12 +2759,6 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(934, 330, 25, 25, "volume");
-		o->labelsize(8);
-		o->argument(113);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
 	  o->end();
 	}
 	{ Fl_Dial* o = new Fl_Dial(295, 151, 25, 25, "osc1 vol");
@@ -2761,19 +2767,40 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->argument(14);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(295, 252, 25, 25, "osc2 vol");
+	}
+	{ Fl_Dial* o = new Fl_Dial(295, 191, 25, 25, "sub vol");
+		o->labelsize(8);
+		o->argument(121);
+		// o->align(FL_ALIGN_TOP);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	}
+	{ Fl_Dial* o = new Fl_Dial(295, 252, 25, 25, "osc2 vol");
 		o->labelsize(8);
 		o->argument(29);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(950, 221, 25, 25, "to delay");
+	}
+	{ Fl_Dial* o = new Fl_Dial(295, 292, 25, 25, "ring vol");
+		o->labelsize(8);
+		o->argument(138);
+		// o->align(FL_ALIGN_TOP);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	}
+	{ Fl_Dial* o = new Fl_Dial(844, 221, 25, 25, "to delay");
 		o->labelsize(8);
 		o->argument(114);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
-	  }
+	}
+	{ Fl_Dial* o = new Fl_Dial(934, 221, 25, 25, "from delay");
+		o->labelsize(8);
+		o->argument(113);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	}
+
 	{ Fl_Dial* o = new Fl_Dial(52, 221, 25, 25, "glide");
 		o->labelsize(8);
 		o->argument(116);
@@ -2811,13 +2838,6 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->selection_color((Fl_Color)89);
 		o->labelsize(8);
 		o->argument(120);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	}
-	{ Fl_Dial* o = new Fl_Dial(295, 191, 25, 25, "sub vol");
-		o->labelsize(8);
-		o->argument(121);
-		// o->align(FL_ALIGN_TOP);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
@@ -3083,7 +3103,8 @@ Fenster* UserInterface::make_window(const char* title) {
 	  o->callback((Fl_Callback*)finetuneCallback);
 	  paramon = o;
 	}
-	{ Fl_Toggle_Button* o = new Fl_Toggle_Button(700, 465, 50, 39, "Audition");
+	{ Fl_Toggle_Button* o = new Fl_Toggle_Button(690, 460, 75, 20, "Audition");
+		o->tooltip("Hear the currently loaded sound");
 		// These borders won't prevent look change on focus
 		o->box(FL_BORDER_BOX);
 		// o->downbox(FL_BORDER_BOX);
@@ -3093,6 +3114,15 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)do_audition);
 		audition = o;
 	}
+	  { Fl_Button* o = new Fl_Button(690, 485, 75, 20, "PANIC");
+		o->tooltip("Instantly stop all voices (shortcut Esc)");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(8);
+		o->color(FL_RED);
+		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+		o->callback((Fl_Callback*)all_off);
+	  }
+
 	/* parameters here would be common to all tabs
 	{ Fl_Value_Input* o = new Fl_Value_Input(760, 465, 45, 14, "note");
 	  o->box(FL_ROUNDED_BOX);
