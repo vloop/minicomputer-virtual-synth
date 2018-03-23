@@ -141,12 +141,12 @@ for (int i=0;i<512;++i)
 	File<< "["<<i<<"]" <<endl;// write the soundnumber
 	File<< "'"<<sounds[i].name<<"'"<<endl;// write the name
 	
-	for (p=0;p<9;++p)
+	for (p=0;p<9;++p) // Write the 9 frequencies (Osc1..3 + filters 2x3)
 	{
-		for (j=0;j<2;++j)
+		for (j=0;j<2;++j) // ??
 			File<< "<"<< p << ";" << j << ":" <<sounds[i].freq[p][j]<<">"<<endl;
 	}
-	for (p=0;p<_CHOICECOUNT;++p)
+	for (p=0;p<_CHOICECOUNT;++p) // Write listbox items
 		File<< "{"<< p << ":"<<sounds[i].choice[p]<<"}"<<endl;
 	for (p=0;p<_PARACOUNT;++p)// write the remaining parameters
 		File<< "("<< p << ":"<<sounds[i].parameter[p]<<")"<<endl;
@@ -598,4 +598,4 @@ bool Memory::parseNumbers(string &str,int &iParameter,int &i2Parameter,float &fV
  }
 // cout << "p1: " << iParameter << " p2: " << i2Parameter<<" value: " << fValue<<" rueck: "<<rueck<<endl;
  return rueck;
-}	
+}

@@ -599,7 +599,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		__builtin_prefetch(&param[4],0,0);
 		__builtin_prefetch(&param[5],0,0);
 		__builtin_prefetch(&param[7],0,0);
-		__builtin_prefetch(&param[11],0,0);
+		__builtin_prefetch(&param[10],0,0);
 		#endif
 		
 		// Not sure what the perf cost of fmodf could be
@@ -631,17 +631,17 @@ int process(jack_nframes_t nframes, void *arg) {
 
 		// osc1 ampmods 1 and 2
 		// modulators must be in range 0..1 for multiplication
-		// param[9] ([11] for osc2) is  Amount -1..1
+		// param[9] ([10] for mod 2) is  Amount -1..1
 		// Final multiply by a negative number is not an issue:
 		// it's the same amplitude with phase reversal
-		if(param[130]){ // Mult mode amp mod 1
+		if(param[121]){ // Mult mode amp mod 1
 			// Normalize mod 1 then multiply by signed amount
 			ta1_1 = 1; // No modulation 1
 			if(choi[2]) // Modulation 1 is not "none"
 				ta1_1 = (mod[choi[2]]+modulator_bias[choi[2]]) * modulator_scale[choi[2]] * param[9]; // -1..1, keep 1 for modulator "none"
 			ta1_2 = 1; // No modulation 2
 			if(choi[3]) // Modulation 2 is not "none"
-				ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
+				ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[10]; // -1..1, keep 1 for modulator "none"
 			// Apply mod 2
 			if(param[118]){ // Mult mode amp mod 2
 				// case mult1 mult2
@@ -657,7 +657,7 @@ int process(jack_nframes_t nframes, void *arg) {
 				/* Use full range for mod 1 when mod 2 is none ??
 				ta1_2 = 0; // No modulation 2 -- addition neutral
 				if(choi[3]){ // Modulation 2 is not none
-					ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[11]; // -1..1, keep 1 for modulator "none"
+					ta1_2 = (mod[choi[3]]+modulator_bias[choi[3]]) * modulator_scale[choi[3]] * param[10]; // -1..1, keep 1 for modulator "none"
 					ta1_2=(ta1_1+ta1_2)*0.5f; // -1..1
 				}else{ // Modulation 2 is none
 					ta1_2=ta1_1; // Use only modulation 1 ?? is this consistent with mod 1 = "none"
@@ -670,7 +670,7 @@ int process(jack_nframes_t nframes, void *arg) {
 			ta1_4=param[14]*ta1_2;
 		}else{ // Add mode amp mod 1
 			// Keep full range -1..1
-			ta1_2 = mod[choi[3]]*param[11]; // -1..1
+			ta1_2 = mod[choi[3]]*param[10]; // -1..1
 			ta1_1 = mod[choi[2]]*param[9]; // -1..1
 			// Apply mod 2
 			if(param[118]){ // Mult mode amp mod 2 ok
@@ -715,7 +715,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		{
 			current_phase[1]-= tabF;
 			// branchless sync osc2 to osc1 (param[115] is 0 or 1):
-			current_phase[2]+= (param[135]*samples_per_degree-current_phase[2])*param[115];
+			current_phase[2]+= (param[134]*samples_per_degree-current_phase[2])*param[115];
 			// sub[currentvoice]=-sub[currentvoice]; // Square
 			// sub[currentvoice]=(4.f*subMSB[currentvoice]/tabF)-1.0f; // Alt square, OK
 			// Mostly works but some regular glitches at phase 0
@@ -738,12 +738,12 @@ int process(jack_nframes_t nframes, void *arg) {
 #endif
 
 		#ifdef _PREFETCH
-			__builtin_prefetch(&param[15],0,0);
+			__builtin_prefetch(&param[19],0,0);
 			__builtin_prefetch(&param[16],0,0);
 			__builtin_prefetch(&param[17],0,0);
 			__builtin_prefetch(&param[18],0,0);
-			__builtin_prefetch(&param[19],0,0);
-			__builtin_prefetch(&param[23],0,0);
+			__builtin_prefetch(&param[20],0,0);
+			__builtin_prefetch(&param[24],0,0);
 			__builtin_prefetch(&param[25],0,0);
 			__builtin_prefetch(&choice[currentvoice][6],0,0);
 			__builtin_prefetch(&choice[currentvoice][7],0,0);
@@ -778,14 +778,14 @@ int process(jack_nframes_t nframes, void *arg) {
 		tfo2 *=param[17];
 		
 		// osc2 first amp mod for mix output only
-		// ta2 = param[23];
+		// ta2 = param[24];
 		// ta2 *=mod[choi[8]];
-		if(param[131]){ // Mult mode amp mod
+		if(param[136]){ // Mult mode amp mod
 			ta2 = 1; // No modulation
 			if(choi[8]!=0) // keep 1 for modulator "none"
-				ta2 = (mod[choi[8]]+modulator_bias[choi[8]]) * modulator_scale[choi[8]] * param[23] * param[29]; // -1..1
+				ta2 = (mod[choi[8]]+modulator_bias[choi[8]]) * modulator_scale[choi[8]] * param[24] * param[29]; // -1..1
 		}else{ // Add mode - 0 mod means half volume
-			ta2 = (0.5 + mod[choi[8]] * param[23] *0.5) * param[29]; // 0..1
+			ta2 = (0.5 + mod[choi[8]] * param[24] *0.5) * param[29]; // 0..1
 		}
 
 		tfo2+=midif[currentvoice]*(1.0f-param[17])*param[18];
@@ -794,7 +794,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		// osc2 second amp mod for FM only
 		// ta3 = param[25];
 		// ta3 *=mod[choi[9]];
-		if(param[132]){ // Mult mode FM out amp mod
+		if(param[133]){ // Mult mode FM out amp mod
 			ta3 = 1; // No modulation
 			if(choi[9]!=0) // keep 1 for modulator "none"
 				ta3 = (mod[choi[9]]+modulator_bias[choi[9]]) * modulator_scale[choi[9]] * param[25]; // -1..1
@@ -802,10 +802,10 @@ int process(jack_nframes_t nframes, void *arg) {
 			ta3 = (0.5 + mod[choi[9]] * param[25] *0.5); // 0..1
 		}
 
-		if(param[119]){
-			tfo2+=(param[15]*param[19])*mod[choi[6]]*param[21]*mod[choi[7]];
+		if(param[132]){
+			tfo2+=(param[19]*param[20])*mod[choi[6]]*param[22]*mod[choi[7]];
 		}else{
-			tfo2+=(param[15]*param[19])*mod[choi[6]]+(param[21]*mod[choi[7]]);
+			tfo2+=(param[19]*param[20])*mod[choi[6]]+(param[22]*mod[choi[7]]);
 		}
 		
 		// param[28] is fm output vol for osc 2 (values 0..1)
@@ -835,7 +835,7 @@ int process(jack_nframes_t nframes, void *arg) {
 	#endif
 		}
 #endif
-		osc2 = table[choi[5]][iP2] ;
+		osc2 = table[choi[10]][iP2] ;
 		mod[4] *= osc2; // osc2 fm out
 #ifdef _DEBUG
 		if(first_time && index==0 && currentvoice==0)
@@ -855,13 +855,13 @@ int process(jack_nframes_t nframes, void *arg) {
 		// Why was 1.0f-ta n ?? offset for mod<0 ?? -1..3
 		to_filter=osc1*ta1_4;
 		to_filter+=osc2*ta2;
-		to_filter+=sub[currentvoice]*param[121];
+		to_filter+=sub[currentvoice]*param[141];
 		to_filter+=osc1*osc2*param[138];
 		to_filter*=0.25f; // get the volume of the sum into a normal range	
 		to_filter+=copysign(anti_denormal, to_filter); // Absorb denormals
 
 // ------------- calculate the filter settings ------------------------------
-// mod 1 is choice 10, amount 38 -2..2
+// mod 1 is choice 5, amount 38 -2..2
 // mod 2 is choice 11, amount 48 -2..2, mult. 120
 // morph knob is parm 56, 0..0.5
 // We want to interpolate between left and right filter bank values
@@ -872,11 +872,11 @@ int process(jack_nframes_t nframes, void *arg) {
 			mod[7] = to_filter; // Pass input unchanged
 		}else{
 			morph1 = 2.0*param[56]; // 0..1
-			if(param[120]){
-				mf = 0.25f*param[38]*mod[choi[10]]*param[48]*mod[choi[11]]; // -1..1
+			if(param[140]){
+				mf = 0.25f*param[38]*mod[choi[5]]*param[48]*mod[choi[11]]; // -1..1
 				modmax=0.25*fabs(param[38])*fabs(param[48]);
 			}else{
-				mf = 0.25f*(param[38]*mod[choi[10]]+param[48]*mod[choi[11]]); // -1..1
+				mf = 0.25f*(param[38]*mod[choi[5]]+param[48]*mod[choi[11]]); // -1..1
 				modmax=0.25*(fabs(param[38])+fabs(param[48]));
 			}
 			
@@ -897,7 +897,7 @@ int process(jack_nframes_t nframes, void *arg) {
 			// clipping doesn't sound good
 	#ifdef _DEBUG
 			if ((morph1<0.0f) || (morph1>1.0f))
-				printf("Morph clipping %f*%f %f*%f, %f %f %f!\n",param[38],mod[choi[10]],param[48],mod[choi[11]], morph1, mf, morph1-2.0f*mf);
+				printf("Morph clipping %f*%f %f*%f, %f %f %f!\n",param[38],mod[choi[5]],param[48],mod[choi[11]], morph1, mf, morph1-2.0f*mf);
 	#endif
 			if (morph1<0.0f) morph1=0.0f;
 			// "else" is useless if the compiler can use conditional mov
@@ -922,8 +922,8 @@ int process(jack_nframes_t nframes, void *arg) {
 			#endif
 	/*
 	// Why 1.0f - ??
-			mf = (1.0f-(param[38]*mod[choi[10]])); // -1..+3 ??
-			if(param[120]){
+			mf = (1.0f-(param[38]*mod[choi[5]])); // -1..+3 ??
+			if(param[140]){
 				mf*=1.0f-(param[48]*mod[choi[11]]); // -3..+9 ??
 			}else{
 				mf+=1.0f-(param[48]*mod[choi[11]]); // -2..+6 ??
@@ -1532,17 +1532,17 @@ static inline void doNoteOn(int voice, int note, int velocity){
 					glide[voice]=0; // Don't glide from finished note
 				}
 				// Reset phase if needed
-				if(parameter[voice][134]){
-					phase[voice][1]=parameter[voice][133]*samples_per_degree;
-					phase[voice][0]=parameter[voice][133]*samples_per_degree*0.5; // sub-osc
+				if(parameter[voice][120]){
+					phase[voice][1]=parameter[voice][119]*samples_per_degree;
+					phase[voice][0]=parameter[voice][119]*samples_per_degree*0.5; // sub-osc
 #ifdef _DEBUG
-					printf("Osc 1 voice %u phase set to %f\n", voice, parameter[voice][133]);
+					printf("Osc 1 voice %u phase set to %f\n", voice, parameter[voice][119]);
 #endif
 				}
-				if(parameter[voice][136]){
-					phase[voice][2]=parameter[voice][135]*TableSize/360.0;
+				if(parameter[voice][135]){
+					phase[voice][2]=parameter[voice][134]*samples_per_degree;
 #ifdef _DEBUG
-					printf("Osc 2 voice %u phase set to %f\n", voice, parameter[voice][135]);
+					printf("Osc 2 voice %u phase set to %f\n", voice, parameter[voice][134]);
 #endif
 				}
 				
@@ -1552,7 +1552,7 @@ static inline void doNoteOn(int voice, int note, int velocity){
 				modulator[voice][1]=(float)1.0f-(velocity*0.007874f);// fill in the velocity as modulator
 				// why is velocity inverted??
 				// Parameter 139 is legato, don't retrigger unless released (0) or idle (4)
-				if(parameter[voice][139]==0 || EGstate[voice][0]==4 || EGstate[voice][0]==0){
+				if(EGstate[voice][0]==4 || EGstate[voice][0]==0 || parameter[voice][139]==0){
 					egStart(voice,0);// start the engines!
 					// Maybe optionally restart repeatable envelopes too, i.e free-run boutton?
 					if (EGrepeat[voice][1] == 0) egStart(voice,1);

@@ -129,6 +129,9 @@ public:
   Fl_Input* soundchoice[_MULTITEMP];
   Fl_Input* multichoice;
 private:
+  void make_EG(int, int, int, int, const char*);
+  void make_osc(int voice, int osc_base, int minidisplay_base, int choice_base, int x, int y, const char* osc_label, const char* mod_label);
+  void make_filter(int voice, int filter_base, int minidisplay, int x, int y);
   string tablabel[_TABCOUNT];
   // unsigned char idata_miniMini2[191*99*3];
   // Fl_RGB_Image image_miniMini2(idata_miniMini2, 191, 99, 3, 0);
