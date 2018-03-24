@@ -789,12 +789,11 @@ static void BPMtimeCallback(Fl_Widget* o, void*)
 	Fl::unlock();
 }
 
-static void rollerCallback(Fl_Widget* o, void*)
+static void soundRollerCallback(Fl_Widget* o, void*)
 {
 	Fl::lock();
 		int Faktor = (int)((Fl_Valuator* )o)->value();
 		schoice[currentsound]->value((Speicher.getName(0,Faktor)).c_str());
-		// Speicher.multis[currentmulti].sound[currentsound]);// set gui
 		schoice[currentsound]->position(0);
 		memDisplay[currentsound]->value(Faktor);// set gui
 	Fl::awake();
@@ -812,18 +811,14 @@ static void multiRollerCallback(Fl_Widget* o, void*)
 	Fl::lock();
 		int Faktor = (int)((Fl_Valuator* )o)->value();
 		Multichoice->value(Speicher.multis[Faktor].name);// set gui
-		Multichoice->position(0);// put cursor in the beginning, otherwise the begin of the string might be invisible
+		Multichoice->position(0);// put cursor in the beginning, make sure the start of the string is visible
 		multiDisplay->value(Faktor);
+// printf("Multi %i %s\n", Faktor, Speicher.multis[Faktor].name);
 	Fl::awake();
 	Fl::unlock();
 }
-/*
-static void chooseMultiCallback(Fl_Widget* o, void*)
-{
-	multiRoller->value(Multichoice->menubutton()->value());// set gui
-}*/
 /**
- * parmCallback from the export filedialog
+ * parmCallback from the export file dialog
  * do the actual export of current single sound
  */
 /*
@@ -837,7 +832,7 @@ static void exportSound(Fl_File_Chooser *w, void *userdata)
 		fflush(stdout);
 	}
 }*/
-/** parmCallback when export button was pressed, shows a filedialog
+/** parmCallback when export button was pressed, shows a file dialog
  */
 static void exportPressed(Fl_Widget* o, void*)
 {
@@ -1994,7 +1989,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	currentsound=0;
 	currentmulti=0;
 	
-	// special treatment for the mix knobs, they are saved in the multisetting
+	// special treatment for the mix knobs, they are saved in the multi settings
 	needs_multi[101]=1; // Id vol
 	needs_multi[106]=1; // Mix vol
 	needs_multi[107]=1; // Pan
@@ -2188,11 +2183,20 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		auswahl[i][o->argument()]=o;
 	  }
+	  // Mult button morph mod 2
+	  { Fl_Light_Button* o = new Fl_Light_Button(492, 397, 40, 15, "mult.");
+		o->box(FL_BORDER_BOX);
+		o->selection_color((Fl_Color)89);
+		o->labelsize(8);
+		o->argument(140);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	  }
 	  { Fl_Light_Button* o = new Fl_Light_Button(325, 430, 85, 15, "bypass filters");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(8);
 		// o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
-		o->selection_color((Fl_Color)89);
+		o->selection_color(FL_RED);
 		// o->color(FL_LIGHT1, FL_RED);
 		o->argument(137);
 		o->callback((Fl_Callback*)parmCallback);
@@ -2280,110 +2284,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	  }
 	  o->end();
 	}
-	
-   
-	{ Fl_Group* d = new Fl_Group(5, 461, 680, 45, "memory");
-	  d->box(FL_ROUNDED_FRAME);
-	  d->color(FL_BACKGROUND2_COLOR);
-	  d->labelsize(8);
-	  d->labelcolor(FL_BACKGROUND2_COLOR);
-	  d->begin();
-	 /* { Fl_Button* o = new Fl_Button(191, 473, 50, 19, "create bank");
-		o->tooltip("create a new bank after current one");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(8);
-	  }
-	  { Fl_Button* o = new Fl_Button(26, 476, 53, 14, "delete bank");
-		o->tooltip("delete a whole bank of sounds!");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->labelcolor((Fl_Color)1);
-	  }
-	  { Fl_Button* o = new Fl_Button(732, 475, 59, 14, "delete sound");
-		o->tooltip("delete current sound");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->labelcolor((Fl_Color)1);
-	  }*/
-	  { Fl_Input* o = new Fl_Input(274, 471, 150, 14, "Sound");
-		o->box(FL_BORDER_BOX);
-		//o->down_box(FL_BORDER_FRAME);
-		//o->color(FL_FOREGROUND_COLOR);
-		//o->selection_color(FL_FOREGROUND_COLOR);
-		o->labelsize(8);
-		o->textsize(8);
-		//o->menubutton()->textsize(8);
-		//o->menubutton()->type(Fl_Menu_Button::POPUP1);
-		o->align(FL_ALIGN_TOP_LEFT);
-		soundchoice[i] = o;
-		schoice[i] = o;
-		d->add(o);
-		//o->callback((Fl_Callback*)chooseCallback,NULL);
-	  }
-	  { Fl_Roller* o = new Fl_Roller(274, 487, 150, 14);
-		o->type(FL_HORIZONTAL);
-		o->tooltip("roll the list of sounds");
-		o->minimum(0);
-		o->maximum(511);
-		o->step(1);
-	//o->slider_size(0.04);
-		o->box(FL_BORDER_FRAME);
-		Rollers[i]=o;
-		o->callback((Fl_Callback*)rollerCallback,NULL);
-	  }
-
-	  { Fl_Button* o = new Fl_Button(516, 465, 55, 19, "store sound");
-		o->tooltip("store current sound in dialed memory");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
-		o->callback((Fl_Callback*)storesound,soundchoice[i]);
-	  }
-	  { Fl_Button* o = new Fl_Button(436, 465, 70, 19, "load sound");
-		o->tooltip("actually load the dialed sound");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
-		o->callback((Fl_Callback*)loadsound,soundchoice[i]);
-	  }
-		{ Fl_Value_Output* o = new Fl_Value_Output(490, 488, 20, 15,"memory");
-		  o->box(FL_ROUNDED_BOX);
-		  o->color(FL_BLACK);
-		  o->labelsize(8);
-		  o->maximum(512);
-		  o->textsize(8);
-		  o->textcolor(FL_RED);
-		  //char tooltip [64];
-		  //sprintf(tooltip,"accept Midi Program Change on channel %i",i);
-		  //o->tooltip(tooltip);
-		  memDisplay[i]=o;
-		}
-	  { Fl_Button* o = new Fl_Button(600, 469, 70, 12, "import sound");
-		o->tooltip("import single sound to dialed memory slot, you need to load it for playing");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(8);
-		//o->labelcolor((Fl_Color)1);
-		o->callback((Fl_Callback*)importPressed,soundchoice[i]);
-	  }
-
-	  { Fl_Button* o = new Fl_Button(600, 485, 70, 12, "export sound");
-		o->tooltip("export sound data of dialed memory slot");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(8);
-		//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
-		o->callback((Fl_Callback*)exportPressed,soundchoice[i]);
-	  }
-	  /*{ Fl_Input_Choice* o = new Fl_Input_Choice(83, 476, 105, 14, "bank");
-		o->box(FL_BORDER_FRAME);
-		o->down_box(FL_BORDER_FRAME);
-		o->color(FL_FOREGROUND_COLOR);
-		o->selection_color(FL_FOREGROUND_COLOR);
-		o->labelsize(8);
-		o->textsize(8);
-		o->align(FL_ALIGN_TOP_LEFT);
-	  }*/
-	  d->end();
-	}
+//------------------------------------- AMP group
 	{ Fl_Group* o = new Fl_Group(825, 17, 160, 212);
 	  o->box(FL_ROUNDED_FRAME);
 	  o->color(FL_BACKGROUND2_COLOR);
@@ -2539,6 +2440,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	  }
 	  o->end();
 	}
+// ------------------------------ Delay group
 	{ Fl_Group* o = new Fl_Group(825, 238, 160, 149);
 	  o->box(FL_ROUNDED_FRAME);
 	  o->color(FL_BACKGROUND2_COLOR);
@@ -2588,6 +2490,109 @@ Fenster* UserInterface::make_window(const char* title) {
 	  }
 	  o->end();
 	}
+
+
+	{ Fl_Group* d = new Fl_Group(5, 461, 680, 45, "memory");
+	  d->box(FL_ROUNDED_FRAME);
+	  d->color(FL_BACKGROUND2_COLOR);
+	  d->labelsize(8);
+	  d->labelcolor(FL_BACKGROUND2_COLOR);
+	  d->begin();
+	 /* { Fl_Button* o = new Fl_Button(191, 473, 50, 19, "create bank");
+		o->tooltip("create a new bank after current one");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(8);
+	  }
+	  { Fl_Button* o = new Fl_Button(26, 476, 53, 14, "delete bank");
+		o->tooltip("delete a whole bank of sounds!");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(8);
+		o->labelcolor((Fl_Color)1);
+	  }
+	  { Fl_Button* o = new Fl_Button(732, 475, 59, 14, "delete sound");
+		o->tooltip("delete current sound");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(8);
+		o->labelcolor((Fl_Color)1);
+	  }*/
+// ----------------------------------------- Sounds
+	  { Fl_Input* o = new Fl_Input(359, 471, 150, 14, "Sound");
+		o->box(FL_BORDER_BOX);
+		//o->down_box(FL_BORDER_FRAME);
+		//o->color(FL_FOREGROUND_COLOR);
+		//o->selection_color(FL_FOREGROUND_COLOR);
+		o->labelsize(8);
+		o->textsize(8);
+		//o->menubutton()->textsize(8);
+		//o->menubutton()->type(Fl_Menu_Button::POPUP1);
+		o->align(FL_ALIGN_TOP_LEFT);
+		soundchoice[i] = o;
+		schoice[i] = o;
+		d->add(o);
+		//o->callback((Fl_Callback*)chooseCallback,NULL);
+	  }
+	  { Fl_Roller* o = new Fl_Roller(359, 487, 150, 14);
+		o->type(FL_HORIZONTAL);
+		o->tooltip("roll the list of sounds");
+		o->minimum(0);
+		o->maximum(511);
+		o->step(1);
+	//o->slider_size(0.04);
+		o->box(FL_BORDER_FRAME);
+		Rollers[i]=o;
+		o->callback((Fl_Callback*)soundRollerCallback, NULL);
+	  }
+	  { Fl_Button* o = new Fl_Button(516, 465, 60, 19, "load sound");
+		o->tooltip("actually load the dialed sound");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(8);
+		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+		o->callback((Fl_Callback*)loadsound,soundchoice[i]);
+	  }
+	  { Fl_Button* o = new Fl_Button(516, 485, 60, 19, "store sound");
+		o->tooltip("store current sound in dialed memory");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(8);
+		o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
+		o->callback((Fl_Callback*)storesound,soundchoice[i]);
+	  }
+	  { Fl_Value_Output* o = new Fl_Value_Output(319, 471, 35, 30,"sound #");
+		// o->box(FL_ROUNDED_BOX);
+		o->color(FL_BLACK);
+		o->labelsize(8);
+		o->maximum(512);
+		o->align(FL_ALIGN_TOP_LEFT);
+		o->textsize(14);
+		o->textcolor(FL_RED);
+		memDisplay[i]=o;
+	  }
+
+	  { Fl_Button* o = new Fl_Button(600, 465, 60, 19, "import sound");
+		o->tooltip("import single sound to dialed memory slot, you need to load it for playing");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(8);
+		//o->labelcolor((Fl_Color)1);
+		o->callback((Fl_Callback*)importPressed,soundchoice[i]);
+	  }
+
+	  { Fl_Button* o = new Fl_Button(600, 485, 60, 19, "export sound");
+		o->tooltip("export sound data of dialed memory slot");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(8);
+		//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+		o->callback((Fl_Callback*)exportPressed,soundchoice[i]);
+	  }
+	  /*{ Fl_Input_Choice* o = new Fl_Input_Choice(83, 476, 105, 14, "bank");
+		o->box(FL_BORDER_FRAME);
+		o->down_box(FL_BORDER_FRAME);
+		o->color(FL_FOREGROUND_COLOR);
+		o->selection_color(FL_FOREGROUND_COLOR);
+		o->labelsize(8);
+		o->textsize(8);
+		o->align(FL_ALIGN_TOP_LEFT);
+	  }*/
+	  d->end();
+	}
 	{ Fl_Dial* o = new Fl_Dial(295, 151, 25, 25, "osc1 vol");
 		o->labelsize(8);
 		// o->align(FL_ALIGN_TOP);
@@ -2631,15 +2636,6 @@ Fenster* UserInterface::make_window(const char* title) {
 	{ Fl_Dial* o = new Fl_Dial(52, 221, 25, 25, "glide");
 		o->labelsize(8);
 		o->argument(116);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	}
-	// Mult button morph
-	{ Fl_Light_Button* o = new Fl_Light_Button(492, 397, 40, 15, "mult.");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(140);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
@@ -2800,6 +2796,57 @@ Fenster* UserInterface::make_window(const char* title) {
 	tabs = o;
 	}
 // ---------------------------------------------------------------- end of tabs
+// ----------------------------------------- Multis
+// This code must be outside of the tabs loop!
+	  { Fl_Input* o = new Fl_Input(60, 471, 150, 14, "Multi");
+		o->box(FL_BORDER_BOX);
+		//o->color(FL_FOREGROUND_COLOR);
+		o->labelsize(8);
+		o->textsize(8);
+		o->align(FL_ALIGN_TOP_LEFT);
+		//o->callback((Fl_Callback*)changemulti,NULL);
+		o->tooltip("enter name for multisetup before storing it");
+		multichoice = o;
+		Multichoice = o;
+	  }
+	  // roller for the multis:
+	  { Fl_Roller* o = new Fl_Roller(60, 487, 150, 14);
+	  	o->type(FL_HORIZONTAL);
+		o->tooltip("roll the list of multis, press load button for loading or save button for storing");
+		o->minimum(0);
+		o->maximum(127);
+		o->value(0);
+		o->step(1);
+		o->box(FL_BORDER_FRAME);
+		o->callback((Fl_Callback*)multiRollerCallback,NULL);
+		multiRoller=o;
+	  }
+	  { Fl_Value_Output* o = new Fl_Value_Output(20, 471, 35, 30,"multi #");
+		// o->box(FL_ROUNDED_BOX);
+		o->color(FL_BLACK);
+		o->labelsize(8);
+		o->maximum(127);
+		o->align(FL_ALIGN_TOP_LEFT);
+		o->textsize(14);
+		o->textcolor(FL_RED);
+		multiDisplay=o;
+	  }
+	  { Fl_Button* o = new Fl_Button(217, 465, 60, 19, "load multi");
+		o->tooltip("load current multi");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(8);
+		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+		o->callback((Fl_Callback*)loadmulti,multichoice);
+		lm = o;
+	  }
+	  { Fl_Button* o = new Fl_Button(217, 485, 60, 19, "store multi");
+		o->tooltip("overwrite this multi");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(8);
+		o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
+		o->callback((Fl_Callback*)storemulti,multichoice);
+		sm = o;
+	  }
 	/*{ Fl_Chart * o = new Fl_Chart(600, 300, 70, 70, "eg");
 		o->bounds(0.0,1.0);
 		o->type(Fl::LINE_CHART);
@@ -2811,57 +2858,6 @@ Fenster* UserInterface::make_window(const char* title) {
 		
 	}*/
 
-// ----------------------------------------- Multi
-	  { Fl_Input* o = new Fl_Input(10, 476, 106, 14, "Multi");
-		o->box(FL_BORDER_BOX);
-		//o->color(FL_FOREGROUND_COLOR);
-		o->labelsize(8);
-		o->textsize(8);
-		o->align(FL_ALIGN_TOP_LEFT);
-		//o->callback((Fl_Callback*)changemulti,NULL);
-		//o->callback((Fl_Callback*)chooseMultiCallback,NULL); // for the roller
-		o->tooltip("enter name for multisetup before storing it");
-		multichoice = o;
-		Multichoice = o;
-	   
-	  }
-	  // roller for the multis:
-	  { Fl_Roller* o = new Fl_Roller(20, 492, 80, 10);
-	  	o->type(FL_HORIZONTAL);
-		o->tooltip("roll the list of multis, press load button for loading or save button for storing");
-		o->minimum(0);
-		o->maximum(127);
-		o->value(0);
-		o->step(1);
-		o->box(FL_BORDER_FRAME);
-		o->callback((Fl_Callback*)multiRollerCallback,NULL);
-		multiRoller=o;
-	  }
-	  { Fl_Value_Output* o = new Fl_Value_Output(180, 488, 20, 15,"multiset");
-		o->box(FL_ROUNDED_BOX);
-		o->color(FL_BLACK);
-		o->labelsize(8);
-		o->maximum(512);
-		o->textsize(8);
-		o->textcolor(FL_RED);
-		multiDisplay=o;
-	  }
-	  { Fl_Button* o = new Fl_Button(206, 465, 55, 19, "store multi");
-		o->tooltip("overwrite this multi");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
-		o->callback((Fl_Callback*)storemulti,multichoice);
-		sm = o;
-	  }
-	  { Fl_Button* o = new Fl_Button(126, 465, 70, 19, "load multi");
-		o->tooltip("load current multi");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
-		o->callback((Fl_Callback*)loadmulti,multichoice);
-		lm = o;
-	  }
 	  // parameter tuning
 	{ Fl_Value_Input* o = new Fl_Value_Input(844, 397, 106, 14, "current parameter");
 	  //o->box(FL_BORDER_FRAME);
