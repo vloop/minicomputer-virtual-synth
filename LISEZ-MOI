@@ -27,6 +27,8 @@ Les prérequis comprennent:
 et 
 – Scons pour la compilation
 
+Voyez l'explication pas à pas vers la fin de ce fichier.
+
 Faites attention, les sons peuvent être brutaux!
 L'utilisation est de votre responsabilité, vous êtes avertis!
 
@@ -88,7 +90,12 @@ D'autres distributions peuvent nécessiter de légères modifications
 
  sudo apt-get update
  sudo apt-get upgrade
- sudo apt-get install build-essential scons fluid libjack-dev liblo-dev libclthreads-dev libasound-dev libfltk1.3-dev
+ sudo apt-get install build-essential scons fluid liblo-dev libclthreads-dev libasound-dev libfltk1.3-dev
+
+ sudo apt-get install libjack-dev
+ OU (selon votre distribution et votre version de jack)
+ sudo apt-get install libjack-jackd2-dev
+
  wget https://github.com/vloop/minicomputer-virtual-synth/archive/master.zip
  unzip master.zip
  cd minicomputer-virtual-synth-master/

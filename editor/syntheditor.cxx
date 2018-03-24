@@ -327,31 +327,6 @@ if (o != NULL)
 currentParameter = ((Fl_Valuator*)o)->argument();
 
 	// show parameter on fine tune only when relevant (not a frequency...)
-	/*
-	switch (currentParameter)
-	{
-		case 1: // Osc 1 fixed frequency
-		case 3: // Osc 1 tune
-		case 16: // Osc 2 fixed frequency
-		case 18: // Osc 2 tune
-		case 30: // Filter 1 A cut
-		case 33: // Filter 1 B cut
-		case 40: // Filter 2 A cut
-		case 43: // Filter 2 B cut
-		case 50: // Filter 3 A cut
-		case 53: // Filter 3 B cut
-		case 90: // Osc 3 tune
-		case 125: // Audition note number
-		case 126: // Audition note velocity
-		case 127: // Midi channel
-		case 128: // Min note
-		case 129: // Max note
-			break; // do nothing
-		default: 
-			paramon->value(((Fl_Valuator*)o)->value());
-		break;
-	}
-	*/
 	if(needs_finetune[currentParameter]) paramon->value(((Fl_Valuator*)o)->value());
 
 // now actually process parameter
@@ -1074,23 +1049,6 @@ static void storesound(Fl_Widget* o, void* e)
 		Speicher.sounds[Speicher.getChoice(currentsound)].freq[8][1]=((Fl_Positioner*)Knob[currentsound][i])->yvalue();
 	break;
 	}
-	/*
-	// special treatment for the mix knobs, they are saved in the multisetting
-	case 101: // Id vol
-	case 106: // Mix vol
-	case 107: // Pan
-	case 108: // Aux 1
-	case 109: // Aux 2
-	case 125: // Note
-	case 126: // Velocity
-	case 127: // Channel
-	case 128: // Note min
-	case 129: // Note max
-	{
-		// do nothing
-	}
-	break;
-	*/
 //	{
 //		if (((Fl_Light_Button *)Knob[i])->value()==0)
 //		{
@@ -1319,22 +1277,6 @@ static void recall(unsigned int preset)
 		parmCallback(Knob[currentsound][i],NULL);
 	break;
 	}
-	/*
-	// special treatment for the mix knobs and midi settings, they are saved in the multisetting
-	case 101: // Id vol
-	case 106: // Mix vol
-	case 107: // Pan
-	case 108: // Aux 1
-	case 109: // Aux 2
-	case 125: // Note
-	case 126: // Velocity
-	case 127: // Channel
-	case 128: // Note min
-	case 129: // Note max
-	{
-		break; // do nothing
-	}
-	*/
 	default:
 	{
 		((Fl_Valuator*)Knob[currentsound][i])->value(Speicher.sounds[Speicher.getChoice(currentsound)].parameter[i]);
@@ -2124,393 +2066,25 @@ Fenster* UserInterface::make_window(const char* title) {
 	  o->box(FL_ROUNDED_FRAME);
 	  o->color(FL_BACKGROUND2_COLOR);
 	  {
-		  make_osc(i, 1, 0, 0, 16, 20, "oscillator 1", "amp modulator 2");
-	/*
-	  Fl_Box* d = new Fl_Box(145, 210, 30, 22,"oscillator 1");
-	  d->labelsize(8);
-	  d->labelcolor(FL_BACKGROUND2_COLOR);
-	  }
-	  { Fl_Dial* o= new Fl_Dial(21, 20, 34, 34, "frequency");
-		o->labelsize(8);
-		o->maximum(1000); 
-		o->argument(1);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][1] = o;
-	  }
-	  { Fl_Value_Input* o = new Fl_Value_Input(16, 66, 46, 15); // Fixed frequency display for oscillator 1
-		o->box(FL_ROUNDED_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->maximum(1000);
-		o->step(0.001);
-		o->argument(1);
-		o->callback((Fl_Callback*)fixedfrequencyCallback);
-		miniDisplay[i][0]=o;
-	  }
-	  { Fl_Light_Button* o = new Fl_Light_Button(15, 92, 66, 19, "fix frequency");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(2);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][2] = o;
-	  }
-	  { Fl_Positioner* o = new Fl_Positioner(15, 115, 40, 80, "tune");
-		o->xbounds(0,16);
-		o->ybounds(1,0);
-		o->box(FL_BORDER_BOX);
-		o->xstep(1);
-		o->labelsize(8);
-		o->argument(3);
-		o->selection_color(0);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][3]=o;
-	  }
-	  { Fl_Value_Input* o = new Fl_Value_Input(15, 205, 46, 15); // Tune display for oscillator 1
-		o->box(FL_ROUNDED_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->maximum(10000);
-		o->argument(3);
-		o->step(0.001);
-		o->callback((Fl_Callback*)tuneCallback);
-		miniDisplay[i][1]=o;
-	  }
-	  { Fl_Light_Button* o = new Fl_Light_Button(80, 27, 40, 15, "boost");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(4);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  } 
-	  { Fl_Choice* o = new Fl_Choice(122, 28, 120, 15, "freq modulator 1");
-		o->box(FL_BORDER_BOX);
-		o->down_box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->align(FL_ALIGN_TOP_LEFT);
-		o->argument(0);
-		o->callback((Fl_Callback*)choiceCallback);
-		o->menu(menu_fmod);
-		auswahl[i][o->argument()]=o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(248, 23, 25, 25, "amount");
-		o->labelsize(8);
-		o->argument(5);  
-		o->minimum(-1000);
-		o->maximum(1000);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	{ Fl_Light_Button* o = new Fl_Light_Button(80, 64, 40, 15, "mult.");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(117);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	}
-	  { Fl_Choice* o = new Fl_Choice(122, 64, 120, 15, "freq modulator 2");
-		o->box(FL_BORDER_BOX);
-		o->down_box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->align(FL_ALIGN_TOP_LEFT);
-		o->argument(1);
-		o->callback((Fl_Callback*)choiceCallback);
-		o->menu(menu_fmod);
-		auswahl[i][o->argument()]=o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(248, 59, 25, 25, "amount");
-		o->labelsize(8);
-		o->argument(7); 
-		o->minimum(-1000);
-		o->maximum(1000);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
-	  }
-	{ Fl_Light_Button* o = new Fl_Light_Button(92, 102, 40, 15, "mult.");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(130);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	}
-	  { Fl_Choice* o = new Fl_Choice(134, 102, 120, 15, "amp modulator 1");
-		o->box(FL_BORDER_BOX);
-		o->down_box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->align(FL_ALIGN_TOP_LEFT);
-		o->argument(2);
-		o->callback((Fl_Callback*)choiceCallback);
-		o->menu(menu_amod);
-		auswahl[i][o->argument()]=o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(260, 97, 25, 25, "amount");
-		o->labelsize(8);
-		o->argument(9); 
-		o->minimum(-1);
-		o->maximum(1);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	{ Fl_Light_Button* o = new Fl_Light_Button(92, 136, 40, 15, "mult.");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(118);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	}
-	  { Fl_Choice* o = new Fl_Choice(134, 136, 120, 15, "amp modulator 2");
-		o->box(FL_BORDER_BOX);
-		o->down_box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->align(FL_ALIGN_TOP_LEFT);
-		o->argument(3);
-		o->callback((Fl_Callback*)choiceCallback);
-		o->menu(menu_amod);
-		auswahl[i][o->argument()]=o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(260, 131, 25, 25, "amount");
-		o->labelsize(8);
-		o->argument(11);  
-		o->minimum(-1);
-		o->maximum(1);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(92, 164, 20, 20, "start phase");
-		o->labelsize(8);
-		o->argument(119); 
-		o->minimum(0);
-		o->maximum(360);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Light_Button* o = new Fl_Light_Button(117, 167, 10, 15); // Phase reset enable
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(120);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Choice* j = new Fl_Choice(134, 167, 120, 15, "waveform");
-		j->box(FL_BORDER_BOX);
-		j->down_box(FL_BORDER_BOX);
-		j->labelsize(8);
-		j->textsize(8);
-		j->align(FL_ALIGN_TOP_LEFT);
-		j->argument(4);
-		auswahl[i][j->argument()] = j;
-		j->callback((Fl_Callback*)choiceCallback);
-		j->menu(menu_wave);
-	  }
-	  { Fl_Dial* o = new Fl_Dial(260, 164, 20, 20, "fm out vol");
-		o->labelsize(8);
-		o->argument(13);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	  */
-	  /*{ Fl_Dial* o = new Fl_SteinerKnob(20, 121, 34, 34, "tune");
-		o->labelsize(8);
-		o->minimum(0.5);
-		o->maximum(16);
-		o->argument(3);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[3] = o;
-	  }*/
-	  { Fl_Choice* j = new Fl_Choice(134, 196, 120, 15, "sub waveform");
-		j->box(FL_BORDER_BOX);
-		j->down_box(FL_BORDER_BOX);
-		j->labelsize(8);
-		j->textsize(8);
-		j->align(FL_ALIGN_TOP_LEFT);
-		j->argument(15);
-		auswahl[i][j->argument()] = j;
-		j->callback((Fl_Callback*)choiceCallback);
-		j->menu(menu_wave);
-	  }
+		make_osc(i, 1, 0, 0, 16, 20, "oscillator 1", "amp modulator 2");
+		{ Fl_Choice* j = new Fl_Choice(134, 196, 120, 15, "sub waveform");
+			j->box(FL_BORDER_BOX);
+			j->down_box(FL_BORDER_BOX);
+			j->labelsize(8);
+			j->textsize(8);
+			j->align(FL_ALIGN_TOP_LEFT);
+			j->argument(15);
+			auswahl[i][j->argument()] = j;
+			j->callback((Fl_Callback*)choiceCallback);
+			j->menu(menu_wave);
+		}
 	  o->end();
 	} 
 	}
    { Fl_Group* o = new Fl_Group(5, 238, 300, 212);
-	  o->box(FL_ROUNDED_FRAME);
-	  o->color(FL_BACKGROUND2_COLOR);
-	  make_osc(i, 16, 2, 6, 16, 244, "oscillator 2", "fm out amp modulator");
-/*
-	  {Fl_Box* d = new Fl_Box(145, 431, 30, 22, "oscillator 2");
-	  	d->labelsize(8);
-	  	d->labelcolor(FL_BACKGROUND2_COLOR);
-	  }
-	  { Fl_Dial* o = new Fl_Dial(21, 244, 34, 34, "frequency");
-		o->labelsize(8); 
-		o->argument(16);
-		o->maximum(1000); 
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][16] = o;
-	  }
-	  { Fl_Value_Input* o = new Fl_Value_Input(16, 290, 46, 15); // Fixed frequency display for oscillator 2
-		o->box(FL_ROUNDED_BOX);
-		o->labelsize(8);
-		o->textsize(8); 
-		o->argument(16);
-		o->maximum(1000);
-		o->step(0.001);
-		o->callback((Fl_Callback*)fixedfrequencyCallback);
-		miniDisplay[i][2]=o;
-	  }
-	  { Fl_Light_Button* o = new Fl_Light_Button(15, 316, 66, 19, "fix frequency");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8); 
-		o->argument(17);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(260, 391, 20, 20, "fm out vol");
-		o->labelsize(8); 
-		o->argument(28);
-		//  o->maximum(1000);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][28] = o;
-	  }
-	  { Fl_Light_Button* o = new Fl_Light_Button(80, 251, 40, 15, "boost");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(19);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Positioner* o = new Fl_Positioner(15, 339, 40, 80,"tune");
-		o->xbounds(0,16);
-		o->ybounds(1,0);
-		o->box(FL_BORDER_BOX);
-		o->xstep(1); o->selection_color(0);
-		o->labelsize(8);
-		o->argument(18);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][18] = o;
-	  }
-	  { Fl_Value_Input* o = new Fl_Value_Input(15, 429, 46, 15); // Tune display for oscillator 2
-		o->box(FL_ROUNDED_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->maximum(10000);   
-		o->argument(18);
-		o->step(0.001);
-		o->callback((Fl_Callback*)tuneCallback);
-		miniDisplay[i][3]=o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(260, 321, 25, 25, "amount");
-		o->labelsize(8);
-		o->argument(24);
-		o->minimum(-1);
-		o->maximum(1);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Choice* o = new Fl_Choice(134, 326, 120, 15, "amp modulator");
-		o->box(FL_BORDER_BOX);
-		o->down_box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->align(FL_ALIGN_TOP_LEFT);
-		o->argument(8);
-		o->callback((Fl_Callback*)choiceCallback);
-		o->menu(menu_amod);
-		auswahl[i][o->argument()]=o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(260, 357, 25, 25, "amount");
-		o->labelsize(8);
-		o->argument(25);  o->minimum(-1);
-		o->maximum(1);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Choice* o = new Fl_Choice(134, 362, 120, 15, "fm out amp modulator");
-		o->box(FL_BORDER_BOX);
-		o->down_box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->align(FL_ALIGN_TOP_LEFT);
-		o->argument(9);
-		o->callback((Fl_Callback*)choiceCallback);
-		o->menu(menu_amod);
-		auswahl[i][o->argument()]=o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(248, 247, 25, 25, "amount");
-		o->labelsize(8);
-		o->argument(20);
-		o->minimum(-1000);
-		o->maximum(1000);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Choice* o = new Fl_Choice(122, 252, 120, 15, "freq modulator 1");
-		o->box(FL_BORDER_BOX);
-		o->down_box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->align(FL_ALIGN_TOP_LEFT);
-		o->argument(6);
-		o->callback((Fl_Callback*)choiceCallback);
-		o->menu(menu_fmod);
-		auswahl[i][o->argument()]=o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(248, 283, 25, 25, "amount");
-		o->labelsize(8);
-		o->argument(22);
-		o->minimum(-1000);
-		o->maximum(1000);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Choice* o = new Fl_Choice(122, 288, 120, 15, "freq modulator 2");
-		o->box(FL_BORDER_BOX);
-		o->down_box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->align(FL_ALIGN_TOP_LEFT);
-		o->argument(7);
-		o->callback((Fl_Callback*)choiceCallback);
-		o->menu(menu_fmod);
-		auswahl[i][o->argument()]=o;
-	  }
-	  { Fl_Choice* o = new Fl_Choice(134, 393, 120, 15, "waveform");
-		o->box(FL_BORDER_BOX);
-		o->down_box(FL_BORDER_BOX);
-		o->labelsize(8);
-		o->textsize(8);
-		o->align(FL_ALIGN_TOP_LEFT);
-		o->argument(10);
-		o->callback((Fl_Callback*)choiceCallback);
-		o->menu(menu_wave);
-		auswahl[i][o->argument()]=o;
-	  }
-	  { Fl_Dial* o = new Fl_Dial(92, 391, 20, 20, "start phase");
-		o->labelsize(8);
-		o->argument(134); 
-		o->minimum(0);
-		o->maximum(360);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-	  { Fl_Light_Button* o = new Fl_Light_Button(117, 393, 10, 15); // Phase reset enable
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(135);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
-		*/
+		o->box(FL_ROUNDED_FRAME);
+		o->color(FL_BACKGROUND2_COLOR);
+		make_osc(i, 16, 2, 6, 16, 244, "oscillator 2", "fm out amp modulator");
 		{ Fl_Light_Button* o = new Fl_Light_Button(134, 416, 65, 15, "sync to osc1");
 		  o->box(FL_BORDER_BOX);
 		  o->selection_color((Fl_Color)89);
@@ -3060,33 +2634,6 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	// Mult button OSC 2
-	/*
-	{ Fl_Light_Button* o = new Fl_Light_Button(80, 288, 40, 15, "mult.");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(132);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	}
-	{ Fl_Light_Button* o = new Fl_Light_Button(92, 326, 40, 15, "mult.");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(136);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	}
-	{ Fl_Light_Button* o = new Fl_Light_Button(92, 362, 40, 15, "mult.");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(8);
-		o->argument(133);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	}
-	*/
 	// Mult button morph
 	{ Fl_Light_Button* o = new Fl_Light_Button(492, 397, 40, 15, "mult.");
 		o->box(FL_BORDER_BOX);
@@ -3096,34 +2643,6 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	/* Moved to MIDI tab
-   	{ Fl_Value_Input* o = new Fl_Value_Input(760, 465, 45, 14, "note");
-	  o->box(FL_ROUNDED_BOX);
-	  o->labelsize(8);
-	  o->textsize(8);
-	  o->range(0,127);
-	  o->align(FL_ALIGN_TOP_LEFT);
-	  o->step(1);
-	  o->value(63);
-	  // o->callback((Fl_Callback*)parmCallback);
-	  o->argument(125);
-	  Knob[i][o->argument()] = o;
-	  note_number = o;
-	}
-	{ Fl_Value_Input* o = new Fl_Value_Input(815, 465, 45, 14, "velocity");
-	  o->box(FL_ROUNDED_BOX);
-	  o->labelsize(8);
-	  o->textsize(8);
-	  o->range(0,127);
-	  o->align(FL_ALIGN_TOP_LEFT);
-	  o->step(1);
-	  o->value(80);
-	  // o->callback((Fl_Callback*)parmCallback);
-	  o->argument(126);
-	  Knob[i][o->argument()] = o;
-	  note_velocity = o;
-	}
-*/
 	o->end(); 
 	tab[i]=o;
 	} // ==================================== end single voice tab
@@ -3378,32 +2897,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)all_off);
 	  }
 
-	/* parameters here would be common to all tabs
-	{ Fl_Value_Input* o = new Fl_Value_Input(760, 465, 45, 14, "note");
-	  o->box(FL_ROUNDED_BOX);
-	  o->labelsize(8);
-	  o->textsize(8);
-	  o->range(0,127);
-	  o->align(FL_ALIGN_TOP_LEFT);
-	  o->step(1);
-	  o->value(63);
-	  // o->callback((Fl_Callback*)parmCallback);
-	  o->argument(125);
-	  note_number = o;
-	}
-	{ Fl_Value_Input* o = new Fl_Value_Input(815, 465, 45, 14, "velocity");
-	  o->box(FL_ROUNDED_BOX);
-	  o->labelsize(8);
-	  o->textsize(8);
-	  o->range(0,127);
-	  o->align(FL_ALIGN_TOP_LEFT);
-	  o->step(1);
-	  o->value(80);
-	  o->argument(126);
-	  // o->callback((Fl_Callback*)parmCallback);
-	  note_velocity = o;
-	}
-	*/
+	// parameters here would be common to all tabs
+
 	o->end();
 	// too early, multi not loaded, loadmulti segfaults
 	// multichoice->value(Speicher.multis[1].name);
@@ -3508,4 +3003,3 @@ void close_cb( Fl_Widget* o, void*) {
 	fflush(stdout);
    exit(0);
 }*/
-
