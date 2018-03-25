@@ -184,6 +184,7 @@ float table [_WAVECOUNT][TableSize] __attribute__((aligned (16)));
 float midi2freq [128];
 
 char jackName[64]="Minicomputer";// signifier for audio and midiconnections, to be filled with OSC port number
+char jackPortName[128]; // For jack_connect
 snd_seq_t *open_seq();
 snd_seq_t *seq_handle;
 int npfd;
@@ -536,7 +537,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		// Calc the modulators
 		float * mod = modulator [currentvoice];
 		// Modulation sources fall in different categories
-		// EG and midi controllers are between 0 and 1 (todo pitch bend -1..+1)
+		// EG and midi controllers are between 0 and 1, pitch bend between -1 and +1
 		// Audio outputs (osc 3, filter, delay) are between -1 and 1
 		// Now we use modulation_bias and _scale so that all mods are 0..1 when needed
 
@@ -627,7 +628,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		glide[currentvoice]*=param[116]; // *srDivisor?? or may be unconsistent across sample rates
 		glide[currentvoice]+=copysign(anti_denormal, glide[currentvoice]);
 		tfo1 = param[1]; // Fixed frequency
-		tfo1 *=param[2]; // Fixed frequency enable
+		tfo1 *=param[2]; // Fixed frequency enable, 0 or 1
 
 		// osc1 ampmods 1 and 2
 		// modulators must be in range 0..1 for multiplication
@@ -692,7 +693,11 @@ int process(jack_nframes_t nframes, void *arg) {
 		__builtin_prefetch(&current_phase[2],0,2);
 		#endif
 
-		tfo1+=(midif[currentvoice]*(1.0f-param[2])*param[3]); // Note-dependant frequency
+		// param[2] is fixed frequency enable, 0 or 1
+		// modulator[voice][2] is pitch bend
+		// param[142] is pitch bend scaling (semitones)
+		// tfo1+=(midif[currentvoice]*(1.0f-param[2])*param[3]); // Note-dependant frequency
+		tfo1+=(midif[currentvoice]*(1.0f-param[2])*param[3]*pow(2,(modulator[currentvoice][2]*param[142]/12.f))); // Note-dependant frequency
 		// tf+=(param[4]*param[5])*mod[choi[0]];
 		tfo1-=glide[currentvoice];
 		// What about tf *= instead of += ?
@@ -1484,7 +1489,7 @@ void doMidi(int status, int n, int v){
 					modulator[voice][15]=(float)n*0.007874f; // /127.f
 					break;
 				}
-				case 0xE0:{ // Pitch bend ?? needs bias; f mod has a strange behaviour for <0
+				case 0xE0:{ // Pitch bend
 					// 14 bits means 16384 values; 1/8192=0.00012207f
 					// modulator[voice][2]=((v<<7)+n)*0.00012207f; // 0..2
 					modulator[voice][2]=(((v<<7)+n)-8192)*0.00012207f; // -1..1
@@ -1798,6 +1803,7 @@ printf("minicomputer version %s\n",_VERSION);
 char OscPort[] = _OSCPORT; // default value for OSC port
 char *oport = OscPort;// pointer of the OSC port string
 char *oport2;
+int do_connect=1;
 
 int i;
 // process the arguments
@@ -1815,6 +1821,7 @@ int i;
 			}
 			else break; // we are through
 		}
+		if (strcmp(argv[i],"-no-connect")==0) do_connect=0;
 	}
   }
 
@@ -1862,6 +1869,8 @@ int i;
 	signal(SIGINT, signalled);
 
 	init();
+	
+// ------------------------ JACK Init ------------------------------------   
 	/* naturally we need to become a jack client
 	 * prefered with a unique name, so lets add the OSC port to it*/
 	// client = jack_client_new(jackName);
@@ -1929,6 +1938,15 @@ int i;
 	#endif
 	/* tell jack that we are ready to do our thing */
 	jack_activate(client);
+	
+	if(do_connect){
+		snprintf(jackPortName, 128, "%s:mix out left", jackName);
+		int result=jack_connect(client, jackPortName, "system:playback_1");
+		if (result) printf("jack_connect \"%s\": error %i\n", jackPortName, result);
+		snprintf(jackPortName, 128, "%s:mix out right", jackName);
+		result=jack_connect(client, jackPortName, "system:playback_2");
+		if (result) printf("jack_connect \"%s\": error %i\n", jackPortName, result);
+	}
 	
 	/* wait until this app receives a SIGINT (i.e. press 
 	 * ctrl-c in the terminal) see signalled() above */

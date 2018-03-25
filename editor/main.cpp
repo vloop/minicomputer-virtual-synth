@@ -256,6 +256,7 @@ int main(int argc, char **argv)
   char OscPort[] = _OSCPORT; // default value for OSC port
   oport = OscPort;
   oport2=(char *)malloc(80);
+  bool no_connect=false;
   bool launched=false;
   if (argc > 1)
   {
@@ -276,6 +277,11 @@ int main(int argc, char **argv)
 				}// TODO what if not a port number??
 			}
 			else break; // we are through
+		}
+		else if (strcmp(argv[i],"-no-connect") == 0)
+		{
+			++i; // skip this parameter
+			no_connect=true;
 		}
 	}
   }
@@ -365,8 +371,11 @@ int main(int argc, char **argv)
 	lo_send(t, "/Minicomputer/midi", "iiii", 0, 0, 0, 0xFE);
 	usleep(100000); // 0.1 s - should be enough even for remote
 	if(!sense){ // Don't start it if already done
-		char engineName[32];// the name of the core program + given port, if any.
-		sprintf(engineName,"minicomputerCPU -port %s &",oport);
+		char engineName[128];// the name of the core program + given port, if any.
+		if(no_connect)
+			sprintf(engineName,"minicomputerCPU -no-connect -port %s &",oport);
+		else
+			sprintf(engineName,"minicomputerCPU -port %s &",oport);
 		system(engineName);// actual start
 		launched=true;
 	}
@@ -386,7 +395,7 @@ int main(int argc, char **argv)
 	}
 
 // ---------- Prepare command line for FLTK -----------
-  int ac = 0; // new argumentcount
+  int ac = 0; // new argument count
   // copy existing arguments, filtering out osc port arguments
   // step one, parsing and determine the final count of arguments
   for (i = 0;i<argc;++i)
@@ -407,6 +416,10 @@ int main(int argc, char **argv)
 			}
 		}
 		else break; // we are through
+	}
+  	else if (strcmp(argv[i],"-no-connect") == 0)
+	{
+		++i; // skip this parameter
 	}
   	else 
 	{
@@ -438,6 +451,10 @@ int main(int argc, char **argv)
 			}
 		}
 		else break; // we are through
+	}
+  	else if (strcmp(argv[i],"-no-connect") == 0)
+	{
+		++i; // skip this parameter
 	}
   	else 
 	{

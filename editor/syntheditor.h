@@ -139,7 +139,7 @@ private:
 };
 
 // Fl_Widget* Knob[8][_PARACOUNT];
-int EG_draw(int voice, int EGnum, int stage);
+int EG_draw(unsigned int voice, unsigned int EGnum, unsigned int stage);
 void EG_draw_all();
 void replace_color (unsigned char * bits, unsigned int pixcount, unsigned char r1, unsigned char g1, unsigned char b1, unsigned char r2, unsigned char g2, unsigned char b2);
 

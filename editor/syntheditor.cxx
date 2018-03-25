@@ -24,6 +24,7 @@ static Fl_RGB_Image image_miniMini(idata_miniMini, _LOGO_WIDTH, _LOGO_HEIGHT, 3,
  Fl_Choice* auswahl[_MULTITEMP][_CHOICECOUNT];
  Fl_Value_Input* miniDisplay[_MULTITEMP][13];
  Fl_Widget* tab[_TABCOUNT];
+ static const char* voicename[_MULTITEMP]={"1", "2", "3", "4", "5", "6", "7", "8"};
  Fl_Input* schoice[_MULTITEMP];
  Fl_Roller* Rollers[_MULTITEMP];
  Fl_Roller* multiRoller;
@@ -123,12 +124,17 @@ int EG_stage[_MULTITEMP][_EGCOUNT];
 int EG_parm_num[7]={102, 60, 65, 70, 75, 80, 85}; // First parameter for each EG (attack)
 // ADSR controls are required to be numbered sequentially, i.e. if A is 60, D is 61...
 
-int EG_draw(int voice, int EGnum, int stage){
+int EG_draw(unsigned int voice, unsigned int EGnum, unsigned int stage){
 	if ((voice < _MULTITEMP) && (EGnum < _EGCOUNT ))
 	{
 		// Schedule redraw for next run of timer_handler
 		EG_changed[voice]=1;
 		EG_stage[voice][EGnum]=stage;
+		if(EGnum==0 && stage == 0){
+			audition_state[voice]=0;
+			if(voice==currentsound)
+				((Fl_Toggle_Button*)audition)->value(0);
+		}
 		return 0;
 	}
 	return 1;
@@ -517,8 +523,8 @@ switch (currentParameter)
 		printf("parmCallback glide %li : %f --> %f \r", ((Fl_Valuator*)o)->argument(), ((Fl_Valuator*)o)->value(), tr);
 #endif
 		break;
-	}	
-	
+	}
+
 	//************************************ filter cuts *****************************
 	case 30:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
 		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
@@ -2056,6 +2062,11 @@ Fenster* UserInterface::make_window(const char* title) {
 	{ Fl_Box* o = new Fl_Box(855, 450, 25, 25);
 	  o->image(image_miniMini2);
 	}
+	{ Fl_Box* d = new Fl_Box(840, 430, 40, 40, voicename[i]);
+		d->labelsize(48);
+		d->labelcolor(FL_RED);
+	}
+	
 	// Oscillator 1
 	{ Fl_Group* o = new Fl_Group(5, 17, 300, 212);
 	  o->box(FL_ROUNDED_FRAME);
@@ -2639,6 +2650,17 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
+	{ Fl_Dial* o = new Fl_Dial(92, 221, 25, 25, "bender");
+		o->tooltip("Pitch bend range (semitones)");
+		o->minimum(0);
+		o->maximum(12);
+		o->labelsize(8);
+		o->argument(142);
+		o->align(FL_ALIGN_TOP);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	}
+
 	o->end(); 
 	tab[i]=o;
 	} // ==================================== end single voice tab

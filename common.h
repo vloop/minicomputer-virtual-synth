@@ -26,7 +26,7 @@
 
 // not customizable options ----------------------------------
 // amount of parameters per patch
-#define _PARACOUNT 142
+#define _PARACOUNT 143
 #define _CHOICECOUNT 18
 #define _EGCOUNT 7
 
