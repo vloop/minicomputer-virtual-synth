@@ -100,7 +100,7 @@ class UserInterface {
 public:
   Fenster* make_window(const char *title);
   void changeMulti(int pgm);
-  void changeSound(int channel,int pgm);
+  void changeSound(int channel, int pgm);
   static Fl_Menu_Item menu_pitch[];
   static Fl_Menu_Item menu_pitch1[];
   Fl_Dial *f1cut1;

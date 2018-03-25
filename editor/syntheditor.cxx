@@ -41,6 +41,7 @@ static Fl_RGB_Image image_miniMini(idata_miniMini, _LOGO_WIDTH, _LOGO_HEIGHT, 3,
  Fl_Box* sounding[_MULTITEMP];
  
  int currentParameter=0;
+ char currentParameterName[32]="...............................";
 
  unsigned int currentsound=0, currentmulti=0;
 // unsigned int multi[128][8];
@@ -330,10 +331,16 @@ static void parmCallback(Fl_Widget* o, void*) {
 Fl::lock();
 if (o != NULL)
 {
-currentParameter = ((Fl_Valuator*)o)->argument();
+	currentParameter = ((Fl_Valuator*)o)->argument();
 
 	// show parameter on fine tune only when relevant (not a frequency...)
-	if(needs_finetune[currentParameter]) paramon->value(((Fl_Valuator*)o)->value());
+	if(needs_finetune[currentParameter]){
+		paramon->value(((Fl_Valuator*)o)->value());
+		paramon->minimum(((Fl_Valuator*)o)->minimum());
+		paramon->maximum(((Fl_Valuator*)o)->maximum());
+		snprintf(currentParameterName, 32, "%31s", ((Fl_Valuator*)o)->label());
+		paramon->label(currentParameterName);
+	}
 
 // now actually process parameter
 switch (currentParameter)
@@ -345,7 +352,7 @@ switch (currentParameter)
 	}
 	case 1: // Osc 1 fixed frequency dial
 	{
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
 		miniDisplay[currentsound][0]->value( ((Fl_Valuator* )Knob[currentsound][1])->value() );
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
@@ -383,7 +390,7 @@ switch (currentParameter)
 			Knob[currentsound][18]->activate();
 			miniDisplay[currentsound][3]->activate();
 			miniDisplay[currentsound][2]->deactivate();
-			if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),0.f);
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),0.f);
 		}
 		else
 		{
@@ -391,7 +398,7 @@ switch (currentParameter)
 			Knob[currentsound][16]->activate();
 			miniDisplay[currentsound][2]->activate();
 			miniDisplay[currentsound][3]->deactivate();
-			if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
 		}
 #ifdef _DEBUG
 		printf("parmCallback %li : %i\n", ((Fl_Light_Button*)o)->argument(),((Fl_Light_Button*)o)->value());
@@ -401,7 +408,7 @@ switch (currentParameter)
 	case 3: // Osc 1 tune
 	{
 		float f = ((Fl_Positioner*)o)->xvalue() + ((Fl_Positioner*)o)->yvalue();
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
 		miniDisplay[currentsound][1]->value( f);
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
@@ -410,7 +417,7 @@ switch (currentParameter)
 	}
 	case 16: // Osc 2 fixed frequency dial
 	{
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
 		miniDisplay[currentsound][2]->value( ((Fl_Valuator*)o)->value() );
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
@@ -420,7 +427,7 @@ switch (currentParameter)
 	case 18: // Osc 2 tune
 	{ 
 		float f = ((Fl_Positioner*)o)->xvalue() + ((Fl_Positioner*)o)->yvalue();
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
 		miniDisplay[currentsound][3]->value(f);
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
@@ -432,11 +439,11 @@ switch (currentParameter)
 	{
 		if (((Fl_Light_Button *)o)->value()==0)
 		{
-			if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
 		}
 		else
 		{
-			if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),100.f);
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),100.f);
 		}
 #ifdef _DEBUG
 		printf("parmCallback %li : %i\n", ((Fl_Light_Button*)o)->argument(),((Fl_Light_Button*)o)->value());
@@ -466,11 +473,11 @@ switch (currentParameter)
 	{
 		if (((Fl_Light_Button *)o)->value()==0)
 		{
-			if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),0.f);
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),0.f);
 		}
 		else
 		{
-			if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
 		}
 #ifdef _DEBUG
 		printf("parmCallback %li : %i\n", ((Fl_Light_Button*)o)->argument(),((Fl_Light_Button*)o)->value());
@@ -505,7 +512,7 @@ switch (currentParameter)
 	{
 		float tr=(((Fl_Valuator*)o)->value());///200.f;//exp(((Fl_Valuator*)o)->value())/200.f;
 		tr*= tr*tr/2.f;// tr * tr*20.f;//48000.0f;//trtr*tr/2;
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),tr);
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),tr);
 #ifdef _DEBUG
 		printf("parmCallback eg %li : %g\n", ((Fl_Valuator*)o)->argument(),tr);
 #endif
@@ -518,7 +525,7 @@ switch (currentParameter)
 		tr= 1-pow(10, -tr*5);
 		if(tr>=1) tr = 0.99995f;
 		if(tr<0) tr = 0.f;
-		if (transmit)lo_send(t, "/Minicomputer", "iif", currentsound, ((Fl_Valuator*)o)->argument(), tr);
+		if (transmit) lo_send(t, "/Minicomputer", "iif", currentsound, ((Fl_Valuator*)o)->argument(), tr);
 #ifdef _DEBUG
 		printf("parmCallback glide %li : %f --> %f \r", ((Fl_Valuator*)o)->argument(), ((Fl_Valuator*)o)->value(), tr);
 #endif
@@ -527,7 +534,7 @@ switch (currentParameter)
 
 	//************************************ filter cuts *****************************
 	case 30:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
 #endif
@@ -535,7 +542,7 @@ switch (currentParameter)
 		break;
 	}
 	case 33:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
 #endif		
@@ -543,7 +550,7 @@ switch (currentParameter)
 		break;
 	}
 	case 40:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
 #endif
@@ -551,7 +558,7 @@ switch (currentParameter)
 		break;
 	}
 	case 43:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
 #endif
@@ -574,7 +581,7 @@ switch (currentParameter)
 		//	isFine = false;
 		//	Argument=((Fl_Valuator*)o)->argument();
 		//}*/
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,Argument,f);
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,Argument,f);
 #ifdef _DEBUG
 		printf("parmCallback %i : %g\n", Argument,f);
 		fflush(stdout);
@@ -584,7 +591,7 @@ switch (currentParameter)
 	}
 	case 53: // Filter 3 b cut
 	{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
 #endif
@@ -593,7 +600,7 @@ switch (currentParameter)
 	}
 	case 90: // OSC 3 tune
 	{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
 #endif
@@ -603,7 +610,7 @@ switch (currentParameter)
 	}
 	case 111: // Delay time
 	{	float f=((Fl_Valuator*)o)->value();
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),f);
 #endif
@@ -613,7 +620,7 @@ switch (currentParameter)
 	}
 	default:
 	{
-		if (transmit)lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
 #ifdef _DEBUG
 		printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
 #endif
@@ -635,9 +642,13 @@ Fl::unlock();
 static void midiparmCallback(Fl_Widget* o, void*) {
 	int voice=(((Fl_Valuator*)o)->argument())>>8;
 	int parm=(((Fl_Valuator*)o)->argument())&0xFF;
-	if (transmit)lo_send(t, "/Minicomputer", "iif", voice, parm, ((Fl_Valuator*)o)->value());
+	double val=((Fl_Valuator*)o)->value();
+	val=min(val,((Fl_Valuator*)o)->maximum());
+	val=max(val,((Fl_Valuator*)o)->minimum());
+	((Fl_Valuator*)o)->value(val);
+	if (transmit) lo_send(t, "/Minicomputer", "iif", voice, parm, val);
 #ifdef _DEBUG
-	printf("%li : %g     \r", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+	printf("%li : %g     \r", ((Fl_Valuator*)o)->argument(), val);
 #endif
 }
 
@@ -672,36 +683,22 @@ static void copyparmCallback(Fl_Widget* o, void*) {
  */
 static void finetuneCallback(Fl_Widget* o, void*)
 {
-	if (currentParameter<_PARACOUNT)// range check
+	if (currentParameter<_PARACOUNT) // range check
 	{
-		/*
-		switch (currentParameter)
-		{
-			case 1:
-			case 3:
-			case 16:
-			case 18:
-			case 30:
-			case 33:
-			case 40:
-			case 43:
-			case 50:
-			case 53:
-			case 90:
-			 break; // do nothing
-			default: 
-			Fl::lock();
-				((Fl_Valuator* )Knob[currentsound][currentParameter])->value(((Fl_Valuator* )o)->value());
-				parmCallback(Knob[currentsound][currentParameter],NULL);
-			Fl::awake();
-			Fl::unlock();
-			break;
-		}
-		*/
 		if(needs_finetune[currentParameter]){
 			Fl::lock();
-			((Fl_Valuator* )Knob[currentsound][currentParameter])->value(((Fl_Valuator* )o)->value());
-			parmCallback(Knob[currentsound][currentParameter],NULL);
+			double val=((Fl_Valuator* )o)->value();
+			double val_min = ((Fl_Valuator* )Knob[currentsound][currentParameter])->minimum();
+			double val_max = ((Fl_Valuator* )Knob[currentsound][currentParameter])->maximum();
+			if(val_max<val_min){ // Reversed range
+				val=max(val, val_max);
+				val=min(val, val_min);
+			}else{
+				val=max(val, val_min);
+				val=min(val, val_max);
+			}
+			((Fl_Valuator* )Knob[currentsound][currentParameter])->value(val);
+			parmCallback(Knob[currentsound][currentParameter], NULL);
 			Fl::awake();
 			Fl::unlock();
 		}
@@ -1506,7 +1503,7 @@ void UserInterface::changeMulti(int pgm)
 }
 
 /**
- * change the sound for a certain voice,should be called from a Midi Program Change event on Channel 1 - 8
+ * change the sound for a certain voice, should be called from a Midi Program Change event on Channel 1 - 8
  * @param int the voice between 0 and 7 (it is not clear if the first Midi channel is 1 (which is usually the case in the hardware world) or 0)
  * @param int the Program number between 0 and 127
  */
@@ -1995,7 +1992,8 @@ Fenster* UserInterface::make_window(const char* title) {
 	currentsound=0;
 	currentmulti=0;
 	
-	// special treatment for the mix knobs, they are saved in the multi settings
+	// special treatment for the mix knobs and MIDI settings
+	// they are saved in the multi, not in the sound
 	needs_multi[101]=1; // Id vol
 	needs_multi[106]=1; // Mix vol
 	needs_multi[107]=1; // Pan
@@ -2025,6 +2023,27 @@ Fenster* UserInterface::make_window(const char* title) {
 	needs_finetune[127]=0; // Midi channel
 	needs_finetune[128]=0; // Min note
 	needs_finetune[129]=0; // Max note
+	needs_finetune[2]=0; // Osc 1 Fixed frequency
+	needs_finetune[4]=0; // Osc 1 Boost
+	needs_finetune[117]=0; // Osc 1 Mult freq modulator 2
+	needs_finetune[121]=0; // Osc 1 Mult amp modulator 1
+	needs_finetune[118]=0; // Osc 1 Mult amp modulator 2
+	needs_finetune[120]=0; // Osc 1 Start phase enable
+	needs_finetune[17]=0; // Osc 2 Fixed frequency
+	needs_finetune[19]=0; // Osc 2 Boost
+	needs_finetune[132]=0; // Osc 2 Mult freq modulator 2
+	needs_finetune[136]=0; // Osc 2 Mult amp modulator 1
+	needs_finetune[133]=0; // Osc 2 Mult amp modulator 2
+	needs_finetune[135]=0; // Osc 2 Start phase enable
+	needs_finetune[115]=0; // Osc 2 sync to osc 1
+	needs_finetune[140]=0; // Mult morph mod 2
+	needs_finetune[64]=0; // EG 1 repeat
+	needs_finetune[69]=0; // EG 2 repeat
+	needs_finetune[74]=0; // EG 3 repeat
+	needs_finetune[79]=0; // EG 4 repeat
+	needs_finetune[84]=0; // EG 5 repeat
+	needs_finetune[89]=0; // EG 6 repeat
+	needs_finetune[139]=0; // Legato
 
 	transmit=true;
 	Fenster* o = new Fenster(995, 515, title);
@@ -2062,7 +2081,8 @@ Fenster* UserInterface::make_window(const char* title) {
 	{ Fl_Box* o = new Fl_Box(855, 450, 25, 25);
 	  o->image(image_miniMini2);
 	}
-	{ Fl_Box* d = new Fl_Box(840, 430, 40, 40, voicename[i]);
+	// Show voice number near logo
+	{ Fl_Box* d = new Fl_Box(845, 455, 40, 40, voicename[i]);
 		d->labelsize(48);
 		d->labelcolor(FL_RED);
 	}
@@ -2690,12 +2710,16 @@ Fenster* UserInterface::make_window(const char* title) {
 				d->align(FL_ALIGN_TOP_LEFT);
 			}
 		  // Channel
+		  // Can't get Fl_Int_Input to work
+		  // "If step() is non-zero and integral, then the range of numbers is limited to integers"
+		  // range and bounds don't seem to be enforced when typing a value like 12345
 		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 46, 46, 15, "Channel");
 			o->box(FL_ROUNDED_BOX);
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->labelsize(8);
 			o->textsize(8);
-			o->range(1,16);
+			o->range(1, 16);
+			o->bounds(1, 16);
 			o->step(1);
 			o->value(voice);
 			o->argument(127+(voice<<8));
@@ -2709,7 +2733,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->labelsize(8);
 			o->textsize(8);
-			o->range(0,127);
+			o->range(0, 127);
 			o->step(1);
 			o->argument(128+(voice<<8));
 			o->callback((Fl_Callback*)midiparmCallback);
@@ -2721,7 +2745,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->labelsize(8);
 			o->textsize(8);
-			o->range(0,127);
+			o->range(0, 127);
 			o->step(1);
 			o->value(127);
 			o->argument(129+(voice<<8));
@@ -2746,7 +2770,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->box(FL_ROUNDED_BOX);
 			o->labelsize(8);
 			o->textsize(8);
-			o->range(0,127);
+			o->range(0, 127);
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->step(1);
 			o->value(80);
@@ -2881,16 +2905,16 @@ Fenster* UserInterface::make_window(const char* title) {
 	}*/
 
 	  // parameter tuning
-	{ Fl_Value_Input* o = new Fl_Value_Input(844, 397, 106, 14, "current parameter");
-	  //o->box(FL_BORDER_FRAME);
+	{ Fl_Value_Input* o = new Fl_Value_Input(900, 390, 60, 20, "current parameter");
+	  // o->box(FL_BORDER_FRAME);
 	  o->box(FL_ROUNDED_BOX);
-	  //o->color(FL_FOREGROUND_COLOR);
-	  //o->selection_color(FL_FOREGROUND_COLOR);
-	  o->labelsize(8);
-	  o->textsize(8);
-	  o->range(-2,2);
-	  //o->menubutton()->textsize(8);
-	  o->align(FL_ALIGN_TOP_LEFT);
+	  // o->color(FL_FOREGROUND_COLOR);
+	  // o->selection_color(FL_FOREGROUND_COLOR);
+	  o->labelsize(12);
+	  o->textsize(12);
+	  // o->range(-2,2);
+	  // o->menubutton()->textsize(8);
+	  o->align(FL_ALIGN_LEFT);
 	  o->step(0.0001);
 	  o->callback((Fl_Callback*)finetuneCallback);
 	  paramon = o;
