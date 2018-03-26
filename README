@@ -104,6 +104,11 @@ Other distributions may slightly vary
  sudo apt-get install libjack-dev
  OR (depending on your distribution and jack version)
  sudo apt-get install libjack-jackd2-dev
+ BEWARE!
+ If apt-get prompts you about uninstalling some packages,
+ don't accept, this is an indication of jack version mismatch,
+ use the other library!
+
 
  wget https://github.com/vloop/minicomputer-virtual-synth/archive/master.zip
  unzip master.zip

@@ -697,7 +697,8 @@ int process(jack_nframes_t nframes, void *arg) {
 		// modulator[voice][2] is pitch bend
 		// param[142] is pitch bend scaling (semitones)
 		// tfo1+=(midif[currentvoice]*(1.0f-param[2])*param[3]); // Note-dependant frequency
-		tfo1+=(midif[currentvoice]*(1.0f-param[2])*param[3]*pow(2,(modulator[currentvoice][2]*param[142]/12.f))); // Note-dependant frequency
+		float bend=pow(2,(modulator[currentvoice][2]*param[142]/12.f));
+		tfo1+=(midif[currentvoice]*(1.0f-param[2])*param[3]*bend); // Note-dependant frequency
 		// tf+=(param[4]*param[5])*mod[choi[0]];
 		tfo1-=glide[currentvoice];
 		// What about tf *= instead of += ?
@@ -793,7 +794,7 @@ int process(jack_nframes_t nframes, void *arg) {
 			ta2 = (0.5 + mod[choi[8]] * param[24] *0.5) * param[29]; // 0..1
 		}
 
-		tfo2+=midif[currentvoice]*(1.0f-param[17])*param[18];
+		tfo2+=midif[currentvoice]*(1.0f-param[17])*param[18]*bend;
 		tfo2-=glide[currentvoice];
 
 		// osc2 second amp mod for FM only

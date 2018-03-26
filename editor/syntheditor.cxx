@@ -345,7 +345,7 @@ if (o != NULL)
 // now actually process parameter
 switch (currentParameter)
 {
-	case 256:
+	case 256: // ??
 	{
 		lo_send(t, "/Minicomputer", "iif", currentsound, 0, 0);
 		break;
@@ -510,11 +510,11 @@ switch (currentParameter)
 	case 103:
 	case 105:
 	{
-		float tr=(((Fl_Valuator*)o)->value());///200.f;//exp(((Fl_Valuator*)o)->value())/200.f;
-		tr*= tr*tr/2.f;// tr * tr*20.f;//48000.0f;//trtr*tr/2;
+		float tr=(((Fl_Valuator*)o)->value()); // 0.5..0.01
+		tr*= tr*tr/2.f;
 		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),tr);
 #ifdef _DEBUG
-		printf("parmCallback eg %li : %g\n", ((Fl_Valuator*)o)->argument(),tr);
+		printf("parmCallback eg %li : %g\n", ((Fl_Valuator*)o)->argument(), tr);
 #endif
 		break;
 	}
@@ -2905,7 +2905,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	}*/
 
 	  // parameter tuning
-	{ Fl_Value_Input* o = new Fl_Value_Input(900, 390, 60, 20, "current parameter");
+	{ Fl_Value_Input* o = new Fl_Value_Input(895, 390, 80, 20, "current parameter");
 	  // o->box(FL_BORDER_FRAME);
 	  o->box(FL_ROUNDED_BOX);
 	  // o->color(FL_FOREGROUND_COLOR);

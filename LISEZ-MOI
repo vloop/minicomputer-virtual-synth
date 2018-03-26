@@ -93,8 +93,12 @@ D'autres distributions peuvent nécessiter de légères modifications
  sudo apt-get install build-essential scons fluid liblo-dev libclthreads-dev libasound-dev libfltk1.3-dev
 
  sudo apt-get install libjack-dev
- OU (selon votre distribution et votre version de jack)
+ OU BIEN (selon votre distribution et votre version de jack)
  sudo apt-get install libjack-jackd2-dev
+ ATTENTION!
+ Si apt-get vous propose de désinstaller certaines choses,
+ n'acceptez pas, cela indique la mauvaise version de jack,
+ utilisez l'autre librairie!
 
  wget https://github.com/vloop/minicomputer-virtual-synth/archive/master.zip
  unzip master.zip
