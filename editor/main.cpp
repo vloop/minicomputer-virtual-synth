@@ -258,9 +258,12 @@ int main(int argc, char **argv)
   oport2=(char *)malloc(80);
   bool no_connect=false;
   bool launched=false;
+  bool has_port2=false;
+  int ac = 1; // Argument count for FLTK 
+  // There is at least the command name  av[0]=argv[0])
   if (argc > 1)
   {
-  	for (i = 0;i<argc;++i)
+  	for (i = 1; i<argc; ++i)
 	{
 	  	if ((strcmp(argv[i],"-bg")==0) || (strcmp(argv[i],"-fg")==0))
 		{
@@ -268,80 +271,72 @@ int main(int argc, char **argv)
 		}
 		else if (strcmp(argv[i],"-port")==0) // got a OSC port argument
 		{
-			++i;// looking for the next entry
+			++i; // looking for the next entry
 			if (i<argc)
 			{
 				int tport = atoi(argv[i]);
 				if (tport > 0){
 					oport = argv[i]; // overwrite the default for the OSCPort
-				}// TODO what if not a port number??
+				}
+				else
+				{
+					fprintf(stderr, "Invalid port %s\n", argv[i]);
+					exit(1);
+				}
 			}
-			else break; // we are through
+			else
+			{
+				fprintf(stderr, "Invalid port - end of command line reached\n");
+				exit(1);
+			}
+		}
+		else if (strcmp(argv[i],"-port2")==0) // got a OSC port argument
+		{
+			++i; // looking for the next entry
+			if (i<argc)
+			{
+				int tport2 = atoi(argv[i]);
+				if (tport2 > 0){
+					oport2 = argv[i]; // overwrite the default for the OSCPort
+					has_port2 = true;
+				}
+				else
+				{
+					fprintf(stderr, "Invalid port %s\n", argv[i]);
+					exit(1);
+				}
+			}
+			else
+			{
+				fprintf(stderr, "Invalid port - end of command line reached\n");
+				exit(1);
+			}
 		}
 		else if (strcmp(argv[i],"-no-connect") == 0)
 		{
-			++i; // skip this parameter
 			no_connect=true;
+		}
+		else
+		{
+			ac++; // Not recognized, assume an FLTK parameter
+			// Cannot store value yet, av array not yet created
 		}
 	}
   }
-  snprintf(oport2, 80, "%d", atoi(oport)+1);
+  if(!has_port2) // Port not specified, use default
+	snprintf(oport2, 80, "%d", atoi(oport)+1);
 
 // ------------------------ create gui --------------
 	char temp_name[128];
 	strcpy(temp_name, "minicomputer ");
 	strncpy(temp_name+13, oport, 100);
 	Fenster* w =Schaltbrett.make_window(temp_name);
-  //
-  //for (int i = 0;i<8;++i)
-  //{
-  	//printf("bei %i\n",i);
-  	//fflush(stdout);
-  	//Schaltbrett.soundchoice[i]->clear();
-  //} 
 	Speicher.load();
-	//printf("und load...\n");
-  /*
-  for (int i=0;i<512;i++) 
-  {
-  	Schaltbrett.soundchoice[0]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[1]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[2]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[3]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[4]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[5]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[6]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[7]->add(Speicher.getName(0,i).c_str());
-  }*/
-  //multichoice->damage(FL_DAMAGE_ALL);
-  //multichoice->redraw();
-
-
-  Speicher.loadMulti();
+	Speicher.loadMulti();
   
-  // Load data in the GUI
-  // Schaltbrett.changeMulti(1); // segfault
-  // Fix multi name display
-  int multi=multiDisplay->value();
-  /*
-  // printf("Multi %u: \"%s\"\n", multi, Speicher.multis[0].name); // OK
-  strnrtrim(temp_name, Speicher.multis[multi].name, 128);
-  // printf("Multi %u: \"%s\"\n", multi, temp_name); // OK
-  Schaltbrett.multichoice->value(temp_name);
-  multiRoller->value(multi);
-  */
-  
-  // int preset=soundchoice[i]->value();
-
-  /*for (int i=0;i<128;i++) 
-  {
-  	Schaltbrett.multichoice->add(Speicher.multis[i].name);
-  }*/
-  //printf("weiter...\n");
-
+	int multi=multiDisplay->value();
 
 // ------------------------ OSC init ---------------------------------
-	// TODO error checking and exit
 	// init for output
 	t = lo_address_new(NULL, oport);
 	printf("\nGUI OSC output port: \"%s\"\n",oport);
@@ -376,6 +371,7 @@ int main(int argc, char **argv)
 			sprintf(engineName,"minicomputerCPU -no-connect -port %s &",oport);
 		else
 			sprintf(engineName,"minicomputerCPU -port %s &",oport);
+		printf("Launching %s\n", engineName);
 		system(engineName);// actual start
 		launched=true;
 	}
@@ -395,6 +391,7 @@ int main(int argc, char **argv)
 	}
 
 // ---------- Prepare command line for FLTK -----------
+/*
   int ac = 0; // new argument count
   // copy existing arguments, filtering out osc port arguments
   // step one, parsing and determine the final count of arguments
@@ -426,75 +423,73 @@ int main(int argc, char **argv)
 		++ac;
 	}
   }
-  
+*/  
   if (needcolor)
   {
   	ac += 4;// add 2 more arguments and their values
   }
   char * av[ac]; // the new array
   
-  for (i = 0;i<argc;++i) // now actually copying it
+  av[0] = argv[0];
+  int j=1;
+  for (i = 1;i<argc;++i) // now actually copying it
   {
-  	if (strcmp(argv[i],"-port") == 0)
+  	if (strcmp(argv[i],"-port") == 0 || strcmp(argv[i],"-port2") == 0)
 	{
-		++i; // skip this parameter
-		if (i<argc)
-		{
-			int tport = atoi(argv[i]);
-			if (tport > 0)
-			{
-				++i; // skip the port number too	
-				if (i>=argc) 
-				{
-					break; // we are through
-				}
-			}
-		}
-		else break; // we are through
+		i++; // skip this parameter and its argument
+		// We know this is safe because parm checking already occured above
 	}
   	else if (strcmp(argv[i],"-no-connect") == 0)
 	{
-		++i; // skip this parameter
+		// ++i; // skip this parameter
 	}
   	else 
 	{
-		av[i] = argv[i];
+		av[j] = argv[i];
+		j++;
 #ifdef _DEBUG
-		printf("%s\n",argv[i]);
+		printf("Copied %s\n",argv[i]);
 #endif
 	}
   }
 
-  if (needcolor) // add the arguments in case they are needed
-  {
-  	char bg[]="-bg";
+	// Make sure the following are in the same scope as w->show
+	char bg[]="-bg";
 	char bgv[]="grey";
 	char fg[]="-fg";
 	char fgv[]="black";
-	av[ac-4] = bg;
-	av[ac-3] = bgv;
-	av[ac-2] = fg;
-	av[ac-1] = fgv;
-  }
-  
+	if (needcolor) // add the arguments in case they are needed
+	{
+		av[ac-4] = bg;
+		av[ac-3] = bgv;
+		av[ac-2] = fg;
+		av[ac-1] = fgv;
+	}
+
   // Wait for core before sending GUI data
-  printf("Waiting for core...\n");
+  if (!sense) printf("Waiting for core...\n");
   while(!sense){
 		lo_send(t, "/Minicomputer/midi", "iiii", 0, 0, 0, 0xFE);
 		usleep(100000); // 0.1 s
   }
+  printf("Communication with minicomputerCPU established\n");
   
   Schaltbrett.changeMulti(multi); // Transmit multi data to the sound engine
 
+#ifdef _DEBUG
+  printf("FLTK argument count: %u\n", ac);
+  printf("FLTK arguments:\n");
+  for(int argnum=0; argnum<ac; argnum++)
+    printf("%u %s\n", argnum, av[argnum]);
+#endif
+  
   Fl::lock(); 
   w->show(ac, av);
-	/* an address to send messages to. sometimes it is better to let the server
-	 * pick a port number for you by passing NULL as the last argument */
- int result = Fl::run();
- if (launched) lo_send(t, "/Minicomputer/quit", "i",1);
- /* waiting for the midi thread to shutdown carefully */
- pthread_cancel(midithread);
-/* release Alsa Midi connection */
- snd_seq_close(seq_handle);
- return result;
+  int result = Fl::run();
+  if (launched) lo_send(t, "/Minicomputer/quit", "i",1);
+  /* waiting for the midi thread to shutdown carefully */
+  pthread_cancel(midithread);
+  /* release Alsa Midi connection */
+  snd_seq_close(seq_handle);
+  return result;
 }

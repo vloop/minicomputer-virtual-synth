@@ -99,6 +99,7 @@ static void choiceCallback(Fl_Widget* o, void*)
 static void do_audition(Fl_Widget* o, void*)
 {
 	if (transmit){
+		Fl::lock();
 		int note=((Fl_Valuator*)Knob[currentsound][125])->value();
 		int velocity=((Fl_Valuator*)Knob[currentsound][126])->value();
 		audition_state[currentsound]=((Fl_Toggle_Button*)o)->value();
@@ -107,6 +108,8 @@ static void do_audition(Fl_Widget* o, void*)
 		}else{
 			lo_send(t, "/Minicomputer/midi", "iiii", 0, 0x80+currentsound, note, velocity);
 		}
+		Fl::awake();
+		Fl::unlock();
 	}
 }
 static void all_off(Fl_Widget* o, void*)
@@ -146,7 +149,7 @@ void EG_draw_all(){
 	// Refresh EG label lights
 	// Called by timer_handler
 	int voice, EGnum, stage;
-	// Fl::lock(); // Doesn't help
+	Fl::lock(); // Doesn't help - tab label not redrawn
 	for(voice=0; voice<_MULTITEMP; voice++){
 		if (EG_changed[voice]){
 			EG_changed[voice]=0;
@@ -175,9 +178,9 @@ void EG_draw_all(){
 			}
 		}
 	}
-	// Fl::check(); // Doesn't help
-	// Fl::awake(); // Doesn't help
-	// Fl::unlock(); // Doesn't help
+	// Fl::check(); // Doesn't help - tab label not redrawn
+	Fl::awake(); // Doesn't help - tab label not redrawn
+	Fl::unlock(); // Doesn't help - tab label not redrawn
 
 }
 
@@ -335,13 +338,24 @@ if (o != NULL)
 
 	// show parameter on fine tune only when relevant (not a frequency...)
 	if(needs_finetune[currentParameter]){
+// #ifdef _DEBUG
+// if(currentsound==0) // Don't clutter output with all voices
+	printf("parmCallback voice %u parameter %3.3u", currentsound, currentParameter);
+// #endif
 		paramon->value(((Fl_Valuator*)o)->value());
 		paramon->minimum(((Fl_Valuator*)o)->minimum());
 		paramon->maximum(((Fl_Valuator*)o)->maximum());
 		snprintf(currentParameterName, 32, "%31s", ((Fl_Valuator*)o)->label());
 		paramon->label(currentParameterName);
-	}
+		paramon->show();
 
+// #ifdef _DEBUG
+// if(currentsound==0)
+	printf("%s =%f done.\n", currentParameterName, paramon->value());
+// #endif
+	}else{
+		paramon->hide();
+	}
 // now actually process parameter
 switch (currentParameter)
 {
@@ -687,6 +701,9 @@ static void finetuneCallback(Fl_Widget* o, void*)
 	{
 		if(needs_finetune[currentParameter]){
 			Fl::lock();
+// #ifdef _DEBUG
+			printf("finetuneCallback voice %u parameter %u", currentsound, currentParameter);
+// #endif
 			double val=((Fl_Valuator* )o)->value();
 			double val_min = ((Fl_Valuator* )Knob[currentsound][currentParameter])->minimum();
 			double val_max = ((Fl_Valuator* )Knob[currentsound][currentParameter])->maximum();
@@ -698,10 +715,17 @@ static void finetuneCallback(Fl_Widget* o, void*)
 				val=min(val, val_max);
 			}
 			((Fl_Valuator* )Knob[currentsound][currentParameter])->value(val);
+// #ifdef _DEBUG
+			printf("=%f\n", val);
+// #endif
 			parmCallback(Knob[currentsound][currentParameter], NULL);
 			Fl::awake();
 			Fl::unlock();
+		}else{
+printf("finetuneCallback - ignoring %i\n", currentParameter);
 		}
+	}else{
+		fprintf(stderr, "finetuneCallback - Error: unexpected current parameter %i\n", currentParameter);
 	}
 }
 /*
@@ -2007,6 +2031,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	
 	// show parameter on fine tune only when relevant (not a frequency...)
 	for (int i=0;i<_PARACOUNT;++i) needs_finetune[i]=1;
+	needs_finetune[0]=0; // clear state
 	needs_finetune[1]=0; // Osc 1 fixed frequency
 	needs_finetune[3]=0; // Osc 1 tune
 	needs_finetune[16]=0; // Osc 2 fixed frequency
@@ -2037,6 +2062,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	needs_finetune[135]=0; // Osc 2 Start phase enable
 	needs_finetune[115]=0; // Osc 2 sync to osc 1
 	needs_finetune[140]=0; // Mult morph mod 2
+	needs_finetune[137]=0; // Bypass filter
 	needs_finetune[64]=0; // EG 1 repeat
 	needs_finetune[69]=0; // EG 2 repeat
 	needs_finetune[74]=0; // EG 3 repeat
@@ -2947,6 +2973,23 @@ Fenster* UserInterface::make_window(const char* title) {
 	// multiRoller->value(0);
 	// multiDisplay->value(1);
 	// loadmulti(NULL, NULL);
+
+#ifdef _DEBUG
+	// Dump parm list
+	for(int parmnum=0; parmnum<_PARACOUNT; parmnum++){
+		if(Knob[0][parmnum])
+			printf("%3.3u : %s\n", parmnum, Knob[0][parmnum]->label());
+		else
+			printf("%3.3u : not defined\n", parmnum);
+	}
+	for(int choicenum=0; choicenum<_CHOICECOUNT; choicenum++){
+		if(auswahl[0][choicenum])
+			printf("#%2.2u : %s\n", choicenum, auswahl[0][choicenum]->label());
+		else
+			printf("#%2.2u : not defined\n", choicenum);
+	}
+#endif
+
 	return o;
 }
 
