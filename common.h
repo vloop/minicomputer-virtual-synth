@@ -21,12 +21,10 @@
 // vectorize calculations
 //#define _VECTOR
 
-// 'old' binary fileformat, switched off per default
-//#define _BINFILE
-
 // not customizable options ----------------------------------
+#define _NAMESIZE 128
 // amount of parameters per patch
-#define _PARACOUNT 143
+#define _PARACOUNT 145
 #define _CHOICECOUNT 18
 #define _EGCOUNT 7
 
@@ -34,7 +32,10 @@
 #define _MULTITEMP 8
 
 // how many additional settings per sound in multi to store
-#define _MULTISETTINGS 10
+#define _MULTISETTINGS 11
+
+// how many additional settings common to all sounds in multi to store
+#define _MULTIPARMS 13
 
 // the version number as string
 #define _VERSION "1.4a"

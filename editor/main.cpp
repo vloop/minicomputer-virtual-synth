@@ -257,13 +257,12 @@ int main(int argc, char **argv)
   oport = OscPort;
   oport2=(char *)malloc(80);
   bool no_connect=false;
+  bool no_launch=false;
   bool launched=false;
   bool has_port2=false;
   int ac = 1; // Argument count for FLTK 
   // There is at least the command name  av[0]=argv[0])
-  if (argc > 1)
-  {
-  	for (i = 1; i<argc; ++i)
+	for (i = 1; i<argc; ++i)
 	{
 	  	if ((strcmp(argv[i],"-bg")==0) || (strcmp(argv[i],"-fg")==0))
 		{
@@ -316,15 +315,19 @@ int main(int argc, char **argv)
 		{
 			no_connect=true;
 		}
+		else if (strcmp(argv[i],"-no-launch") == 0)
+		{
+			no_launch=true;
+		}
 		else
 		{
 			ac++; // Not recognized, assume an FLTK parameter
 			// Cannot store value yet, av array not yet created
 		}
 	}
-  }
-  if(!has_port2) // Port not specified, use default
-	snprintf(oport2, 80, "%d", atoi(oport)+1);
+
+	if(!has_port2) // Port not specified, use default
+		snprintf(oport2, 80, "%d", atoi(oport)+1);
 
 // ------------------------ create gui --------------
 	char temp_name[128];
@@ -365,12 +368,12 @@ int main(int argc, char **argv)
 	// It is safe to send now that OSC is setup
 	lo_send(t, "/Minicomputer/midi", "iiii", 0, 0, 0, 0xFE);
 	usleep(100000); // 0.1 s - should be enough even for remote
-	if(!sense){ // Don't start it if already done
+	if(!sense && !no_launch){ // Don't start it if already done
 		char engineName[128];// the name of the core program + given port, if any.
 		if(no_connect)
-			sprintf(engineName,"minicomputerCPU -no-connect -port %s &",oport);
+			snprintf(engineName, 128, "minicomputerCPU -no-connect -port %s -port2 %s &", oport, oport2);
 		else
-			sprintf(engineName,"minicomputerCPU -port %s &",oport);
+			snprintf(engineName, 128, "minicomputerCPU -port %s -port2 %s &", oport, oport2);
 		printf("Launching %s\n", engineName);
 		system(engineName);// actual start
 		launched=true;
@@ -439,7 +442,7 @@ int main(int argc, char **argv)
 		i++; // skip this parameter and its argument
 		// We know this is safe because parm checking already occured above
 	}
-  	else if (strcmp(argv[i],"-no-connect") == 0)
+  	else if (strcmp(argv[i],"-no-connect") == 0 || strcmp(argv[i],"-no-launch") == 0)
 	{
 		// ++i; // skip this parameter
 	}

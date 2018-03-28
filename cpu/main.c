@@ -175,13 +175,15 @@ int channel[_MULTITEMP];
 // note-based filtering useful for drumkit multis
 int note_min[_MULTITEMP];
 int note_max[_MULTITEMP];
+int transpose[_MULTITEMP];
 
 jack_port_t *port[_MULTITEMP + 4]; // _multitemp * ports + 2 mix and 2 aux
 jack_port_t *_jack_midipt;
 lo_address t;
 
 float table [_WAVECOUNT][TableSize] __attribute__((aligned (16)));
-float midi2freq [128];
+float midi2freq0 [128]; // Base value A=440Hz
+float midi2freq [128]; // Values after applying detune
 
 char jackName[64]="Minicomputer";// signifier for audio and midiconnections, to be filled with OSC port number
 char jackPortName[128]; // For jack_connect
@@ -275,6 +277,7 @@ static inline int generic_handler(const char *path, const char *types, lo_arg **
 static inline int foo_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data); 
 static inline int quit_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
 static inline int midi_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
+static inline int multiparm_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
 static inline void doNoteOn(int voice, int note, int velocity);
 static inline void doNoteOff(int voice, int note, int velocity);
 static void doMidi(int t, int n, int v);
@@ -1180,9 +1183,15 @@ int process(jack_nframes_t nframes, void *arg) {
 				//printf("clear %d : %d : %d\n",currentvoice,delayI[currentvoice],delayJ[currentvoice]);
 			}
 			
-			// param[110] is mod. amount 0..1
-			delayMod = 1.0f-(param[110]* mod[choi[14]]); // Why 1.0f- ?? 0..2
-
+			// param[110] is time mod. amount 0..1
+			// param[143] is mult.
+			// param[144] is time mod. 2 amount 0..1
+			// delayMod = 1.0f-(param[110]* mod[choi[14]]); // Why 1.0f- ?? 0..2
+			if(param[143]){ // Mult. on
+				delayMod = 1.0f + param[110] * mod[choi[14]] * param[144] * mod[choi[17]];
+			}else{// Mult. off
+				delayMod = 1.0f + (param[110] * mod[choi[14]] + param[144] * mod[choi[17]]) *0.5f;
+			}
 			// param[111] is delay time 0..1 (seconds?)
 			delayJ[currentvoice] = delayI[currentvoice] - ((param[111]* maxDelayTime)*delayMod);
 
@@ -1387,9 +1396,10 @@ void init ()
 		d2 = 0;*/
 
 	// miditable for notes to frequency
-	// Make it tunable ??
-	// Allow different temperaments??
-	for (i = 0;i<128;++i) midi2freq[i] = 8.1758f * pow(2,(i/12.f));
+	for (i = 0;i<128;++i){
+		midi2freq0[i] = 8.1758f * pow(2,(i/12.f));
+		midi2freq[i] = midi2freq0[i]; // No detune yet
+	}
 
 } // end of initialization
 
@@ -1511,6 +1521,7 @@ void doMidi(int status, int n, int v){
 static inline void doNoteOff(int voice, int note, int velocity){
 	// Velocity currently ignored
 	if (voice <_MULTITEMP){
+		note+=transpose[voice];
 		if(note==lastnote[voice]){ // Ignore release for old notes
 			if(hold[voice]){
 				heldnote[voice]=note;
@@ -1530,53 +1541,56 @@ static inline void doNoteOff(int voice, int note, int velocity){
 static inline void doNoteOn(int voice, int note, int velocity){
 	if (voice <_MULTITEMP){
 		if ((note>=note_min[voice]) && (note<=note_max[voice])){
-			if (velocity>0){
-				heldnote[voice]=0;
-				lastnote[voice]=note;
-				glide[voice]+=midi2freq[note]-midif[voice]; // Span between previous and new note
-				if(EGstate[voice][0]==4){
-					glide[voice]=0; // Don't glide from finished note
+			note+=transpose[voice];
+			if(note>=0 && note<=127){
+				if (velocity>0){
+					heldnote[voice]=0;
+					lastnote[voice]=note;
+					glide[voice]+=midi2freq[note]-midif[voice]; // Span between previous and new note
+					if(EGstate[voice][0]==4){
+						glide[voice]=0; // Don't glide from finished note
+					}
+					// Reset phase if needed
+					if(parameter[voice][120]){
+						phase[voice][1]=parameter[voice][119]*samples_per_degree;
+						phase[voice][0]=parameter[voice][119]*samples_per_degree*0.5; // sub-osc
+	#ifdef _DEBUG
+						printf("Osc 1 voice %u phase set to %f\n", voice, parameter[voice][119]);
+	#endif
+					}
+					if(parameter[voice][135]){
+						phase[voice][2]=parameter[voice][134]*samples_per_degree;
+	#ifdef _DEBUG
+						printf("Osc 2 voice %u phase set to %f\n", voice, parameter[voice][134]);
+	#endif
+					}
+					
+					midif[voice]=midi2freq[note];// lookup the frequency
+					// 1/127=0,007874015748...
+					modulator[voice][19]=note*0.007874f;// fill the value in as normalized modulator
+					modulator[voice][1]=(float)1.0f-(velocity*0.007874f);// fill in the velocity as modulator
+					// why is velocity inverted??
+					// Parameter 139 is legato, don't retrigger unless released (0) or idle (4)
+					if(EGstate[voice][0]==4 || EGstate[voice][0]==0 || parameter[voice][139]==0){
+						egStart(voice,0);// start the engines!
+						// Maybe optionally restart repeatable envelopes too, i.e free-run boutton?
+						if (EGrepeat[voice][1] == 0) egStart(voice,1);
+						if (EGrepeat[voice][2] == 0) egStart(voice,2);
+						if (EGrepeat[voice][3] == 0) egStart(voice,3);
+						if (EGrepeat[voice][4] == 0) egStart(voice,4);
+						if (EGrepeat[voice][5] == 0) egStart(voice,5);
+						if (EGrepeat[voice][6] == 0) egStart(voice,6);
+	#ifdef _DEBUG
+					}else{
+						printf("Legato\n");
+	#endif
+					}
+	#ifdef _DEBUG
+						printf("Note on %u voice %u velocity %u\n", note, voice, velocity);
+	#endif
+				}else{ // if velo == 0 it should be handled as noteoff...
+					doNoteOff(voice, note-transpose[voice], velocity);
 				}
-				// Reset phase if needed
-				if(parameter[voice][120]){
-					phase[voice][1]=parameter[voice][119]*samples_per_degree;
-					phase[voice][0]=parameter[voice][119]*samples_per_degree*0.5; // sub-osc
-#ifdef _DEBUG
-					printf("Osc 1 voice %u phase set to %f\n", voice, parameter[voice][119]);
-#endif
-				}
-				if(parameter[voice][135]){
-					phase[voice][2]=parameter[voice][134]*samples_per_degree;
-#ifdef _DEBUG
-					printf("Osc 2 voice %u phase set to %f\n", voice, parameter[voice][134]);
-#endif
-				}
-				
-				midif[voice]=midi2freq[note];// lookup the frequency
-				// 1/127=0,007874015748...
-				modulator[voice][19]=note*0.007874f;// fill the value in as normalized modulator
-				modulator[voice][1]=(float)1.0f-(velocity*0.007874f);// fill in the velocity as modulator
-				// why is velocity inverted??
-				// Parameter 139 is legato, don't retrigger unless released (0) or idle (4)
-				if(EGstate[voice][0]==4 || EGstate[voice][0]==0 || parameter[voice][139]==0){
-					egStart(voice,0);// start the engines!
-					// Maybe optionally restart repeatable envelopes too, i.e free-run boutton?
-					if (EGrepeat[voice][1] == 0) egStart(voice,1);
-					if (EGrepeat[voice][2] == 0) egStart(voice,2);
-					if (EGrepeat[voice][3] == 0) egStart(voice,3);
-					if (EGrepeat[voice][4] == 0) egStart(voice,4);
-					if (EGrepeat[voice][5] == 0) egStart(voice,5);
-					if (EGrepeat[voice][6] == 0) egStart(voice,6);
-#ifdef _DEBUG
-				}else{
-					printf("Legato\n");
-#endif
-				}
-#ifdef _DEBUG
-					printf("Note on %u voice %u velocity %u\n", note, voice, velocity);
-#endif
-			}else{ // if velo == 0 it should be handled as noteoff...
-				doNoteOff(voice, note, velocity);
 			}
 		}
 	}
@@ -1600,7 +1614,7 @@ void doReset(unsigned int voice){
 
 		memset(delayBuffer[voice],0,sizeof(delayBuffer[voice]));
 	}
-	first_time=1;
+	first_time=1; // Helps with debugging
 #ifdef _DEBUG
 	printf("doReset: voice %u filters and delay buffer reset\n", voice);
 #endif
@@ -1659,56 +1673,6 @@ static void *midiprocessor(void *handle) {
 					if(channel[voice]==c)
 						doControlChange(voice, ev->data.control.param, ev->data.control.value);
 				}
-			/* Factored out, see above
-				if  (c <_MULTITEMP)
-				{
-					if  (ev->data.control.param==1)   
-						modulator[c][ 16]=ev->data.control.value*0.007874f; // /127.f;
-					else 
-					if  (ev->data.control.param==12)   
-						modulator[c][ 17]=ev->data.control.value*0.007874f;// /127.f;
-					else 
-					if  (ev->data.control.param==2)   
-						modulator[c][ 20]=ev->data.control.value*0.007874f;// /127.f;
-					else 
-					if  (ev->data.control.param==3)   
-						modulator[c][ 21]=ev->data.control.value*0.007874f;// /127.f;
-					else 
-					if  (ev->data.control.param==4)   
-						modulator[c][ 22]=ev->data.control.value*0.007874f;// /127.f;
-					else 
-					if  (ev->data.control.param==5)   
-						modulator[c][ 23]=ev->data.control.value*0.007874f;// /127.f;
-					else 
-					if  (ev->data.control.param==14)   
-						modulator[c][ 24]=ev->data.control.value*0.007874f;// /127.f;
-					else 
-					if  (ev->data.control.param==15)   
-						modulator[c][ 25]=ev->data.control.value*0.007874f;// /127.f;
-					else 
-					if  (ev->data.control.param==16)   
-						modulator[c][ 26]=ev->data.control.value*0.007874f;// /127.f;
-					else 
-					if  (ev->data.control.param==17)   
-						modulator[c][ 27]=ev->data.control.value*0.007874f;// /127.f;
-					else 
-					if  (ev->data.control.param==64){ // Hold
-		 				if (c<_MULTITEMP){
-							if(ev->data.control.value>63){ // Hold on
-								hold[c]=1;
-							}else{ // Hold off
-								hold[c]=0;
-								if (heldnote[c]){
-								// note is held if note_off occurs while hold is on
-								// There is no attempt at polyphonic keyboard handling
-									doNoteOn(c, heldnote[c], 0); // Do a note_off
-									heldnote[c]=0;
-								}
-							}
-						}
-					}
-				}
-				*/
 				break;
 			}
 			case SND_SEQ_EVENT_PITCHBEND:
@@ -1804,30 +1768,49 @@ printf("minicomputer version %s\n",_VERSION);
 char OscPort[] = _OSCPORT; // default value for OSC port
 char *oport = OscPort;// pointer of the OSC port string
 char *oport2;
+int has_port2=0;
 int do_connect=1;
 
 int i;
 // process the arguments
-  if (argc > 1)
-  {
-  	for (i = 0;i<argc;++i)
+  	for (i = 1; i<argc; ++i)
 	{
-		if (strcmp(argv[i],"-port")==0) // got a OSC port argument
-		{
+		if (strcmp(argv[i],"-port")==0){ // got a OSC port argument
 			++i;// looking for the next entry
-			if (i<argc)
-			{
+			if (i<argc) {
 				int tport = atoi(argv[i]);
-				if (tport > 0) oport = argv[i]; // overwrite the default for the OSCPort
+				if (tport > 0){
+					oport = argv[i]; // overwrite the default for the OSCPort
+				}else{
+					fprintf(stderr, "Invalid port %s\n", argv[i]);
+					exit(1);
+				}
+			}else{
+				fprintf(stderr, "Invalid port - end of command line reached\n");
+				exit(1);
 			}
-			else break; // we are through
+		}
+		if (strcmp(argv[i],"-port2")==0){ // got a OSC port argument
+			++i;// looking for the next entry
+			if (i<argc){
+				int tport2 = atoi(argv[i]);
+				if (tport2 > 0){
+					oport2 = argv[i]; // overwrite the default for the OSCPort
+					has_port2 = 1;
+				}else{
+					fprintf(stderr, "Invalid port %s\n", argv[i]);
+					exit(1);
+				}
+			}else{
+				fprintf(stderr, "Invalid port - end of command line reached\n");
+				exit(1);
+			}
 		}
 		if (strcmp(argv[i],"-no-connect")==0) do_connect=0;
 	}
-  }
 
-	printf("Server OSC input port %s\n",oport);
-	sprintf(jackName,"Minicomputer%s",oport);// store globally a unique name
+	printf("Server OSC input port %s\n", oport);
+	sprintf(jackName, "Minicomputer%s", oport);// store globally a unique name
 
 // ------------------------ ALSA midi init ---------------------------------
 	pthread_t midithread;
@@ -1843,7 +1826,7 @@ int i;
  
 
 // ------------------------ OSC Init ------------------------------------   
-	/* start a new server on port definied where oport points to */
+	/* start a new server on port defined where oport points to */
 	lo_server_thread st = lo_server_thread_new(oport, error);
 
 	/* add method that will match /Minicomputer/choice with three integers */
@@ -1855,13 +1838,17 @@ int i;
 
 	/* add method that will match the path Minicomputer/quit with one integer */
 	lo_server_thread_add_method(st, "/Minicomputer/quit", "i", quit_handler, NULL);
+	
 	lo_server_thread_add_method(st, "/Minicomputer/midi", "iiii", midi_handler, NULL); // DSSI-like
+	lo_server_thread_add_method(st, "/Minicomputer/multiparm", "if", multiparm_handler, NULL);
 
 	lo_server_thread_start(st);
 
 	// init for output
-	oport2=(char *)malloc(80);
-	snprintf(oport2, 80, "%d", atoi(oport)+1);
+	if(has_port2==0){
+		oport2=(char *)malloc(80);
+		snprintf(oport2, 80, "%d", atoi(oport)+1);
+	}
 	printf("Server OSC output port: \"%s\"\n", oport2);
 	t = lo_address_new(NULL, oport2);
 
@@ -2017,11 +2004,44 @@ static inline int generic_handler(const char *path, const char *types, lo_arg **
 	}
 	else
 	{
-		fprintf(stderr, "WARNING unhandled generic_handler %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
+		fprintf(stderr, "WARNING: unhandled generic_handler %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
 		return 1;
 	}
 }
 
+float multiparm[_MULTIPARMS];
+static inline int multiparm_handler(const char *path, const char *types, lo_arg **argv,
+			int argc, void *data, void *user_data)
+{
+	int parmnum=argv[0]->i;
+	float parmval=argv[1]->f;
+	int note, voice;
+	if(parmnum<_MULTIPARMS) multiparm[parmnum]=parmval;
+	if(parmnum<12){ // 0..11 is individual detune
+		// middle C note is represented by the value of 60
+// printf("multiparm_handler: note %i detune %f --> %f\n", parmnum, parmval, 1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*parmval);
+		for(note=parmnum; note<128; note+=12){
+			midi2freq[note] = midi2freq0[note]
+				* (1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*parmval )
+				* (1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*multiparm[12] ); // 2^(1/12)=1,05946309436
+		}
+		// Fix currently playing note if needed so detune is immediately effective
+		for(voice=0; voice<_MULTITEMP; voice++){
+			if (lastnote[voice]%12 == parmnum) midif[voice]=midi2freq[lastnote[voice]];
+		}
+	}else if (parmnum==12){ // Master tune
+		for(note=0; note<128; note++){
+			midi2freq[note] = midi2freq0[note]
+				* (1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*multiparm[note%12] )
+				* (1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*multiparm[parmnum] ); // 2^(1/12)=1,05946309436
+		}
+		for(voice=0; voice<_MULTITEMP; voice++){
+			midif[voice]=midi2freq[lastnote[voice]];
+		}
+	}else{
+		fprintf(stderr, "WARNING: multiparm_handler unhandled parameter number %i\n", parmnum);
+	}
+}
 static inline int midi_handler(const char *path, const char *types, lo_arg **argv,
 			int argc, void *data, void *user_data)
 {
@@ -2178,6 +2198,7 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 	 case 127:channel[voice]=(argv[2]->f)-1;break;
 	 case 128:note_min[voice]=argv[2]->f;break;
 	 case 129:note_max[voice]=argv[2]->f;break;
+	 case 130:transpose[voice]=argv[2]->f;break;
 	}
 #ifdef _DEBUG
 	printf("foo_handler %i %i %f \n",voice,i,argv[2]->f);

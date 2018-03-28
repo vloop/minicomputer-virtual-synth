@@ -391,28 +391,32 @@ void Memory::saveMulti()
 	char kommand[1200];
 	int i;
 	int result;
-	  //************* the binary depricated fileformat
-//---------------------- new text format
-// first write in temporary file, just in case
+	//---------------------- new text format
+	// first write in temporary file, just in case
 
-sprintf(kommand,"%s/minicomputerMulti.temp",folder);
-ofstream File (kommand); // temporary file
+	sprintf(kommand,"%s/minicomputerMulti.temp",folder);
+	ofstream File (kommand); // temporary file
 
-int p,j;
-for (i=0;i<128;++i)// write the whole 128 multis
-{
-	File<< "["<<i<<"]" <<endl;// write the multi id number
-	File<< "'"<<multis[i].name<<"'"<<endl;// write the name of the multi
-	
-	for (p=0;p<_MULTITEMP;++p) // store the sound ids of all 8 voices
+	int p,j;
+	for (i=0;i<128;++i)// write the whole 128 multis
 	{
-		File<< "("<< p << ":" <<multis[i].sound[p]<<")"<<endl;
-		for (j=0;j<_MULTISETTINGS;++j)
-			File<< "{"<< p << ";"<< j << ":" <<multis[i].settings[p][j]<<"}"<<endl;
+		File<< "["<<i<<"]" <<endl;// write the multi id number
+		File<< "'"<<multis[i].name<<"'"<<endl;// write the name of the multi
+		
+		for (p=0;p<_MULTITEMP;++p) // store the sound ids of all 8 voices
+		{
+			File<< "("<< p << ":" <<multis[i].sound[p]<<")"<<endl;
+			for (j=0;j<_MULTISETTINGS;++j)
+				File<< "{"<< p << ";"<< j << ":" <<multis[i].settings[p][j]<<"}"<<endl;
+		}
+		for (p=0;p<_MULTIPARMS;++p) // store the global multi parameters
+		{
+			File<< "<"<< p << ":" <<multis[i].parms[p]<<">"<<endl;
+		}
 	}
-}
 
-File.close();// done
+	File.close();// done
+
 	sprintf(kommand,"%s/minicomputerMulti.txt",folder);
 	if (access(kommand, R_OK) == 0) // check if there a previous file which need to be backed up
  	{
@@ -444,7 +448,7 @@ ifstream File (path);
 getline(File,str);// get the first line from the file
 int current=0;
 unsigned int j;
-while (File)// as long there is anything in the file
+while (File)// as long as there is anything in the file
 {
 	// reset some variables
 	sParameter="";
@@ -452,30 +456,41 @@ while (File)// as long there is anything in the file
 	// parse the entry (line) based on the first character
 	switch (str[0])
 	{
-		case '(':// setting parameter
+		case '(':// setting per voice multi parameter
 		{
-			if (parseNumbers(str,iParameter,i2Parameter,fValue))
+			if (parseNumbers(str, iParameter, i2Parameter, fValue))
 			{
-				multis[current].sound[iParameter]=(int)fValue;
+				if(iParameter<_MULTITEMP)
+					multis[current].sound[iParameter]=(int)fValue;
+				else
+					fprintf(stderr, "ERROR: loadMulti - unexpected parameter number %i", iParameter);
+			}
+		}
+		break;
+		case '<':// setting global multi parameter
+		{
+			if (parseNumbers(str, iParameter, i2Parameter, fValue))
+			{
+				if(iParameter<_MULTIPARMS)
+					multis[current].parms[iParameter]=(int)fValue;
+				else
+					fprintf(stderr, "ERROR: loadMulti - unexpected parameter number %i", iParameter);
 			}
 		}
 		break;
 		case '\'': // setting the name
 		{
 			j = 1; // important, otherwise it would bail out at the first '	
-			while ((j<str.length()) && (str[j]!='\'') && (j<128) )
+			while ((j<str.length()) && (str[j]!='\'') && (j<_NAMESIZE) )
 			{
 				multis[current].name[j-1] = str[j];
 				++j;
 			}
 			// printf("Multi # %u : \"%s\"\n", current, multis[current].name);
-			if (j<128) // fill the rest with blanks to clear the string
+			while (j<_NAMESIZE)
 			{
-				while (j<128)
-				{
-					multis[current].name[j-1]=' ';
-					++j;
-				}
+				multis[current].name[j-1]=' ';
+				++j;
 			}
 		}
 		break;
@@ -495,9 +510,7 @@ while (File)// as long there is anything in the file
 			}
 		}
 		break;
-
 	}// end of switch
-
 	getline(File,str);// get the next line
 }// end of while (file)
 File.close();// done
@@ -513,7 +526,7 @@ File.close();// done
  * @param float the actual value
  * @return bool, true if the parsing worked
  */
-bool Memory::parseNumbers(string &str,int &iParameter,int &i2Parameter,float &fValue)
+bool Memory::parseNumbers(string &str, int &iParameter, int &i2Parameter, float &fValue)
 {
  bool rueck = false;
  if (!str.empty())// just to make sure
@@ -523,7 +536,7 @@ bool Memory::parseNumbers(string &str,int &iParameter,int &i2Parameter,float &fV
 	string sValue="";
 	string sP2="";
 	unsigned int index = 0;
-	bool hasValue = false,hasP2 = false,isValue=false,isP2=false;
+	bool hasValue = false, hasP2 = false, isValue=false, isP2=false;
 	// first getting each digit character
 	while (index<str.length())// examine character per character
 	{

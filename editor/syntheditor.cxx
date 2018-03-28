@@ -33,19 +33,16 @@ static Fl_RGB_Image image_miniMini(idata_miniMini, _LOGO_WIDTH, _LOGO_HEIGHT, 3,
  Fl_Toggle_Button* audition;
  int audition_state[_MULTITEMP];
  Fl_Value_Input* paramon;
- // Fl_Value_Input* note_number;
- // Fl_Value_Input* note_velocity;
  Fl_Value_Output *memDisplay[_MULTITEMP];
  Fl_Value_Output *multiDisplay;
  Fl_Input* Multichoice;
  Fl_Box* sounding[_MULTITEMP];
+ Fl_Value_Input* multiparm[_MULTIPARMS];
  
  int currentParameter=0;
  char currentParameterName[32]="...............................";
 
  unsigned int currentsound=0, currentmulti=0;
-// unsigned int multi[128][8];
-// string multiname[128];
  bool transmit;
  bool sense=false; // Core not sensed yet
 
@@ -92,9 +89,9 @@ char *strnrtrim(char *dest, const char*source, size_t len){
 static void choiceCallback(Fl_Widget* o, void*)
 {
 #ifdef _DEBUF
-	printf("choiceCallback voice %u, parameter %u, value %u\n", currentsound, ((Fl_Choice*)o)->argument(),((Fl_Choice*)o)->value());
+	printf("choiceCallback voice %u, parameter %u, value %u\n", currentsound, ((Fl_Choice*)o)->argument(), ((Fl_Choice*)o)->value());
 #endif
-	if (transmit) lo_send(t, "/Minicomputer/choice", "iii",currentsound,((Fl_Choice*)o)->argument(),((Fl_Choice*)o)->value());
+	if (transmit) lo_send(t, "/Minicomputer/choice", "iii", currentsound, ((Fl_Choice*)o)->argument(), ((Fl_Choice*)o)->value());
 }
 static void do_audition(Fl_Widget* o, void*)
 {
@@ -484,6 +481,7 @@ switch (currentParameter)
 	case 135:
 	case 137: // Bypass filters
 	case 139: // Legato
+	case 143: // Time modulator 2 mult.
 	{
 		if (((Fl_Light_Button *)o)->value()==0)
 		{
@@ -717,12 +715,13 @@ static void finetuneCallback(Fl_Widget* o, void*)
 			((Fl_Valuator* )Knob[currentsound][currentParameter])->value(val);
 // #ifdef _DEBUG
 			printf("=%f\n", val);
-// #endif
 			parmCallback(Knob[currentsound][currentParameter], NULL);
 			Fl::awake();
 			Fl::unlock();
+// #ifdef _DEBUG
 		}else{
-printf("finetuneCallback - ignoring %i\n", currentParameter);
+			printf("finetuneCallback - ignoring %i\n", currentParameter);
+// #endif
 		}
 	}else{
 		fprintf(stderr, "finetuneCallback - Error: unexpected current parameter %i\n", currentParameter);
@@ -809,9 +808,31 @@ static void BPMtimeCallback(Fl_Widget* o, void*)
 	Fl::lock();
 	float f = ((Fl_Valuator* )o)->value();
 	if(f!=0) f=60.f/f;
-	int Argument = ((Fl_Valuator* )o)->argument();
-	((Fl_Valuator*)Knob[currentsound][Argument])->value(f);
-	parmCallback(Knob[currentsound][Argument],NULL);
+	int argument = ((Fl_Valuator* )o)->argument();
+	((Fl_Valuator*)Knob[currentsound][argument])->value(f);
+	parmCallback(Knob[currentsound][argument], NULL);
+	Fl::awake();
+	Fl::unlock();
+}
+
+/**
+ * parmCallback for finetuning the current parameter
+ * @param Fl_Widget the calling widget
+ * @param defined by FLTK but not used
+ */
+static void multiparmCallback(Fl_Widget* o, void*)
+{
+	Fl::lock();
+	int argument = ((Fl_Valuator* )o)->argument();
+	if(argument<_MULTIPARMS){
+		double value = ((Fl_Valuator*)o)->value();
+		value=min(value, max(((Fl_Valuator*)o)->minimum(), ((Fl_Valuator*)o)->maximum()));
+		value=max(value, min(((Fl_Valuator*)o)->minimum(), ((Fl_Valuator*)o)->maximum()));
+		((Fl_Valuator*)o)->value(value);
+		if (transmit) lo_send(t, "/Minicomputer/multiparm", "if", argument, value);
+	}else{
+		fprintf(stderr, "ERROR: multiparmCallback - unexpected argument %i\n", argument);
+	}
 	Fl::awake();
 	Fl::unlock();
 }
@@ -819,10 +840,10 @@ static void BPMtimeCallback(Fl_Widget* o, void*)
 static void soundRollerCallback(Fl_Widget* o, void*)
 {
 	Fl::lock();
-		int Faktor = (int)((Fl_Valuator* )o)->value();
-		schoice[currentsound]->value((Speicher.getName(0,Faktor)).c_str());
-		schoice[currentsound]->position(0);
-		memDisplay[currentsound]->value(Faktor);// set gui
+	int Faktor = (int)((Fl_Valuator* )o)->value();
+	schoice[currentsound]->value((Speicher.getName(0,Faktor)).c_str());
+	schoice[currentsound]->position(0);
+	memDisplay[currentsound]->value(Faktor);// set gui
 	Fl::awake();
 	Fl::unlock();
 }
@@ -1002,6 +1023,7 @@ static void storesound(Fl_Widget* o, void* e)
 	case 135: // Start phase enable osc 2
 	case 137: // Bypass filters
 	case 139: // Legato
+	case 143: // Time modulator 2 mult.
 	{
 		if (((Fl_Light_Button *)Knob[currentsound][i])->value()==0)
 		{
@@ -1213,6 +1235,7 @@ static void recall(unsigned int preset)
 	case 135:
 	case 137: // Bypass filters
 	case 139: // Legato
+	case 143: // Time modulator 2 mult.
 	{
 		#ifdef _DEBUG
 		printf("handle: %d\n",i);
@@ -1404,8 +1427,8 @@ static void loadmulti(Fl_Widget*, void*)
 			((Fl_Valuator*)Knob[i][MULTI_parm_num[j]])->value(Speicher.multis[currentmulti].settings[i][j]);
 			parmCallback(Knob[i][MULTI_parm_num[j]],NULL);
 		}
-		// set the midi parameters, 5..9
-		int MIDI_parm_num[]={125, 126, 127, 128, 129};
+		// set the midi parameters, 5..10
+		int MIDI_parm_num[]={125, 126, 127, 128, 129, 130};
 		int start=5; // sizeof(MULTI_parm_num)/sizeof(int);
 		for (unsigned int j=0; j<sizeof(MIDI_parm_num)/sizeof(int); j++)
 		{
@@ -1414,6 +1437,11 @@ static void loadmulti(Fl_Widget*, void*)
 			midiparmCallback(Knob[i][MIDI_parm_num[j]],NULL);
 		}
 	}
+	for (int i=0;i<_MULTIPARMS;++i){
+		((Fl_Valuator*)multiparm[i])->value(Speicher.multis[currentmulti].parms[i]);
+		multiparmCallback(multiparm[i], NULL);
+	}
+
 	currentsound = 0;
 	// we should go to a defined state, means tab
 	tabs->value(tab[currentsound]);
@@ -1483,6 +1511,10 @@ static void storemulti(Fl_Widget* o, void* e)
 		Speicher.multis[currentmulti].settings[i][7]=((Fl_Valuator*)Knob[i][127])->value();
 		Speicher.multis[currentmulti].settings[i][8]=((Fl_Valuator*)Knob[i][128])->value();
 		Speicher.multis[currentmulti].settings[i][9]=((Fl_Valuator*)Knob[i][129])->value();
+		Speicher.multis[currentmulti].settings[i][10]=((Fl_Valuator*)Knob[i][130])->value();
+	}
+	for (i=0;i<_MULTIPARMS;++i){
+		Speicher.multis[currentmulti].parms[i]=((Fl_Valuator*)multiparm[i])->value();
 	}
 	// write to disk
 	Speicher.saveMulti();
@@ -2028,7 +2060,8 @@ Fenster* UserInterface::make_window(const char* title) {
 	needs_multi[127]=1; // Channel
 	needs_multi[128]=1; // Note min
 	needs_multi[129]=1; // Note max
-	
+	needs_multi[130]=1; // Transpose
+
 	// show parameter on fine tune only when relevant (not a frequency...)
 	for (int i=0;i<_PARACOUNT;++i) needs_finetune[i]=1;
 	needs_finetune[0]=0; // clear state
@@ -2048,6 +2081,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	needs_finetune[127]=0; // Midi channel
 	needs_finetune[128]=0; // Min note
 	needs_finetune[129]=0; // Max note
+	needs_finetune[130]=0; // Transpose
 	needs_finetune[2]=0; // Osc 1 Fixed frequency
 	needs_finetune[4]=0; // Osc 1 Boost
 	needs_finetune[117]=0; // Osc 1 Mult freq modulator 2
@@ -2070,6 +2104,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	needs_finetune[84]=0; // EG 5 repeat
 	needs_finetune[89]=0; // EG 6 repeat
 	needs_finetune[139]=0; // Legato
+	needs_finetune[143]=0; // Time modulator 2 mult.
 
 	transmit=true;
 	Fenster* o = new Fenster(995, 515, title);
@@ -2283,7 +2318,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	  make_EG(i, 80, 608, 263, "EG 5");
 	  make_EG(i, 85, 608, 324, "EG 6");
 	  
-	  // ----------- knobs for oscillators ---------------
+	  // ----------- knobs for mod oscillator ---------------
 	  { Fl_Group* o = new Fl_Group(608, 380, 200, 54, "mod osc");
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
@@ -2505,12 +2540,6 @@ Fenster* UserInterface::make_window(const char* title) {
 	  d->labelsize(8);
 	  d->labelcolor(FL_BACKGROUND2_COLOR);
 	}
-	  { Fl_Dial* o = new Fl_Dial(934, 260, 25, 25, "amount");
-		o->labelsize(8);
-		o->argument(110);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[i][o->argument()] = o;
-	  }
 	  { Fl_Choice* o = new Fl_Choice(844, 265, 85, 15, "time modulator");
 		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
@@ -2522,16 +2551,47 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(844, 293, 25, 25, "delay time");
+	  { Fl_Dial* o = new Fl_Dial(934, 260, 25, 25, "amount");
+		o->labelsize(8);
+		o->argument(110);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	  }
+		{ Fl_Light_Button* o = new Fl_Light_Button(844, 285, 40, 15, "mult.");
+		  o->box(FL_BORDER_BOX);
+		  o->selection_color((Fl_Color)89);
+		  o->labelsize(8);
+		  o->argument(143);
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[i][o->argument()] = o;
+		}
+	  { Fl_Choice* o = new Fl_Choice(844, 310, 85, 15, "time modulator 2");
+		o->box(FL_BORDER_BOX);
+		o->down_box(FL_BORDER_BOX);
+		o->labelsize(8);
+		o->textsize(8);
+		o->align(FL_ALIGN_TOP_LEFT);
+		o->menu(menu_amod);
+		o->argument(17);
+		o->callback((Fl_Callback*)choiceCallback);
+		auswahl[i][o->argument()]=o;
+	  }
+	  { Fl_Dial* o = new Fl_Dial(934, 305, 25, 25, "amount");
+		o->labelsize(8);
+		o->argument(144);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	  }
+	  { Fl_Dial* o = new Fl_Dial(844, 340, 25, 25, "delay time");
 		o->labelsize(8);
 		o->argument(111);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-		{ Fl_Value_Input* o = new Fl_Value_Input(889, 298, 38, 15, "BPM");// BPM display for delay time
+		{ Fl_Value_Input* o = new Fl_Value_Input(879, 345, 38, 15, "BPM");// BPM display for delay time
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(8);
-		  o->align(FL_ALIGN_RIGHT);
+		  o->align(FL_ALIGN_BOTTOM);
 		  o->maximum(10000);
 		  o->step(0.01);
 		  o->textsize(8);
@@ -2539,7 +2599,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->argument(111);
 		  miniDisplay[i][12]=o;
 		}
-	  { Fl_Dial* o = new Fl_Dial(874, 330, 25, 25, "feedback");
+	  { Fl_Dial* o = new Fl_Dial(934, 340, 25, 25, "feedback");
 		o->labelsize(8);
 		o->argument(112);
 		o->callback((Fl_Callback*)parmCallback);
@@ -2723,7 +2783,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->box(FL_BORDER_FRAME);
 		// draw logo
 		{ Fl_Box* o = new Fl_Box(855, 450, 25, 25);
-		  o->image(image_miniMini2);
+			o->image(image_miniMini2);
 		}
 		int voice;
 		char * voice_label[_MULTITEMP];
@@ -2739,7 +2799,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  // Can't get Fl_Int_Input to work
 		  // "If step() is non-zero and integral, then the range of numbers is limited to integers"
 		  // range and bounds don't seem to be enforced when typing a value like 12345
-		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 46, 46, 15, "Channel");
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 46, 40, 15, "Channel");
 			o->box(FL_ROUNDED_BOX);
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->labelsize(8);
@@ -2751,10 +2811,10 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->argument(127+(voice<<8));
 			o->callback((Fl_Callback*)midiparmCallback);
 			o->value(voice);
-			Knob[voice][127] = o;
+			Knob[voice][127] = o; // NOT argument!!
 		  }
 		  // Note min
-		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 86, 46, 15, "Note min");
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 86, 40, 15, "Note min");
 			o->box(FL_ROUNDED_BOX);
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->labelsize(8);
@@ -2763,10 +2823,10 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->step(1);
 			o->argument(128+(voice<<8));
 			o->callback((Fl_Callback*)midiparmCallback);
-			Knob[voice][128] = o;
+			Knob[voice][128] = o; // NOT argument!!
 		  }
 		  // Note max
-		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 126, 46, 15, "Note max");
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 126, 40, 15, "Note max");
 			o->box(FL_ROUNDED_BOX);
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->labelsize(8);
@@ -2776,10 +2836,24 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->value(127);
 			o->argument(129+(voice<<8));
 			o->callback((Fl_Callback*)midiparmCallback);
-			Knob[voice][129] = o;
+			Knob[voice][129] = o; // NOT argument!!
+		  }
+		  // Transpose
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 166, 40, 14, "Transpose");
+			o->box(FL_ROUNDED_BOX);
+			o->labelsize(8);
+			o->textsize(8);
+			o->range(-127,127);
+			o->align(FL_ALIGN_TOP_LEFT);
+			o->step(1);
+			o->value(0);
+			// o->callback((Fl_Callback*)parmCallback);
+			o->argument(130+(voice<<8));
+			o->callback((Fl_Callback*)midiparmCallback);
+			Knob[voice][130] = o; // NOT argument!!
 		  }
 		  // Test note
-		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 166, 45, 14, "Test note");
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 206, 40, 14, "Test note");
 			o->box(FL_ROUNDED_BOX);
 			o->labelsize(8);
 			o->textsize(8);
@@ -2792,7 +2866,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			Knob[voice][o->argument()] = o;
 		  }
 		  // Test velocity
-		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 206, 45, 14, "Test velocity");
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 246, 40, 14, "Test velocity");
 			o->box(FL_ROUNDED_BOX);
 			o->labelsize(8);
 			o->textsize(8);
@@ -2804,7 +2878,65 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->argument(126);
 			Knob[voice][o->argument()] = o;
 		  }
+		} // End of for voice
+
+		// Note detune, common to all voices
+		const char *notenames[12]={"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+		{
+			int y=310;
+			Fl_Group* d = new Fl_Group(16, y, 460, 45, "Detune");
+			d->box(FL_ROUNDED_FRAME);
+			d->color(FL_BACKGROUND2_COLOR);
+			d->labelsize(8);
+			d->labelcolor(FL_BACKGROUND2_COLOR);
+			d->begin();
+			for(int notenum=0, x=0; notenum<12; notenum++){
+				{ Fl_Value_Input* o = new Fl_Value_Input(46+60*x, y+26, 40, 14, notenames[notenum]);
+					o->box(FL_ROUNDED_BOX);
+					o->labelsize(8);
+					o->textsize(8);
+					o->range(-0.5, 0.5);
+					o->align(FL_ALIGN_LEFT);
+					o->step(.01);
+					o->value(0);
+					o->callback((Fl_Callback*)multiparmCallback);
+					o->argument(notenum);
+					multiparm[notenum]=o;
+				}
+				if(notenum<10 && notenum!=4 && strlen(notenames[notenum])==1){
+					// We need a sharp version of this note
+					notenum++;
+					{
+						Fl_Value_Input* o = new Fl_Value_Input(76+60*x, y+6, 40, 14, notenames[notenum]);
+						o->box(FL_ROUNDED_BOX);
+						o->labelsize(8);
+						o->textsize(8);
+						o->range(-0.5, 0.5);
+						o->align(FL_ALIGN_LEFT);
+						o->step(.01);
+						o->value(0);
+						o->callback((Fl_Callback*)multiparmCallback);
+						o->argument(notenum);
+						multiparm[notenum]=o;
+					}
+				}
+				x++;
+			}
+			d->end();
 		}
+		{ Fl_Value_Input* o = new Fl_Value_Input(76, 280, 40, 14, "Master tune");
+			o->box(FL_ROUNDED_BOX);
+			o->labelsize(8);
+			o->textsize(8);
+			o->range(-0.5, 0.5);
+			o->align(FL_ALIGN_LEFT);
+			o->step(.01);
+			o->value(0);
+			o->callback((Fl_Callback*)multiparmCallback);
+			o->argument(12);
+			multiparm[12]=o;
+		}
+
 		o->end(); 
 		tab[i]=o;
 		i++;
@@ -2974,11 +3106,15 @@ Fenster* UserInterface::make_window(const char* title) {
 	// multiDisplay->value(1);
 	// loadmulti(NULL, NULL);
 
-#ifdef _DEBUG
-	// Dump parm list
+// #ifdef _DEBUG
+	// Dump parm list (from voice 0, same for others)
 	for(int parmnum=0; parmnum<_PARACOUNT; parmnum++){
 		if(Knob[0][parmnum])
 			printf("%3.3u : %s\n", parmnum, Knob[0][parmnum]->label());
+			/* Parent Fl_Group has no label
+			if(Knob[0][parmnum]->parent())
+				printf("    %s\n", Knob[0][parmnum]->parent()->label());
+			*/
 		else
 			printf("%3.3u : not defined\n", parmnum);
 	}
@@ -2988,7 +3124,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		else
 			printf("#%2.2u : not defined\n", choicenum);
 	}
-#endif
+// #endif
 
 	return o;
 }
@@ -3078,7 +3214,7 @@ int Fenster::handle (int event)
 
 		default:
 				// pass other events to the base class...
-				
+
 		return Fl_Double_Window::handle(event);
 		}
 }

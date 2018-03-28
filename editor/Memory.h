@@ -39,19 +39,20 @@ using namespace std;
  */
 typedef struct setting
 {
+	char name[_NAMESIZE];
 	float parameter[_PARACOUNT];
 	float freq[9][2];
 	int choice[_CHOICECOUNT];
-	char name[128];
 } patch;
 /**
  * the struct of a multitemperal setup
  */
 typedef struct mode
 {
+	char name[_NAMESIZE];
 	unsigned int sound[_MULTITEMP];// sound ids for the 8 voices
-	char name[128];//the name, up to 128 letters
-	float settings[_MULTITEMP][_MULTISETTINGS];// additional settings for volumes
+	float settings[_MULTITEMP][_MULTISETTINGS];// additional settings per voice
+	float parms[_MULTIPARMS];// additional global settings
 } multi;
 
 /**
