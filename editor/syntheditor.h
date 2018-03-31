@@ -67,9 +67,19 @@ extern Memory Speicher;
 #define _BTNLBLCOLOR2 1
 #define _LOGO_WIDTH 191
 #define _LOGO_HEIGHT 99
+#define _LOGO_WIDTH1 77
+#define _LOGO_HEIGHT1 81
+#define _LOGO_WIDTH2 191
+#define _LOGO_HEIGHT2 12
+#define _INIT_WIDTH 995
+#define _INIT_HEIGHT 515
+
+#define _TEXT_SIZE 8
 
 // One tab per voice plus midi and about
 #define _TABCOUNT _MULTITEMP+2
+// Minidisplays
+#define _MINICOUNT 13
 
 /*
 class Fl_SteinerKnob:public Fl_Dial
@@ -91,9 +101,12 @@ class Fenster:public Fl_Double_Window
 	public:
 	Fenster(int w, int h, const char* t);
 	Fenster(int w, int h);
-    	~Fenster();
+	~Fenster();
 	int handle (int event);
-	
+	void resize (int x, int y, int w, int h);
+	private:
+	int current_text_size;
+
 };
 
 class UserInterface {
@@ -122,10 +135,10 @@ public:
   Fl_Dial *f3q2;
   Fl_Dial *f3vol2;
   
-  static Fl_Menu_Item menu_morph[];
-  static Fl_Menu_Item menu_amod[];
-  static Fl_Menu_Item menu_fmod[];
-  static Fl_Menu_Item menu_wave[];
+  // static Fl_Menu_Item menu_morph[];
+  // static Fl_Menu_Item menu_amod[]; // Moved to global for resize
+  // static Fl_Menu_Item menu_fmod[]; // Moved to global for resize
+  // static Fl_Menu_Item menu_wave[]; // Moved to global for resize
   Fl_Input* soundchoice[_MULTITEMP];
   Fl_Input* multichoice;
 private:

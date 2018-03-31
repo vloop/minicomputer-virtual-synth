@@ -43,6 +43,9 @@
 #if defined(__SSE2__)
 #include <emmintrin.h>
 #endif
+#if defined(__SSE3__)
+#include <pmmintrin.h>
+#endif
 
 
 // some common definitions
@@ -71,6 +74,7 @@ int first_time=1;
 float delayBuffer[_MULTITEMP][96000] __attribute__((aligned (16)));
 float parameter[_MULTITEMP][_PARACOUNT] __attribute__((aligned (16)));
 float modulator[_MULTITEMP][_MODCOUNT] __attribute__((aligned (16)));
+float modwheel[_MULTITEMP] __attribute__((aligned (16)));
 // Bias and scale ensure modulator range is 0..1
 // This is useful when adding modulations
 float modulator_bias[_MODCOUNT] __attribute__((aligned (16)))={
@@ -522,6 +526,12 @@ int process(jack_nframes_t nframes, void *arg) {
 // ------------------------ main loop -------------------------
 // ------------------------------------------------------------
 	register unsigned int index;
+	#if defined(__SSE2__)
+	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+	#endif
+	#if defined(__SSE3__)
+	_MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
+	#endif
 	for (index = 0; index < nframes; ++index) // for each sample 
 	{
 
@@ -550,6 +560,10 @@ int process(jack_nframes_t nframes, void *arg) {
 		mod[11]=egCalc(currentvoice,4);
 		mod[12]=egCalc(currentvoice,5);
 		mod[13]=egCalc(currentvoice,6);
+
+		// Deglitch mod wheel
+		// see https://tomroelandts.com/articles/low-pass-single-pole-iir-filter
+		mod[16] += 0.001f * (modwheel[currentvoice] - mod[16]);
 
 // ------------------------------------------------------------
 // --------------- calc the main audio signal -----------------
@@ -1410,7 +1424,8 @@ void doControlChange(int voice, int n, int v){
 	{
 		switch(n){ // Controller number
 			case 1:{ // Modulation wheel
-				modulator[voice][16]=v*scale127;
+				// modulator[voice][16]=v*scale127;
+				modwheel[voice]=v*scale127;
 				// printf("Modulation wheel %f\n", modulator[voice][16]);
 				break;
 			}

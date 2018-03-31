@@ -37,7 +37,7 @@ using namespace std;
 /**
  * the struct of an single sound setting
  */
-typedef struct setting
+typedef struct
 {
 	char name[_NAMESIZE];
 	float parameter[_PARACOUNT];
@@ -47,12 +47,12 @@ typedef struct setting
 /**
  * the struct of a multitemperal setup
  */
-typedef struct mode
+typedef struct
 {
 	char name[_NAMESIZE];
-	unsigned int sound[_MULTITEMP];// sound ids for the 8 voices
-	float settings[_MULTITEMP][_MULTISETTINGS];// additional settings per voice
-	float parms[_MULTIPARMS];// additional global settings
+	unsigned int sound[_MULTITEMP]; // sound ids for the 8 voices
+	float settings[_MULTITEMP][_MULTISETTINGS]; // additional settings per voice
+	float parms[_MULTIPARMS]; // additional global settings
 } multi;
 
 /**
@@ -69,8 +69,8 @@ public:
 	void loadMulti();
 	void store(patch Sound);
 	void overwrite(patch Sound);
-	void importSound(string filename,unsigned int current);// import a single sound
-	void exportSound(string filename,unsigned int current);// export a single sound
+	void importSound(string filename,unsigned int current); // import a single sound
+	void exportSound(string filename,unsigned int current); // export a single sound
 
 	patch temp;
 	string getName(unsigned int voice,unsigned int Eintrag);
