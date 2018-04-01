@@ -31,6 +31,7 @@ Fl_Widget* tab[_TABCOUNT];
 Fl_Tabs* tabs;
 static const char* voicename[_MULTITEMP]={"1", "2", "3", "4", "5", "6", "7", "8"};
 Fl_Box* voicedisplay[_MULTITEMP];
+Fl_Group *soundgroup;
 Fl_Input* soundname[_MULTITEMP];
 Fl_Button *loadsound[_MULTITEMP], *storesound[_MULTITEMP];
 Fl_Button *importsoundBtn[_MULTITEMP], *exportsoundBtn[_MULTITEMP];
@@ -44,10 +45,11 @@ Fl_Button *clearstateBtn[_MULTITEMP];
 Fl_Value_Input* paramon;
 Fl_Box* sounding[_MULTITEMP];
 
+Fl_Group *multigroup;
 Fl_Value_Output *memDisplay[_MULTITEMP];
 Fl_Value_Output *multiDisplay;
 Fl_Input* multiname;
-Fl_Button *loadmulti, *storemulti;
+Fl_Button *loadmulti, *storemulti, *multidecBtn, *multiincBtn;
 Fl_Roller* multiRoller;
 
 Fl_Value_Input* multiparm[_MULTIPARMS];
@@ -897,6 +899,15 @@ static void soundRollerCallback(Fl_Widget* o, void*)
 	Fl::awake();
 	Fl::unlock();
 }
+static void soundincdecCallback(Fl_Widget* o, void*)
+{
+	int soundnum=Rollers[currentsound]->value() + o->argument();
+	if(soundnum<0) soundnum=0;
+	if(soundnum>511) soundnum=511;
+	// printf("soundincdecCallback sound %+ld # %u\n", o->argument(), soundnum);
+	Rollers[currentsound]->value(soundnum);
+	soundRollerCallback(Rollers[currentsound], NULL);
+}
 /*
 static void chooseCallback(Fl_Widget* o, void*)
 {
@@ -914,6 +925,15 @@ static void multiRollerCallback(Fl_Widget* o, void*)
 // printf("Multi %i %s\n", Faktor, Speicher.multis[Faktor].name);
 	Fl::awake();
 	Fl::unlock();
+}
+static void multiincdecCallback(Fl_Widget* o, void*)
+{
+	int multinum=multiRoller->value() + o->argument();
+	if(multinum<0) multinum=0;
+	if(multinum>127) multinum=127;
+	// printf("multiincdecCallback multi %+ld # %u\n", o->argument(), multinum);
+	multiRoller->value(multinum);
+	multiRollerCallback(multiRoller, NULL);
 }
 /**
  * parmCallback from the export file dialog
@@ -2693,8 +2713,11 @@ Fenster* UserInterface::make_window(const char* title) {
 	}
 
 
-	{ Fl_Group* d = new Fl_Group(5, 461, 680, 48, "memory");
+// ----------------------------------------- Sounds
+	  int x0=319;
+	{ Fl_Group* d = new Fl_Group(x0-7, 461, 364, 48, "sound");
 	  group[groups++]=d;
+	  soundgroup=d;
 	  d->box(FL_ROUNDED_FRAME);
 	  d->color(FL_BACKGROUND2_COLOR);
 	  d->labelsize(_TEXT_SIZE);
@@ -2717,8 +2740,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelsize(_TEXT_SIZE);
 		o->labelcolor((Fl_Color)1);
 	  }*/
-// ----------------------------------------- Sounds
-	  { Fl_Input* o = new Fl_Input(359, 471, 150, 14, "Sound");
+	  { Fl_Input* o = new Fl_Input(x0+60, 471, 150, 14, "name");
 		o->box(FL_BORDER_BOX);
 		o->tooltip("Enter the sound name here before storing it");
 		//o->down_box(FL_BORDER_FRAME);
@@ -2734,7 +2756,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		// d->add(o);
 		//o->callback((Fl_Callback*)chooseCallback,NULL);
 	  }
-	  { Fl_Roller* o = new Fl_Roller(359, 487, 150, 14);
+	  { Fl_Roller* o = new Fl_Roller(x0+60, 487, 150, 14);
 		o->type(FL_HORIZONTAL);
 		o->tooltip("roll the list of sounds");
 		o->minimum(0);
@@ -2745,7 +2767,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		Rollers[i]=o;
 		o->callback((Fl_Callback*)soundRollerCallback, NULL);
 	  }
-	  { Fl_Button* o = new Fl_Button(516, 466, 60, 19, "load sound");
+	  { Fl_Button* o = new Fl_Button(x0+217, 466, 60, 19, "load sound");
 		o->tooltip("actually load the dialed sound");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -2753,7 +2775,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)loadsoundCallback,soundchoice[i]);
 		loadsound[i]=o;
 	  }
-	  { Fl_Button* o = new Fl_Button(516, 487, 60, 19, "store sound");
+	  { Fl_Button* o = new Fl_Button(x0+217, 487, 60, 19, "store sound");
 		o->tooltip("store current sound in dialed memory");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -2761,8 +2783,15 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)storesoundCallback,soundchoice[i]);
 		storesound[i]=o; // For resize, no need for array here, any will do
 	  }
-	  { Fl_Value_Output* o = new Fl_Value_Output(319, 471, 35, 30,"sound #");
-		// o->box(FL_ROUNDED_BOX);
+	  { Fl_Button* o = new Fl_Button(x0, 471, 10, 30, "@<");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(_TEXT_SIZE);
+		o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
+		o->argument(-1);
+		o->callback((Fl_Callback*)soundincdecCallback);
+	  }
+	  { Fl_Value_Output* o = new Fl_Value_Output(x0+10, 471, 35, 30,"sound #");
+		o->box(FL_BORDER_BOX);
 		o->color(FL_BLACK);
 		o->labelsize(_TEXT_SIZE);
 		o->maximum(512);
@@ -2771,8 +2800,15 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->textcolor(FL_RED);
 		memDisplay[i]=o;
 	  }
+	  { Fl_Button* o = new Fl_Button(x0+45, 471, 10, 30, "@>");
+		o->box(FL_BORDER_BOX);
+		o->labelsize(_TEXT_SIZE);
+		o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
+		o->argument(+1);
+		o->callback((Fl_Callback*)soundincdecCallback);
+	  }
 
-	  { Fl_Button* o = new Fl_Button(600, 466, 60, 19, "import sound");
+	  { Fl_Button* o = new Fl_Button(x0+284, 466, 60, 19, "import sound");
 		o->tooltip("import single sound to dialed memory slot, you need to load it for playing");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -2781,7 +2817,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		importsoundBtn[i]=o;
 	  }
 
-	  { Fl_Button* o = new Fl_Button(600, 487, 60, 19, "export sound");
+	  { Fl_Button* o = new Fl_Button(x0+284, 487, 60, 19, "export sound");
 		o->tooltip("export sound data of dialed memory slot");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -2878,15 +2914,6 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->image(image_miniMini2);
 		}
 		*/
-		{ Fl_Group* d = new Fl_Group(5, 461, 286, 48, "memory");
-			group[groups++]=d;
-			d->box(FL_ROUNDED_FRAME);
-			d->color(FL_BACKGROUND2_COLOR);
-			d->labelsize(_TEXT_SIZE);
-			d->labelcolor(FL_BACKGROUND2_COLOR);
-			d->align(FL_ALIGN_TOP);
-			d->end();
-		}
 		int voice;
 		char * voice_label[_MULTITEMP];
 		for(voice=0; voice<_MULTITEMP; voice++){
@@ -3131,54 +3158,83 @@ Fenster* UserInterface::make_window(const char* title) {
 // ----------------------------------------- Multis
 // This code must be outside of the tabs loop!
 // It impacts resizing?
-	  { Fl_Input* o = new Fl_Input(60, 471, 150, 14, "Multi");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(_TEXT_SIZE);
-		o->textsize(_TEXT_SIZE);
-		o->align(FL_ALIGN_TOP_LEFT);
-		o->tooltip("Enter the multi name here before storing it");
-		// multichoice = o;
-		multiname = o; // global ??
-		// d->add(o);
-	  } 
-	  // roller for the multis:
-	  { Fl_Roller* o = new Fl_Roller(60, 487, 150, 14);
-	  	o->type(FL_HORIZONTAL);
-		o->tooltip("roll the list of multis, press load button for loading or save button for storing");
-		o->minimum(0);
-		o->maximum(127);
-		o->value(0);
-		o->step(1);
-		o->box(FL_BORDER_FRAME);
-		o->callback((Fl_Callback*)multiRollerCallback,NULL);
-		multiRoller=o;
-	  }
-	  { Fl_Value_Output* o = new Fl_Value_Output(20, 471, 35, 30,"multi #");
-		// o->box(FL_ROUNDED_BOX);
-		o->color(FL_BLACK);
-		o->labelsize(_TEXT_SIZE);
-		o->maximum(127);
-		o->align(FL_ALIGN_TOP_LEFT);
-		o->textsize(16);
-		o->textcolor(FL_RED);
-		multiDisplay=o;
-	  }
-	  { Fl_Button* o = new Fl_Button(217, 465, 60, 19, "load multi");
-		o->tooltip("load current multi");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(_TEXT_SIZE);
-		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
-		o->callback((Fl_Callback*)loadmultiCallback, multiname); // multichoice
-		loadmulti = o;
-	  }
-	  { Fl_Button* o = new Fl_Button(217, 485, 60, 19, "store multi");
-		o->tooltip("overwrite this multi");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(_TEXT_SIZE);
-		o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
-		o->callback((Fl_Callback*)storemultiCallback, multiname); // multichoice
-		storemulti = o;
-	  }
+		int x0=12;
+		{ Fl_Group* d = new Fl_Group(x0-7, 461, 300, 48, "multi");
+			group[groups++]=d;
+			multigroup=d;
+			d->box(FL_ROUNDED_FRAME);
+			d->color(FL_BACKGROUND2_COLOR);
+			d->labelsize(_TEXT_SIZE);
+			d->labelcolor(FL_BACKGROUND2_COLOR);
+			d->align(FL_ALIGN_TOP);
+
+		  { Fl_Input* o = new Fl_Input(x0+60, 471, 150, 14, "name");
+			o->box(FL_BORDER_BOX);
+			o->labelsize(_TEXT_SIZE);
+			o->textsize(_TEXT_SIZE);
+			o->align(FL_ALIGN_TOP_LEFT);
+			o->tooltip("Enter the multi name here before storing it");
+			// multichoice = o;
+			multiname = o; // global ??
+			// d->add(o);
+		  } 
+		  // roller for the multis:
+		  { Fl_Roller* o = new Fl_Roller(x0+60, 487, 150, 14);
+			o->type(FL_HORIZONTAL);
+			o->tooltip("roll the list of multis, press load button for loading or save button for storing");
+			o->minimum(0);
+			o->maximum(127);
+			o->value(0);
+			o->step(1);
+			o->box(FL_BORDER_FRAME);
+			o->callback((Fl_Callback*)multiRollerCallback,NULL);
+			multiRoller=o;
+		  }
+		  { Fl_Button* o = new Fl_Button(x0, 471, 10, 30, "@<");
+			o->box(FL_BORDER_BOX);
+			o->labelsize(_TEXT_SIZE);
+			o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
+			o->argument(-1);
+			o->callback((Fl_Callback*)multiincdecCallback);
+			multidecBtn=o;
+		  }
+
+		  { Fl_Value_Output* o = new Fl_Value_Output(x0+10, 471, 35, 30,"multi #");
+			o->box(FL_BORDER_BOX);
+			o->color(FL_BLACK);
+			o->labelsize(_TEXT_SIZE);
+			o->maximum(127);
+			o->align(FL_ALIGN_TOP_LEFT);
+			o->textsize(16);
+			o->textcolor(FL_RED);
+			multiDisplay=o;
+		  }
+		  { Fl_Button* o = new Fl_Button(x0+45, 471, 10, 30, "@>");
+			o->box(FL_BORDER_BOX);
+			o->labelsize(_TEXT_SIZE);
+			o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
+			o->argument(1);
+			o->callback((Fl_Callback*)multiincdecCallback);
+			multiincBtn=o;
+		  }
+		  { Fl_Button* o = new Fl_Button(x0+217, 465, 60, 19, "load multi");
+			o->tooltip("load current multi");
+			o->box(FL_BORDER_BOX);
+			o->labelsize(_TEXT_SIZE);
+			o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+			o->callback((Fl_Callback*)loadmultiCallback, multiname); // multichoice
+			loadmulti = o;
+		  }
+		  { Fl_Button* o = new Fl_Button(x0+217, 485, 60, 19, "store multi");
+			o->tooltip("overwrite this multi");
+			o->box(FL_BORDER_BOX);
+			o->labelsize(_TEXT_SIZE);
+			o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
+			o->callback((Fl_Callback*)storemultiCallback, multiname); // multichoice
+			storemulti = o;
+		  }
+			d->end();
+		}
 	/*{ Fl_Chart * o = new Fl_Chart(600, 300, 70, 70, "eg");
 		o->bounds(0.0,1.0);
 		o->type(Fl::LINE_CHART);
@@ -3202,7 +3258,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		paramon = o;
 	}
 	
-	{ Fl_Toggle_Button* o = new Fl_Toggle_Button(690, 466, 75, 19, "Audition");
+	{ Fl_Toggle_Button* o = new Fl_Toggle_Button(739, 466, 60, 19, "Audition");
 		o->tooltip("Hear the currently loaded sound");
 		// These borders won't prevent look change on focus
 		o->box(FL_BORDER_BOX);
@@ -3213,7 +3269,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)do_audition);
 		auditionBtn = o;
 	}
-	{ Fl_Button* o = new Fl_Button(690, 487, 75, 19, "PANIC");
+	{ Fl_Button* o = new Fl_Button(739, 487, 60, 19, "PANIC");
 		o->tooltip("Instantly stop all voices (shortcut Esc)");
 		o->box(FL_BORDER_BOX);
 		// o->labelsize(_TEXT_SIZE);
@@ -3300,11 +3356,14 @@ void Fenster::resize (int x, int y, int w, int h)
 		voicedisplay[j]->resize(w-_LOGO_WIDTH1-50, h-_LOGO_HEIGHT2-50, 40, 40);
 	}
 	// Multi group
+	multigroup->position(multigroup->x(), soundgroup->y());
 	multiname->resize(multiname->x(), soundname[0]->y(), multiname->w(), multiname->h());
 	multiRoller->position(multiRoller->x(), Rollers[0]->y());
 	multiDisplay->position(multiDisplay->x(), memDisplay[0]->y());
 	loadmulti->position(loadmulti->x(), loadsound[0]->y());
 	storemulti->position(storemulti->x(), storesound[0]->y());
+	multidecBtn->position(multidecBtn->x(), memDisplay[0]->y());
+	multiincBtn->position(multiincBtn->x(), memDisplay[0]->y());
 
 	auditionBtn->position(auditionBtn->x(), loadsound[0]->y());
 	panicBtn->position(panicBtn->x(), storesound[0]->y());
