@@ -337,7 +337,7 @@ int main(int argc, char **argv)
 	Speicher.load();
 	Speicher.loadMulti();
   
-	int multi=multiDisplay->value();
+	int multi=atoi(multinumber->value());
 
 // ------------------------ OSC init ---------------------------------
 	// init for output

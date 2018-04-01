@@ -28,6 +28,7 @@
 #include <FL/Fl_Roller.H>
 #include <FL/Fl_Value_Output.H>
 #include <FL/Fl_Value_Input.H>
+#include <FL/Fl_Int_Input.H>
 #include <FL/Fl_Input_Choice.H>
 #include <FL/Fl_Light_Button.H>
 #include <FL/Fl_Menu_Button.H>
@@ -159,7 +160,8 @@ void replace_color (unsigned char * bits, unsigned int pixcount, unsigned char r
 char *strnrtrim(char *dest, const char*source, size_t len);
 
 extern Fl_Roller *multiRoller;
-extern Fl_Value_Output *multiDisplay;
+// extern Fl_Value_Output *multinumber;
+extern Fl_Int_Input *multinumber;
 extern Fl_Input* Multichoice;
 extern bool sense;
 extern char *oport;
