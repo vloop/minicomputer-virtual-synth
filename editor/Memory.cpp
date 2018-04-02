@@ -26,22 +26,15 @@ Memory::Memory()
 	{
 		choice[i] = 0;
 	}	
-	//char zeichenkette[128];
 	for ( i = 0;i<512;++i)
 	{
 		sprintf(sounds[i].name,"%i untitled sound",i);
-		//strcpy(sounds[i].name,zeichenkette);
 	}
 	
 	for ( i = 0;i<128;++i)
 	{
 		sprintf(multis[i].name,"%i untitled multi",i);
-		//strcpy(multis[i].name,zeichenkette);
 	}
-	//gotFolder = false;
-	// first determine where to save
-	//if (gotFolder == false)
-	//{
 	char kommand[1200];
 		gotFolder = true;
 		if (getenv("HOME") == NULL)
@@ -64,8 +57,6 @@ Memory::Memory()
 		#ifdef _DEBUG
 		cout<<"command:"<<kommand<<" folder:"<<folder;
 		#endif
-	//}
-
 }
 /**
  * destructor
@@ -89,7 +80,7 @@ string Memory::getName(unsigned int voice,unsigned int Eintrag)
  * @param voice number
  * @param sound number
  */
-void Memory::setChoice(unsigned int voice,unsigned int i)
+void Memory::setChoice(unsigned int voice, unsigned int i)
 {
 	if ((i>=0) && (i<512)) // check if its in the range
 	{
