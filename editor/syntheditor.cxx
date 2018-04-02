@@ -269,6 +269,7 @@ Fl::lock();
 	Fl_Widget* e =((Fl_Tabs*)o)->value();
 	if (e==tab[9] ) // The "About" tab
 	{
+		// The controls below are displayed on all the tabs except "About"
 		if (multinumber != NULL)
 			multinumber->hide();
 		else
@@ -286,12 +287,23 @@ Fl::lock();
 		if (storemulti != NULL)
 			storemulti->hide();
 		else
-			printf("there seems to be something wrong with storemultibutton widget");
-
+			printf("there seems to be something wrong with the store multi button widget");
 		if (loadmulti != NULL)
 			loadmulti->hide();
 		else
-			printf("there seems to be something wrong with loadmultibutton widget");
+			printf("there seems to be something wrong with the load multi button widget");
+		if (multiincBtn!= NULL)
+			multiincBtn->hide();
+		else
+			printf("there seems to be something wrong with the multi inc button widget");
+		if (multidecBtn!= NULL)
+			multidecBtn->hide();
+		else
+			printf("there seems to be something wrong with the multi dec button widget");
+		if (multigroup!= NULL)
+			multigroup->hide();
+		else
+			printf("there seems to be something wrong with the multi group widget");
 	}else{
 		if (multinumber != NULL)
 			multinumber->show();
@@ -310,36 +322,39 @@ Fl::lock();
 		if (storemulti != NULL)
 			storemulti->show();
 		else
-			printf("there seems to be something wrong with storemultibutton widget");
-
+			printf("there seems to be something wrong with the store multi button widget");
 		if (loadmulti != NULL)
 			loadmulti->show();
 		else
-			printf("there seems to be something wrong with loadmultibutton widget");
+			printf("there seems to be something wrong with the load multi button widget");
+		if (multiincBtn!= NULL)
+			multiincBtn->show();
+		else
+			printf("there seems to be something wrong with the multi inc button widget");
+		if (multidecBtn!= NULL)
+			multidecBtn->show();
+		else
+			printf("there seems to be something wrong with the multi dec button widget");
+		if (multigroup!= NULL)
+			multigroup->show();
+		else
+			printf("there seems to be something wrong with the multi group widget");
 	}
 	if (e==tab[8] || e==tab[9]) // The "midi" and the "About" tabs
 	{
-
+		// The controls below are displayed on all the tabs except "About" and "midi"
 		if (paramon != NULL)
 			paramon->hide();
 		else
 			printf("there seems to be something wrong with paramon widget");
-
 		if (auditionBtn != NULL)
 			auditionBtn->hide();
 		else
 			printf("there seems to be something wrong with audition widget");
-/*
-		if (note_number != NULL)
-			note_number->hide();
+		if (compareBtn!= NULL)
+			compareBtn->hide();
 		else
-			printf("there seems to be something wrong with note_number widget");
-
-		if (note_velocity != NULL)
-			note_velocity->hide();
-		else
-			printf("there seems to be something wrong with note_velocity widget");
-*/
+			printf("there seems to be something wrong with the compare button widget");
 	}
 	else // Voice tabs
 	{
@@ -356,32 +371,24 @@ Fl::lock();
 			paramon->show();
 		else
 			printf("there seems to be something wrong with paramon widget");
-
 		if (auditionBtn != NULL){
 			auditionBtn->show();
 			((Fl_Toggle_Button*)auditionBtn)->value(audition_state[currentsound]);
 		}else
 			printf("there seems to be something wrong with audition widget");
-/*
-		if (note_number != NULL)
-			note_number->show();
+		if (compareBtn!= NULL)
+			compareBtn->show();
 		else
-			printf("there seems to be something wrong with note_number widget");
-
-		if (note_velocity != NULL)
-			note_velocity->show();
-		else
-			printf("there seems to be something wrong with note_velocity widget");
-*/
+			printf("there seems to be something wrong with the compare button widget");
 #ifdef _DEBUG
 	printf("sound %i\n", currentsound );
 	fflush(stdout);
 #endif
  	} // end of else
-
 Fl::awake();
 Fl::unlock();
 }
+
 /**
  * main parmCallback, called whenever a parameter has changed
  * @param Fl_Widget the calling widget
@@ -412,295 +419,343 @@ if (o != NULL)
 	}else{
 		paramon->hide();
 	}
+
 // now actually process parameter
-switch (currentParameter)
-{
-	case 256: // ??
-	{
-		lo_send(t, "/Minicomputer", "iif", currentsound, 0, 0);
-		break;
-	}
-	case 1: // Osc 1 fixed frequency dial
-	{
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
-		miniDisplay[currentsound][0]->value( ((Fl_Valuator* )Knob[currentsound][1])->value() );
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
-#endif
-		break;
-	}
-	case 2: // Osc 1 fixed frequency button
-	{
-		if (((Fl_Light_Button *)o)->value()==0)
+if(is_button[currentParameter]){
+	float val;
+	if(currentParameter==2){ // Fixed frequency button Osc 1
+		if (((Fl_Light_Button *)o)->value())
+		{
+			Knob[currentsound][1]->activate();
+			Knob[currentsound][3]->deactivate();
+			miniDisplay[currentsound][0]->activate();
+			miniDisplay[currentsound][1]->deactivate();
+		}
+		else
 		{
 			Knob[currentsound][1]->deactivate();
 			Knob[currentsound][3]->activate();
-			miniDisplay[currentsound][1]->activate();
 			miniDisplay[currentsound][0]->deactivate();
-			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),0.0f);
+			miniDisplay[currentsound][1]->activate();
+		}
+	}else if(currentParameter==17){ // Fixed frequency button Osc 2
+		if (((Fl_Light_Button *)o)->value())
+		{
+			Knob[currentsound][16]->activate();
+			Knob[currentsound][18]->deactivate();
+			miniDisplay[currentsound][2]->activate();
+			miniDisplay[currentsound][3]->deactivate();
 		}
 		else
-		{
-			Knob[currentsound][3]->deactivate();
-			Knob[currentsound][1]->activate();
-			miniDisplay[currentsound][0]->activate();
-			miniDisplay[currentsound][1]->deactivate();
-			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.0f);
-		}
-#ifdef _DEBUG
-		printf("parmCallback %li : %i\n", ((Fl_Light_Button*)o)->argument(),((Fl_Light_Button*)o)->value());
-#endif
-		break;
-	}
-	case 17: // Osc 2 fixed frequency button
-	{
-		if (((Fl_Light_Button *)o)->value()==0)
 		{
 			Knob[currentsound][16]->deactivate();
 			Knob[currentsound][18]->activate();
-			miniDisplay[currentsound][3]->activate();
 			miniDisplay[currentsound][2]->deactivate();
-			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),0.f);
+			miniDisplay[currentsound][3]->activate();
 		}
-		else
+	}
+	if(currentParameter==4 || currentParameter==19){ // Boost buttons, transmit 1 or 100
+		val=((Fl_Light_Button*)o)->value()?100.0f:1.0f;
+	}else { // Regular buttons, transmit plain value as float
+		val=((Fl_Light_Button*)o)->value()?1.0f:0.0f;
+	}
+	if (transmit) lo_send(t, "/Minicomputer", "iif", currentsound, ((Fl_Light_Button*)o)->argument(), val);
+#ifdef _DEBUG
+	printf("parmCallback button %li : %f\n", ((Fl_Light_Button*)o)->argument(),val);
+#endif
+}else{ // Not a button
+	switch (currentParameter)
+	{
+		case 256: // ??
 		{
-			Knob[currentsound][18]->deactivate();
-			Knob[currentsound][16]->activate();
-			miniDisplay[currentsound][2]->activate();
-			miniDisplay[currentsound][3]->deactivate();
-			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
+			lo_send(t, "/Minicomputer", "iif", currentsound, 0, 0);
+			break;
 		}
-#ifdef _DEBUG
-		printf("parmCallback %li : %i\n", ((Fl_Light_Button*)o)->argument(),((Fl_Light_Button*)o)->value());
-#endif
-	break;
-	}
-	case 3: // Osc 1 tune
-	{
-		float f = ((Fl_Positioner*)o)->xvalue() + ((Fl_Positioner*)o)->yvalue();
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
-		miniDisplay[currentsound][1]->value( f);
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
-#endif
-	break;
-	}
-	case 16: // Osc 2 fixed frequency dial
-	{
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
-		miniDisplay[currentsound][2]->value( ((Fl_Valuator*)o)->value() );
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
-#endif
-		break;
-	}
-	case 18: // Osc 2 tune
-	{ 
-		float f = ((Fl_Positioner*)o)->xvalue() + ((Fl_Positioner*)o)->yvalue();
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
-		miniDisplay[currentsound][3]->value(f);
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
-#endif
-	break;
-	}
-	case 4: // boost button
-	case 19:
-	{
-		if (((Fl_Light_Button *)o)->value()==0)
+		case 1: // Osc 1 fixed frequency dial
 		{
-			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+			miniDisplay[currentsound][0]->value( ((Fl_Valuator* )Knob[currentsound][1])->value() );
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+	#endif
+			break;
 		}
-		else
+		/*
+		case 2: // Osc 1 fixed frequency button
 		{
-			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),100.f);
+			if (((Fl_Light_Button *)o)->value()==0)
+			{
+				Knob[currentsound][1]->deactivate();
+				Knob[currentsound][3]->activate();
+				miniDisplay[currentsound][1]->activate();
+				miniDisplay[currentsound][0]->deactivate();
+				if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),0.0f);
+			}
+			else
+			{
+				Knob[currentsound][3]->deactivate();
+				Knob[currentsound][1]->activate();
+				miniDisplay[currentsound][0]->activate();
+				miniDisplay[currentsound][1]->deactivate();
+				if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.0f);
+			}
+	#ifdef _DEBUG
+			printf("parmCallback %li : %i\n", ((Fl_Light_Button*)o)->argument(),((Fl_Light_Button*)o)->value());
+	#endif
+			break;
 		}
-#ifdef _DEBUG
-		printf("parmCallback %li : %i\n", ((Fl_Light_Button*)o)->argument(),((Fl_Light_Button*)o)->value());
-#endif
-	break;
-	}
-	// the repeat buttons of the mod egs + sync button
-	case 64:
-	case 69:
-	case 74:
-	case 79:
-	case 84:
-	case 89:
-	case 115: // Sync
-	// mult. buttons
-	case 117:
-	case 118:
-	case 132:
-	case 140:
-	case 121:
-	case 136:
-	case 133:
-	case 120:
-	case 135:
-	case 137: // Bypass filters
-	case 139: // Legato
-	case 143: // Time modulator 2 mult.
-	{
-		if (((Fl_Light_Button *)o)->value()==0)
+		case 17: // Osc 2 fixed frequency button
 		{
-			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),0.f);
+			if (((Fl_Light_Button *)o)->value()==0)
+			{
+				Knob[currentsound][16]->deactivate();
+				Knob[currentsound][18]->activate();
+				miniDisplay[currentsound][3]->activate();
+				miniDisplay[currentsound][2]->deactivate();
+				if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),0.f);
+			}
+			else
+			{
+				Knob[currentsound][18]->deactivate();
+				Knob[currentsound][16]->activate();
+				miniDisplay[currentsound][2]->activate();
+				miniDisplay[currentsound][3]->deactivate();
+				if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
+			}
+	#ifdef _DEBUG
+			printf("parmCallback %li : %i\n", ((Fl_Light_Button*)o)->argument(),((Fl_Light_Button*)o)->value());
+	#endif
+		break;
 		}
-		else
+		*/
+		case 3: // Osc 1 tune
 		{
-			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
+			float f = ((Fl_Positioner*)o)->xvalue() + ((Fl_Positioner*)o)->yvalue();
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+			miniDisplay[currentsound][1]->value( f);
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+	#endif
+		break;
 		}
-#ifdef _DEBUG
-		printf("parmCallback %li : %i\n", ((Fl_Light_Button*)o)->argument(),((Fl_Light_Button*)o)->value());
-#endif
+		case 16: // Osc 2 fixed frequency dial
+		{
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+			miniDisplay[currentsound][2]->value( ((Fl_Valuator*)o)->value() );
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+	#endif
+			break;
+		}
+		case 18: // Osc 2 tune
+		{ 
+			float f = ((Fl_Positioner*)o)->xvalue() + ((Fl_Positioner*)o)->yvalue();
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+			miniDisplay[currentsound][3]->value(f);
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+	#endif
 		break;
-	}
-	// Envelope parameters except sustain
-	case 60:
-	case 61:
-	case 63:
-	case 65:
-	case 66: 
-	case 68:
+		}
+		/*
+		case 4: // boost button
+		case 19:
+		{
+			if (((Fl_Light_Button *)o)->value()==0)
+			{
+				if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
+			}
+			else
+			{
+				if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),100.f);
+			}
+	#ifdef _DEBUG
+			printf("parmCallback %li : %i\n", ((Fl_Light_Button*)o)->argument(),((Fl_Light_Button*)o)->value());
+	#endif
+		break;
+		}
+		*/
+		/*
+		// the repeat buttons of the mod egs + sync button
+		case 64:
+		case 69:
+		case 74:
+		case 79:
+		case 84:
+		case 89:
+		case 115: // Sync
+		// mult. buttons
+		case 117:
+		case 118:
+		case 132:
+		case 140:
+		case 121:
+		case 136:
+		case 133:
+		case 120:
+		case 135:
+		case 137: // Bypass filters
+		case 139: // Legato
+		case 143: // Time modulator 2 mult.
+		{
+			if (((Fl_Light_Button *)o)->value()==0)
+			{
+				if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),0.f);
+			}
+			else
+			{
+				if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Light_Button*)o)->argument(),1.f);
+			}
+	#ifdef _DEBUG
+			printf("parmCallback %li : %i\n", ((Fl_Light_Button*)o)->argument(),((Fl_Light_Button*)o)->value());
+	#endif
+			break;
+		}
+		*/
+		// Envelope parameters except sustain
+		case 60:
+		case 61:
+		case 63:
+		case 65:
+		case 66: 
+		case 68:
 
-	case 70:
-	case 71:
-	case 73:
-	case 75:
-	case 76: 
-	case 78:
+		case 70:
+		case 71:
+		case 73:
+		case 75:
+		case 76: 
+		case 78:
 
-	case 80:
-	case 81:
-	case 83:
-	case 85:
-	case 86: 
-	case 88:
+		case 80:
+		case 81:
+		case 83:
+		case 85:
+		case 86: 
+		case 88:
 
-	case 102:
-	case 103:
-	case 105:
-	{
-		float tr=(((Fl_Valuator*)o)->value()); // 0.5..0.01
-		tr*= tr*tr/2.f;
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),tr);
-#ifdef _DEBUG
-		printf("parmCallback eg %li : %g\n", ((Fl_Valuator*)o)->argument(), tr);
-#endif
-		break;
-	}
-	case 116: // Glide
-	{
-		float tr=(((Fl_Valuator*)o)->value());// 0..1
-		// .9999 is slow .99995 is slower, must stay <1
-		tr= 1-pow(10, -tr*5);
-		if(tr>=1) tr = 0.99995f;
-		if(tr<0) tr = 0.f;
-		if (transmit) lo_send(t, "/Minicomputer", "iif", currentsound, ((Fl_Valuator*)o)->argument(), tr);
-#ifdef _DEBUG
-		printf("parmCallback glide %li : %f --> %f \n", ((Fl_Valuator*)o)->argument(), ((Fl_Valuator*)o)->value(), tr);
-#endif
-		break;
-	}
+		case 102:
+		case 103:
+		case 105:
+		{
+			float tr=(((Fl_Valuator*)o)->value()); // 0.5..0.01
+			tr*= tr*tr/2.f;
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),tr);
+	#ifdef _DEBUG
+			printf("parmCallback eg %li : %g\n", ((Fl_Valuator*)o)->argument(), tr);
+	#endif
+			break;
+		}
+		case 116: // Glide
+		{
+			float tr=(((Fl_Valuator*)o)->value());// 0..1
+			// .9999 is slow .99995 is slower, must stay <1
+			tr= 1-pow(10, -tr*5);
+			if(tr>=1) tr = 0.99995f;
+			if(tr<0) tr = 0.f;
+			if (transmit) lo_send(t, "/Minicomputer", "iif", currentsound, ((Fl_Valuator*)o)->argument(), tr);
+	#ifdef _DEBUG
+			printf("parmCallback glide %li : %f --> %f \n", ((Fl_Valuator*)o)->argument(), ((Fl_Valuator*)o)->value(), tr);
+	#endif
+			break;
+		}
 
-	//************************************ filter cuts *****************************
-	case 30:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
-#endif
-		miniDisplay[currentsound][4]->value(f);
-		break;
-	}
-	case 33:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
-#endif		
-		miniDisplay[currentsound][5]->value(f);
-		break;
-	}
-	case 40:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
-#endif
-		miniDisplay[currentsound][6]->value(f);
-		break;
-	}
-	case 43:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
-#endif
-		miniDisplay[currentsound][7]->value(f);
-		break;
-	}
-	case 50: // Filter 3 a cut
-	{
-		float f=0;
-		int Argument=0;
+		//************************************ filter cuts *****************************
+		case 30:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+	#endif
+			miniDisplay[currentsound][4]->value(f);
+			break;
+		}
+		case 33:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+	#endif		
+			miniDisplay[currentsound][5]->value(f);
+			break;
+		}
+		case 40:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+	#endif
+			miniDisplay[currentsound][6]->value(f);
+			break;
+		}
+		case 43:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+	#endif
+			miniDisplay[currentsound][7]->value(f);
+			break;
+		}
+		case 50: // Filter 3 a cut
+		{
+			float f=0;
+			int Argument=0;
 
-		//if (!isFine)
-		//{
-			f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-			Argument=((Fl_Positioner*)o)->argument();
-		//}
-		//else 
-		//{
-		//	f=(((Fl_Valuator*)o)->value());
-		//	isFine = false;
-		//	Argument=((Fl_Valuator*)o)->argument();
-		//}*/
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,Argument,f);
-#ifdef _DEBUG
-		printf("parmCallback %i : %g\n", Argument,f);
-		fflush(stdout);
-#endif
-		miniDisplay[currentsound][8]->value(f);
-		break;
-	}
-	case 53: // Filter 3 b cut
-	{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
-#endif
-		miniDisplay[currentsound][9]->value(f);
-		break;
-	}
-	case 90: // OSC 3 tune
-	{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
-#endif
-		miniDisplay[currentsound][10]->value(f);
-		miniDisplay[currentsound][11]->value(round(f*6000)/100); // BPM
-		break;
-	}
-	case 111: // Delay time
-	{	float f=((Fl_Valuator*)o)->value();
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),f);
-#endif
-		if (f!=0) f=round(6000/f)/100;
-		miniDisplay[currentsound][12]->value(f); // BPM
-		break;
-	}
-	default:
-	{
-		if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
-#ifdef _DEBUG
-		printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
-#endif
-		break;
-	}
-	
-
-}
-
+			//if (!isFine)
+			//{
+				f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
+				Argument=((Fl_Positioner*)o)->argument();
+			//}
+			//else 
+			//{
+			//	f=(((Fl_Valuator*)o)->value());
+			//	isFine = false;
+			//	Argument=((Fl_Valuator*)o)->argument();
+			//}*/
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,Argument,f);
+	#ifdef _DEBUG
+			printf("parmCallback %i : %g\n", Argument,f);
+			fflush(stdout);
+	#endif
+			miniDisplay[currentsound][8]->value(f);
+			break;
+		}
+		case 53: // Filter 3 b cut
+		{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+	#endif
+			miniDisplay[currentsound][9]->value(f);
+			break;
+		}
+		case 90: // OSC 3 tune
+		{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+	#endif
+			miniDisplay[currentsound][10]->value(f);
+			miniDisplay[currentsound][11]->value(round(f*6000)/100); // BPM
+			break;
+		}
+		case 111: // Delay time
+		{	float f=((Fl_Valuator*)o)->value();
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Positioner*)o)->argument(),f);
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),f);
+	#endif
+			if (f!=0) f=round(6000/f)/100;
+			miniDisplay[currentsound][12]->value(f); // BPM
+			break;
+		}
+		default:
+		{
+			if (transmit) lo_send(t, "/Minicomputer", "iif",currentsound,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+	#ifdef _DEBUG
+			printf("parmCallback %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+	#endif
+			break;
+		}
+	} // end of switch
+} // end of if is_button
 #ifdef _DEBUG
 fflush(stdout);
 #endif
@@ -1092,18 +1147,15 @@ Fl_File_Chooser *fc = new Fl_File_Chooser(".","TEXT Files (*.txt)\t",Fl_File_Cho
 }
 /** Store given sound # parameters into given patch
  */
-// static void storesoundCallback(Fl_Widget* o, void* e)
 static void storesound(unsigned int srcsound, patch *destpatch)
 {
 	Fl::lock();
 	fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
 	Fl::check();
-	// int Speicherplatz = atoi(memDisplay[currentsound]->value());
 #ifdef _DEBUG
 	printf("storesound: source sound %i\n",srcsound);
 	fflush(stdout);
 #endif	
-	// Speicher.setChoice(currentsound, Speicherplatz);
 	// clean first the name string
 	sprintf(destpatch->name, "%s", soundname[srcsound]->value());
 
@@ -1111,147 +1163,75 @@ static void storesound(unsigned int srcsound, patch *destpatch)
 	{
 		if (Knob[srcsound][i] != NULL && needs_multi[i]==0)
 		{
-			destpatch->parameter[i]=((Fl_Valuator*)Knob[srcsound][i])->value();
-			switch (i)
-			{
-			case 2: // Fixed frequency osc 1
-			case 17: // Fixed frequency osc 2
-			case 4: // boost button osc 1
-			case 19: // boost button osc 2
-			// the repeat buttons of the mod egs
-			case 64:
-			case 69:
-			case 74:
-			case 79:
-			case 84:
-			case 89:
-			case 115:
-			// mult. buttons
-			case 117:
-			case 118:
-			case 132:
-			case 140:
-			case 121:
-			case 136:
-			case 133:
-			case 120: // Start phase enable osc 1
-			case 135: // Start phase enable osc 2
-			case 137: // Bypass filters
-			case 139: // Legato
-			case 143: // Time modulator 2 mult.
-			{
-				/*
-				if (((Fl_Light_Button *)Knob[srcsound][i])->value()==0)
-				{
-					destpatch->parameter[i]=0;
-				}
-				else
-				{
-					destpatch->parameter[i]=1;
-				}
-				*/
-		#ifdef _DEBUG
+			if (is_button[i]){
+				destpatch->parameter[i]=((Fl_Valuator*)Knob[srcsound][i])->value()?1.0f:0.0f;
+#ifdef _DEBUG
 				printf("storesound: button %d = %f\n", i, destpatch->parameter[i]);
-		#endif
-			break;
-			}
-			case 3:
-				{
-				destpatch->freq[0][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-				destpatch->freq[0][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
-			break;
-			}
-			case 18:
-					{
-				destpatch->freq[1][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-				destpatch->freq[1][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
-			break;
-			}
-			//************************************ filter cuts *****************************
-			case 30:
-					{
-				destpatch->freq[2][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-				destpatch->freq[2][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
-			break;
-			}
-			case 33:
-					{
-				destpatch->freq[3][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-				destpatch->freq[3][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
-			break;
-			}
-			case 40:
-					{
-				destpatch->freq[4][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-				destpatch->freq[4][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
-			break;
-			}
-			case 43:
-					{
-				destpatch->freq[5][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-				destpatch->freq[5][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
-			break;
-			}
-			case 50:
-					{
-				destpatch->freq[6][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-				destpatch->freq[6][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
-			break;
-			}
-			case 53:
-					{
-				destpatch->freq[7][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-				destpatch->freq[7][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
-			break;
-			}
-			case 90:
-			{
-				destpatch->freq[8][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-				destpatch->freq[8][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
-			break;
-			}
-			/* Special handling for ADR parameters ?
-			case 60:
-			//case 61:
-			case 63:
-			case 65:
-			//case 66: 
-			case 68:
-			
-			case 70:
-			//case 71:
-			case 73:
-			case 75:
-			//case 76: 
-			case 78:
-			
-			case 80:
-			//case 81:
-			case 83:
-			case 85:
-			//case 86: 
-			case 88:
-			
-			
-			case 102:
-			case 105:
-			{
-				float tr=(((Fl_Valuator*)o)->value());///200.f;//exp(((Fl_Valuator*)o)->value())/200.f;
-				tr *= tr*tr/2.f;// tr * tr*20.f;//48000.0f;//trtr*tr/2;
-				Speicher.sounds[Speicher.getChoice()].parameter[i]=tr;
-				break;
-			}	
-			*/
-			
-			default:
-			{
+#endif
+			}else{
 				destpatch->parameter[i]=((Fl_Valuator*)Knob[srcsound][i])->value();
-		#ifdef _DEBUG
+#ifdef _DEBUG
 				printf("storesound: parameter %d = %f\n", i, destpatch->parameter[i]);
-		#endif
+#endif
+				switch (i)
+				{
+				case 3:
+					{
+					destpatch->freq[0][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[0][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
 				break;
-			}
-			} // end of switch
+				}
+				case 18:
+						{
+					destpatch->freq[1][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[1][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+				break;
+				}
+				//************************************ filter cuts *****************************
+				case 30:
+						{
+					destpatch->freq[2][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[2][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+				break;
+				}
+				case 33:
+						{
+					destpatch->freq[3][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[3][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+				break;
+				}
+				case 40:
+						{
+					destpatch->freq[4][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[4][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+				break;
+				}
+				case 43:
+						{
+					destpatch->freq[5][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[5][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+				break;
+				}
+				case 50:
+						{
+					destpatch->freq[6][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[6][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+				break;
+				}
+				case 53:
+						{
+					destpatch->freq[7][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[7][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+				break;
+				}
+				case 90:
+				{
+					destpatch->freq[8][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[8][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+				break;
+				}
+				} // end of switch
+			} // end of if not button
 		} // end of if not null & not multi
 	} // end of for
 
@@ -2227,10 +2207,10 @@ Fenster* UserInterface::make_window(const char* title) {
 	needs_finetune[143]=0; // Time modulator 2 mult.
 
 	for (int i=0;i<_PARACOUNT;++i) is_button[i]=0;
-	is_button[2]=1; // Fixed frequency
-	is_button[4]=1; // boost button
-	is_button[19]=1;
-	is_button[17]=1;
+	is_button[2]=1; // Fixed frequency osc 1
+	is_button[4]=1; // boost button osc 1
+	is_button[17]=1; // Fixed frequency osc 2
+	is_button[19]=1; // boost button osc 2
 	// the repeat buttons of the mod egs
 	is_button[64]=1;
 	is_button[69]=1;
@@ -2438,6 +2418,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
+	  o->end(); // Group "filters"
+	  // The two following buttons are not really part of the filter parameters
 	  { Fl_Light_Button* o = new Fl_Light_Button(325, 430, 85, 15, "bypass filters");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -2457,7 +2439,6 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		clearstateBtn[i]=o;
 	  }
-	  o->end(); // Group "filters"
 	}
 	{ Fl_Group* o = new Fl_Group(595, 17, 225, 433, "modulators");
 	  group[groups++]=o;
@@ -3452,6 +3433,7 @@ void Fenster::resize (int x, int y, int w, int h)
 	multidecBtn->position(multidecBtn->x(), memDisplay[0]->y());
 	multiincBtn->position(multiincBtn->x(), memDisplay[0]->y());
 
+	compareBtn->position(compareBtn->x(), loadsoundBtn[0]->y());
 	auditionBtn->position(auditionBtn->x(), loadsoundBtn[0]->y());
 	panicBtn->position(panicBtn->x(), storesoundBtn[0]->y());
 
@@ -3480,6 +3462,7 @@ void Fenster::resize (int x, int y, int w, int h)
 		current_text_size=new_text_size;
 		paramon->textsize(12*minscale);
 		paramon->labelsize(12*minscale);
+		compareBtn->labelsize(new_text_size);
 		auditionBtn->labelsize(new_text_size);
 		panicBtn->labelsize(new_text_size);
 		loadmulti->labelsize(new_text_size);
