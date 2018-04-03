@@ -52,7 +52,7 @@ typedef struct
 	char name[_NAMESIZE];
 	unsigned int sound[_MULTITEMP]; // sound ids for the 8 voices
 	float settings[_MULTITEMP][_MULTISETTINGS]; // additional settings per voice
-	float parms[_MULTIPARMS]; // additional global settings
+	float parms[_MULTIPARMS]; // additional global settings (fine tune)
 } multi;
 
 /**
