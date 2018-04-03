@@ -1346,6 +1346,7 @@ static void storesoundCallback(Fl_Widget* o, void* e)
 #endif	
 	storesound(currentsound, &Speicher.sounds[preset]);
 	Speicher.save();
+	clearsound_changed();
 }
 /**
  * recall a single sound into given tab
@@ -1691,7 +1692,7 @@ static void storemultiCallback(Fl_Widget* o, void* e)
 	}
 	// write to disk
 	Speicher.saveMulti();
-	
+	clearmulti_changed();
 	fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 	Fl::check();
 	Fl::awake();
