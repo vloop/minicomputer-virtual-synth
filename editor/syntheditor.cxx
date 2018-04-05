@@ -819,7 +819,9 @@ static void BPMtimeCallback(Fl_Widget* o, void*)
 // like for delay time (111)
 	Fl::lock();
 	float f = ((Fl_Valuator* )o)->value();
-	if(f!=0) f=60.f/f;
+	f=(f<((Fl_Valuator*)o)->minimum())?(((Fl_Valuator* )o)->minimum()):f;
+	f=(f>((Fl_Valuator*)o)->maximum())?(((Fl_Valuator* )o)->maximum()):f;
+	if(f!=0) f=60.f/f; // else f remains 0
 	int argument = ((Fl_Valuator* )o)->argument();
 	((Fl_Valuator*)Knob[currentvoice][argument])->value(f);
 	parmCallback(Knob[currentvoice][argument], NULL);
@@ -2664,7 +2666,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(_TEXT_SIZE);
 		  o->align(FL_ALIGN_BOTTOM);
-		  o->maximum(10000);
+		  o->range(60, 9999);
 		  o->step(0.01);
 		  o->textsize(_TEXT_SIZE);
 		  o->callback((Fl_Callback*)BPMtimeCallback);

@@ -149,11 +149,11 @@ File.close();
 	{
 		sprintf(kommand,"mv %s/minicomputerMemory.txt %s/minicomputerMemory.txt.bak",folder,folder);
 		result=system(kommand);// make a backup
-		printf("mv to .bak result: %u", result);
+		printf("mv to .bak result: %u\n", result);
 	}
 	sprintf(kommand,"mv %s/minicomputerMemory.temp %s/minicomputerMemory.txt",folder,folder);
 	result=system(kommand);// commit the file finally
-	printf("mv to .txt result: %u", result);
+	printf("mv to .txt result: %u\n", result);
 }
 
 /**

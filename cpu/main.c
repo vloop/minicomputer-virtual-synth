@@ -71,7 +71,8 @@
 // variables
 int first_time=1;
 // Should define a struct for voice (and for EG)
-float delayBuffer[_MULTITEMP][96000] __attribute__((aligned (16)));
+// float delayBuffer[_MULTITEMP][96000] __attribute__((aligned (16)));
+float *delayBuffer[_MULTITEMP] __attribute__((aligned (16)));
 float parameter[_MULTITEMP][_PARACOUNT] __attribute__((aligned (16)));
 float modulator[_MULTITEMP][_MODCOUNT] __attribute__((aligned (16)));
 float modwheel[_MULTITEMP] __attribute__((aligned (16)));
@@ -1257,12 +1258,16 @@ int process(jack_nframes_t nframes, void *arg) {
 			// Clip or wrap ??
 			if( delayJ[currentvoice]  < 0 )
 			{
-				delayJ[currentvoice]  += delayBufferSize; // ??
+				delayJ[currentvoice]  += delayBufferSize; // wrap
 			}
-			else if (delayJ[currentvoice]>delayBufferSize)
+			/*
+			else if (delayJ[currentvoice]>=delayBufferSize)
 			{
 				delayJ[currentvoice] = 0; // ??
 			}
+			*/
+			// May still have to clip
+			delayJ[currentvoice]= delayJ[currentvoice]<0?0:(delayJ[currentvoice]>=delayBufferSize?delayBufferSize-1:delayJ[currentvoice]);
 
 			//if (delayI[currentvoice]>95000) printf("jab\n");
 
@@ -1939,7 +1944,7 @@ int i;
 	signal(SIGINT, signalled);
 
 	init();
-	
+
 // ------------------------ JACK Init ------------------------------------   
 	/* naturally we need to become a jack client
 	 * prefered with a unique name, so lets add the OSC port to it*/
@@ -1997,6 +2002,7 @@ int i;
 	{
 		//float dbuffer[delayBufferSize];
 		//delayBuffer[k]=dbuffer;
+		delayBuffer[k]=malloc(delayBufferSize*sizeof(float));
 		delayI[k]=0;
 		delayJ[k]=0;
 		// Sub-oscillator initial state
@@ -2008,7 +2014,7 @@ int i;
 	#endif
 	/* tell jack that we are ready to do our thing */
 	jack_activate(client);
-	
+
 	if(do_connect){
 		snprintf(jackPortName, 128, "%s:mix out left", jackName);
 		int result=jack_connect(client, jackPortName, "system:playback_1");
