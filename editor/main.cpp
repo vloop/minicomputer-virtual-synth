@@ -236,6 +236,19 @@ static inline void error(int num, const char *msg, const char *path)
 	lo_error=true;
 }
 
+void usage(){
+	printf(
+		"Usage:\n"
+		"	-port nnnn		sets the base OSC port\n"
+		"	-port2 nnnn		sets the secondary OSC port (default to base+1)\n"
+		"	-no-launch		don't launch sound engine core (for example if it's remote)\n"
+		"	-no-connect		core will not attempt to autoconnect to jack audio\n"
+		"	-h or --help		show this message\n"
+		"other options (such as -bg and -fg) will be forwarded to FLTK engine\n"
+	);
+}
+
+
 /** @brief the main routine
  *
  * @param argc the amount of arguments
@@ -246,7 +259,7 @@ char *oport;
 char *oport2;
 int main(int argc, char **argv)
 {
-  printf("minieditor version %s\n",_VERSION);
+  printf("minicomputer editor version %s\n",_VERSION);
 
 // ---------- Handle command line parameters ----------
   // check color settings in arguments and add some if missing
@@ -264,7 +277,7 @@ int main(int argc, char **argv)
   // There is at least the command name  av[0]=argv[0])
 	for (i = 1; i<argc; ++i)
 	{
-	  	if ((strcmp(argv[i],"-bg")==0) || (strcmp(argv[i],"-fg")==0))
+	  	if ((strcmp(argv[i], "-bg")==0) || (strcmp(argv[i], "-fg")==0))
 		{
 			needcolor = false;
 		}
@@ -280,17 +293,17 @@ int main(int argc, char **argv)
 				else
 				{
 					fprintf(stderr, "Invalid port %s\n", argv[i]);
+					usage();
 					exit(1);
 				}
 			}
 			else
 			{
 				fprintf(stderr, "Invalid port - end of command line reached\n");
+				usage();
 				exit(1);
 			}
-		}
-		else if (strcmp(argv[i],"-port2")==0) // got a OSC port argument
-		{
+		}else if (strcmp(argv[i],"-port2")==0){ // got a OSC port argument
 			++i; // looking for the next entry
 			if (i<argc)
 			{
@@ -302,25 +315,24 @@ int main(int argc, char **argv)
 				else
 				{
 					fprintf(stderr, "Invalid port %s\n", argv[i]);
+					usage();
 					exit(1);
 				}
 			}
 			else
 			{
 				fprintf(stderr, "Invalid port - end of command line reached\n");
+				usage();
 				exit(1);
 			}
-		}
-		else if (strcmp(argv[i],"-no-connect") == 0)
-		{
+		}else if (strcmp(argv[i],"-no-connect") == 0){
 			no_connect=true;
-		}
-		else if (strcmp(argv[i],"-no-launch") == 0)
-		{
+		}else if (strcmp(argv[i],"-no-launch") == 0){
 			no_launch=true;
-		}
-		else
-		{
+		}else if (strcmp(argv[i],"--help")==0 || strcmp(argv[i],"-h")==0 ){
+			usage();
+			exit(0);
+		}else{ // Count as an FLTK argument
 			ac++; // Not recognized, assume an FLTK parameter
 			// Cannot store value yet, av array not yet created
 		}
@@ -485,7 +497,8 @@ int main(int argc, char **argv)
   for(int argnum=0; argnum<ac; argnum++)
     printf("%u %s\n", argnum, av[argnum]);
 #endif
-  
+  // printf("FLTK API version %u\n", Fl::api_version()); // not found
+  // printf("FLTK API version %u\n", Fl::version()); // 0 ???
   Fl::lock(); 
   w->show(ac, av);
   int result = Fl::run();

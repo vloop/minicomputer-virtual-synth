@@ -282,6 +282,7 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 static inline int quit_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
 static inline int midi_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
 static inline int multiparm_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
+static inline int audition_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
 static inline void doNoteOn(int voice, int note, int velocity);
 static inline void doNoteOff(int voice, int note, int velocity);
 static void doMidi(int t, int n, int v);
@@ -430,6 +431,18 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 				}
 			}
 		}
+		else if(i==3) // Sustain
+		{
+			// Apply sustain level change
+			EG[voice][number][6]=EG[voice][number][3];
+			// Don't get stuck on zero sustain
+			if(EG[voice][number][3]==0.0f){
+				EGstate[voice][number]=4;
+#ifdef _UPDATE_GUI
+				lo_send(t, "/Minicomputer/EG", "iii", voice, number, 0);
+#endif
+			}
+		}
 	}
 	else
 	{ // EGtrigger is 1
@@ -456,7 +469,8 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
  */
 int process(jack_nframes_t nframes, void *arg) {
 
-	float tfo1, tfo2, ta1_1, ta1_2, ta1_3, ta1_4, ta2, ta3; // Osc related
+	float tfo1_1, tfo1_2, tfo2_1, tfo2_2; // Osc freq related
+	float ta1_1, ta1_2, ta1_3, ta1_4, ta2, ta3; // Osc amp related
 	float tf1, tf2, tf3, morph1, morph2, modmax, mf, final_mix, tdelay;
 	// float clib1, clib2; 
 	float osc1, osc2, delayMod, pan;
@@ -644,8 +658,8 @@ int process(jack_nframes_t nframes, void *arg) {
 // --------------- calculate the parameters and modulations of main oscillators 1 and 2
 		glide[currentvoice]*=param[116]; // *srDivisor?? or may be unconsistent across sample rates
 		glide[currentvoice]+=copysign(anti_denormal, glide[currentvoice]);
-		tfo1 = param[1]; // Fixed frequency
-		tfo1 *=param[2]; // Fixed frequency enable, 0 or 1
+		tfo1_1 = param[1]; // Fixed frequency
+		tfo1_1 *=param[2]; // Fixed frequency enable, 0 or 1
 
 		// osc1 ampmods 1 and 2
 		// modulators must be in range 0..1 for multiplication
@@ -713,21 +727,34 @@ int process(jack_nframes_t nframes, void *arg) {
 		// param[2] is fixed frequency enable, 0 or 1
 		// modulator[voice][2] is pitch bend
 		// param[142] is pitch bend scaling (semitones)
-		// tfo1+=(midif[currentvoice]*(1.0f-param[2])*param[3]); // Note-dependant frequency
+		// tfo1_1+=(midif[currentvoice]*(1.0f-param[2])*param[3]); // Note-dependant frequency
 		float bend=pow(2,(modulator[currentvoice][2]*param[142]/12.f));
-		tfo1+=(midif[currentvoice]*(1.0f-param[2])*param[3]*bend); // Note-dependant frequency
+		tfo1_1+=(midif[currentvoice]*(1.0f-param[2])*param[3]*bend); // Note-dependant frequency
 		// tf+=(param[4]*param[5])*mod[choi[0]];
-		tfo1-=glide[currentvoice];
+		tfo1_1-=glide[currentvoice]*(1.0f-param[2]);
 		// What about tf *= instead of += ?
 		// Would 2 multiplications be faster than an if?
-		if(param[117]){ // Mult. ; param[4] is boost, 1 or 100
-			tfo1+=param[4] * param[5] * mod[choi[0]] * param[7] * mod[choi[1]];
+		// param[4] is boost, 1 or 100
+		// param[5] and [7] are amounts, -1000..1000
+		if(param[117]){ // Mult.
+			tfo1_2=param[4] * param[5] * mod[choi[0]] * param[7] * mod[choi[1]]; 
+			if(param[6]){
+				tfo1_1*=pow(2, tfo1_2*.00000001);
+			}else{
+				tfo1_1+=tfo1_2;
+			}
 		}else{
-			tfo1+=(param[4] * param[5] * mod[choi[0]]) + (param[7]*mod[choi[1]]);
+			tfo1_2=(param[4] * param[5] * mod[choi[0]]) + (param[7]*mod[choi[1]]);
+			if(param[6]){
+				tfo1_1*=pow(2, tfo1_2*.00001);
+			}else{
+				tfo1_1+=tfo1_2;
+			}
 		}
 
+
 // --------------- generate phase of oscillator 1
-		current_phase[1]+= tabX * tfo1;
+		current_phase[1]+= tabX * tfo1_1;
 
 		// iPsub=subMSB[currentvoice]+(iP1>>1); // 0..tabM
 		// sub[currentvoice]=(4.f*iPsub/tabF)-1.0f; // Ramp up -1..+1 (beware of int to float)
@@ -779,7 +806,7 @@ int process(jack_nframes_t nframes, void *arg) {
 		mod[3]=osc1*ta1_3;
 
 // --------------- generate sub
-		current_phase[0]+= tabX * tfo1 / 2.0f;
+		current_phase[0]+= tabX * tfo1_1 / 2.0f;
 #ifdef _USE_FMODF
 		current_phase[0]=fmodf(current_phase[0], tabF);
 #else
@@ -797,8 +824,8 @@ int process(jack_nframes_t nframes, void *arg) {
 
 // ------------------------ calculate oscillator 2 ---------------------
 		// first the modulations and frequencies
-		tfo2 = param[16];
-		tfo2 *=param[17];
+		tfo2_1 = param[16];
+		tfo2_1 *=param[17];
 		
 		// osc2 first amp mod for mix output only
 		// ta2 = param[24];
@@ -811,8 +838,8 @@ int process(jack_nframes_t nframes, void *arg) {
 			ta2 = (0.5 + mod[choi[8]] * param[24] *0.5) * param[29]; // 0..1
 		}
 
-		tfo2+=midif[currentvoice]*(1.0f-param[17])*param[18]*bend;
-		tfo2-=glide[currentvoice];
+		tfo2_1+=midif[currentvoice]*(1.0f-param[17])*param[18]*bend;
+		tfo2_1-=glide[currentvoice]*(1.0f-param[17]);
 
 		// osc2 second amp mod for FM only
 		// ta3 = param[25];
@@ -825,18 +852,36 @@ int process(jack_nframes_t nframes, void *arg) {
 			ta3 = (0.5 + mod[choi[9]] * param[25] *0.5); // 0..1
 		}
 
+/*
 		if(param[132]){
-			tfo2+=(param[19]*param[20])*mod[choi[6]]*param[22]*mod[choi[7]];
+			tfo2_1+=(param[19]*param[20])*mod[choi[6]]*param[22]*mod[choi[7]];
 		}else{
-			tfo2+=(param[19]*param[20])*mod[choi[6]]+(param[22]*mod[choi[7]]);
+			tfo2_1+=(param[19]*param[20])*mod[choi[6]]+(param[22]*mod[choi[7]]);
 		}
+*/
+		if(param[132]){ // Mult.
+			tfo2_2=param[19] * param[20] * mod[choi[6]] * param[22] * mod[choi[7]]; 
+			if(param[21]){
+				tfo2_1*=pow(2, tfo2_2*.00000001);
+			}else{
+				tfo2_1+=tfo2_2;
+			}
+		}else{
+			tfo2_2=(param[19] * param[20] * mod[choi[6]]) + (param[22]*mod[choi[7]]);
+			if(param[21]){
+				tfo2_1*=pow(2, tfo2_2*.00001);
+			}else{
+				tfo2_1+=tfo2_2;
+			}
+		}
+
 		
 		// param[28] is fm output vol for osc 2 (values 0..1)
 		// mod[4] = (param[28]+param[28]*(1.0f-ta3)); // osc2 fm out coeff
 		mod[4] = param[28]*ta3; // osc2 fm out coeff
 
 		// then generate the actual phase:
-		current_phase[2]+= tabX * tfo2;
+		current_phase[2]+= tabX * tfo2_1;
 #ifdef _USE_FMODF
 		current_phase[2]=fmodf(current_phase[2], tabF);
 #else
@@ -1771,6 +1816,16 @@ static void *midiprocessor(void *handle) {
 return 0;// its insisited on this although it should be a void function
 }// end of midiprocessor
 
+void usage(){
+	printf(
+		"Usage:\n"
+		"	-port nnnn		sets the base OSC port\n"
+		"	-port2 nnnn		sets the secondary OSC port (default to base+1)\n"
+		"	-no-connect		don't attempt to autoconnect to jack audio\n"
+		"	-h or --help		show this message\n"
+	);
+}
+
 /** @brief the classic c main function
  *
  * @param argc the amount of arguments we get from the commandline
@@ -1778,7 +1833,7 @@ return 0;// its insisited on this although it should be a void function
  * @return int the final_mix, should be 0 if program terminates nicely
  */
 int main(int argc, char **argv) {
-printf("minicomputer version %s\n",_VERSION);
+printf("minicomputer core version %s\n",_VERSION);
 // ------------------------ decide the oscport number -------------------------
 char OscPort[] = _OSCPORT; // default value for OSC port
 char *oport = OscPort;// pointer of the OSC port string
@@ -1798,14 +1853,15 @@ int i;
 					oport = argv[i]; // overwrite the default for the OSCPort
 				}else{
 					fprintf(stderr, "Invalid port %s\n", argv[i]);
+					usage();
 					exit(1);
 				}
 			}else{
 				fprintf(stderr, "Invalid port - end of command line reached\n");
+				usage();
 				exit(1);
 			}
-		}
-		if (strcmp(argv[i],"-port2")==0){ // got a OSC port argument
+		}else if (strcmp(argv[i],"-port2")==0){ // got a OSC port argument
 			++i;// looking for the next entry
 			if (i<argc){
 				int tport2 = atoi(argv[i]);
@@ -1814,17 +1870,27 @@ int i;
 					has_port2 = 1;
 				}else{
 					fprintf(stderr, "Invalid port %s\n", argv[i]);
+					usage();
 					exit(1);
 				}
 			}else{
 				fprintf(stderr, "Invalid port - end of command line reached\n");
+				usage();
 				exit(1);
 			}
+		}else if (strcmp(argv[i],"-no-connect")==0){
+			do_connect=0;
+		}else if (strcmp(argv[i],"--help")==0 || strcmp(argv[i],"-h")==0 ){
+			usage();
+			exit(0);
+		}else{
+			fprintf(stderr, "Unrecognized option %s\n", argv[i]);
+			usage();
+			exit(1);
 		}
-		if (strcmp(argv[i],"-no-connect")==0) do_connect=0;
 	}
 
-	printf("Server OSC input port %s\n", oport);
+	printf("Server OSC input port: %s\n", oport);
 	sprintf(jackName, "Minicomputer%s", oport);// store globally a unique name
 
 // ------------------------ ALSA midi init ---------------------------------
@@ -1855,6 +1921,7 @@ int i;
 	lo_server_thread_add_method(st, "/Minicomputer/quit", "i", quit_handler, NULL);
 	
 	lo_server_thread_add_method(st, "/Minicomputer/midi", "iiii", midi_handler, NULL); // DSSI-like
+	lo_server_thread_add_method(st, "/Minicomputer/audition", "iiii", audition_handler, NULL); // On/off voice note velocity
 	lo_server_thread_add_method(st, "/Minicomputer/multiparm", "if", multiparm_handler, NULL);
 
 	lo_server_thread_start(st);
@@ -1864,7 +1931,7 @@ int i;
 		oport2=(char *)malloc(80);
 		snprintf(oport2, 80, "%d", atoi(oport)+1);
 	}
-	printf("Server OSC output port: \"%s\"\n", oport2);
+	printf("Server OSC output port: %s\n", oport2);
 	t = lo_address_new(NULL, oport2);
 
 	/* setup our signal handler signalled() above, so 
@@ -2057,6 +2124,17 @@ static inline int multiparm_handler(const char *path, const char *types, lo_arg 
 		fprintf(stderr, "WARNING: multiparm_handler unhandled parameter number %i\n", parmnum);
 	}
 }
+
+static inline int audition_handler(const char *path, const char *types, lo_arg **argv,
+			int argc, void *data, void *user_data)
+{
+	if(argv[0]->i){ // Note on
+		doNoteOn(argv[1]->i, argv[2]->i, argv[3]->i);
+	}else{ // Note off
+		doNoteOff(argv[1]->i, argv[2]->i, argv[3]->i);
+	}
+}
+
 static inline int midi_handler(const char *path, const char *types, lo_arg **argv,
 			int argc, void *data, void *user_data)
 {
@@ -2076,32 +2154,39 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 			}
 		}else{ // 3 MIDI bytes follow
 			c=(argv[1]->i)&0x0F;
-			switch ((argv[1]->i)&0xF0){
-				case 0x90:{ // Note on
-					doNoteOn(c, argv[2]->i, argv[3]->i);
-#ifdef _DEBUG
-					printf("doNoteOn %u %u %u \n", argv[1]->i&0x0F, argv[2]->i, argv[3]->i);
-#endif
-					break;
-				}
-				case 0x80:{ // Note off
-					doNoteOn(c, argv[2]->i, 0);
-#ifdef _DEBUG
-					printf("doNoteOff %u %u \n", argv[1]->i&0x0F, argv[2]->i);
-#endif
-					break;
-				}
-				case 0xB0:{ // Control change
-					switch(argv[2]->i){ // Controller number
-					  case 120:{ // All sound off
-						egOff(c);
-						doReset(c);
-						// Fall through all note off
-					  }
-					  case 123:{ // All note off
-						doNoteOn(c,lastnote[c], 0);
-						break;
-					  }
+			// Proper channel handling requires the following loop
+			// Could be moved inside the cases for speed?
+			int voice;
+			for(voice=0; voice<_MULTITEMP; voice++){
+				if(channel[voice]==c){
+					switch ((argv[1]->i)&0xF0){
+						case 0x90:{ // Note on
+							doNoteOn(c, argv[2]->i, argv[3]->i);
+		#ifdef _DEBUG
+							printf("doNoteOn %u %u %u \n", argv[1]->i&0x0F, argv[2]->i, argv[3]->i);
+		#endif
+							break;
+						}
+						case 0x80:{ // Note off
+							doNoteOn(c, argv[2]->i, 0);
+		#ifdef _DEBUG
+							printf("doNoteOff %u %u \n", argv[1]->i&0x0F, argv[2]->i);
+		#endif
+							break;
+						}
+						case 0xB0:{ // Control change
+							switch(argv[2]->i){ // Controller number
+							  case 120:{ // All sound off
+								egOff(c);
+								doReset(c);
+								// Fall through all note off
+							  }
+							  case 123:{ // All note off
+								doNoteOn(c,lastnote[c], 0);
+								break;
+							  }
+							}
+						}
 					}
 				}
 			}
