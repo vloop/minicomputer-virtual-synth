@@ -205,8 +205,9 @@ jack_client_t *client;
 float to_filter=0.f,lfo;
 float sampleRate=48000.0f; // only default, going to be overriden by the actual, taken from jack
 float tabX = tabF / 48000.0f;
-float srate = 3.145f/ 48000.f;
+float srate = 3.145f/ 48000.f; // ??
 float srDivisor = 1.0f / 48000.f*100000.f; // Sample rate divisor
+float glide_a, glide_b;
 int i,delayBufferSize=0,maxDelayBufferSize=0,maxDelayTime=0;
 jack_nframes_t bufsize;
 int done = 0;
@@ -578,7 +579,7 @@ int process(jack_nframes_t nframes, void *arg) {
 
 		// Deglitch mod wheel
 		// see https://tomroelandts.com/articles/low-pass-single-pole-iir-filter
-		mod[16] += 0.001f * (modwheel[currentvoice] - mod[16]);
+		mod[16] += 0.0005f * srDivisor * (modwheel[currentvoice] - mod[16]);
 
 // ------------------------------------------------------------
 // --------------- calc the main audio signal -----------------
@@ -657,7 +658,10 @@ int process(jack_nframes_t nframes, void *arg) {
 		mod[14] = table[choi[12]][iP3] ;
 
 // --------------- calculate the parameters and modulations of main oscillators 1 and 2
-		glide[currentvoice]*=param[116]; // *srDivisor?? or may be unconsistent across sample rates
+		// 1-((1-p)*48000/sr) = 48000/sr*p + 1 - 48000/sr
+		// Should use T as parameter ?
+		// glide[currentvoice]*=param[116];
+		glide[currentvoice]*=glide_a*param[116]+glide_b;
 		glide[currentvoice]+=copysign(anti_denormal, glide[currentvoice]);
 		tfo1_1 = param[1]; // Fixed frequency
 		tfo1_1 *=param[2]; // Fixed frequency enable, 0 or 1
@@ -1155,6 +1159,7 @@ int process(jack_nframes_t nframes, void *arg) {
 			// filters
 #ifdef __SSE2__
 			// Could compute a 4th filter without penalty
+			// Could use the same register for f4, q4 and v4 ?
 			__m128 f4 = _mm_load_ps(f[currentvoice]);
 			__m128 band4 = _mm_load_ps(band[currentvoice]);
 			__m128 low4 = _mm_load_ps(low[currentvoice]);
@@ -1993,6 +1998,9 @@ int i;
 	tabX = tabF / sampleRate;
 	srate = 3.145f/ sampleRate;
 	srDivisor = 1.0f / sampleRate * 100000.f;
+    // printf("srDivisor: %f\n", srDivisor);
+	glide_a = 48000.0f/sampleRate;
+	glide_b = 1.0f-glide_a;
 	// depending on it the delaybuffer
 	maxDelayTime = (int)sampleRate;
 	delayBufferSize = maxDelayTime*2;

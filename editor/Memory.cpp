@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "Memory.h"
+
+// This function probably belongs somewhere else
+char *strnrtrim(char *dest, const char*source, size_t len);
+
 /**
  * constructor
  */
@@ -130,8 +134,20 @@ int p,j;
 for (int i=0;i<512;++i)
  {  
 	File<< "["<<i<<"]" <<endl;// write the soundnumber
+
 	File<< "'"<<sounds[i].name<<"'"<<endl;// write the name
-	
+
+/*
+	// One-shot to discard leading numbers
+	int j,k;
+	char temp_name[_NAMESIZE];
+	strnrtrim(temp_name, sounds[i].name, _NAMESIZE);
+	// Skip up to 3 digits...
+	for(j=0; j<3; j++) if(!isdigit(temp_name[j])) break;
+	if(temp_name[j]==' ') j++; // ... and one space
+	for(k=0; k<_NAMESIZE-j; k++) temp_name[k]=temp_name[k+j];
+	File<< "'"<<temp_name<<"'"<<endl;// write the name
+*/
 	for (p=0;p<9;++p) // Write the 9 frequencies (Osc1..3 + filters 2x3)
 	{
 		for (j=0;j<2;++j) // ??
@@ -393,6 +409,17 @@ void Memory::saveMulti()
 	{
 		File<< "["<<i<<"]" <<endl;// write the multi id number
 		File<< "'"<<multis[i].name<<"'"<<endl;// write the name of the multi
+		/*
+		// One-shot to discard leading numbers
+		int j,k;
+		char temp_name[_NAMESIZE];
+		strnrtrim(temp_name, multis[i].name, _NAMESIZE);
+		// Skip up to 3 digits...
+		for(j=0; j<3; j++) if(!isdigit(temp_name[j])) break;
+		if(temp_name[j]==' ') j++; // ... and one space
+		for(k=0; k<_NAMESIZE-j; k++) temp_name[k]=temp_name[k+j];
+		File<< "'"<<temp_name<<"'"<<endl;// write the name of the multi
+		*/
 		
 		for (p=0;p<_MULTITEMP;++p) // store the sound ids of all 8 voices
 		{

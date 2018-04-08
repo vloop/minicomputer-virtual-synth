@@ -19,7 +19,7 @@
 #include "syntheditor.h"
 #include "Memory.h"
 
-#define _DEBUG
+// #define _DEBUG
 // TODO: try to move globs to class variables
 // Problem: some UI items need to be accessible from window resize function
 static Fl_RGB_Image image_miniMini(idata_miniMini, _LOGO_WIDTH, _LOGO_HEIGHT, 3, 0);
@@ -30,6 +30,9 @@ Fl_Widget* Knob[_MULTITEMP][_PARACOUNT];
 int needs_finetune[_PARACOUNT];
 int needs_multi[_PARACOUNT];
 int is_button[_PARACOUNT];
+// Avoid copy_tooltip to spare memory management overhead
+// This cost us about 150Kb, nothing compared to delay buffers...
+char Knob_tooltip[_MULTITEMP][_PARACOUNT][_NAMESIZE];
 
 Fl_Choice* auswahl[_MULTITEMP][_CHOICECOUNT];
 Fl_Value_Input* miniDisplay[_MULTITEMP][_MINICOUNT];
@@ -417,6 +420,11 @@ static void parmset(Fl_Widget* o, void*) {
 				}else{
 					filtersgroup[currentvoice]->activate();
 				}
+				// Redraw knobs above group border
+				Knob[currentvoice][14]->redraw();
+				Knob[currentvoice][29]->redraw();
+				Knob[currentvoice][138]->redraw();
+				Knob[currentvoice][141]->redraw();
 			}
 			if(currentParameter==4 || currentParameter==19){ // Boost buttons, transmit 1 or 100
 				val=((Fl_Light_Button*)o)->value()?100.0f:1.0f;
@@ -428,6 +436,8 @@ static void parmset(Fl_Widget* o, void*) {
 			printf("parmset button %li : %f\n", ((Fl_Light_Button*)o)->argument(), val);
 		#endif
 		}else{ // Not a button
+			const char *Knob_tooltip_template="%f"; // May override below
+			float Knob_tooltip_value=((Fl_Valuator*)o)->value(); // May override below
 			switch (currentParameter)
 			{
 				case 256: // ??
@@ -616,6 +626,9 @@ static void parmset(Fl_Widget* o, void*) {
 					break;
 				}
 			} // end of switch
+			snprintf(Knob_tooltip[currentvoice][((Fl_Valuator*)o)->argument()], _NAMESIZE, Knob_tooltip_template, Knob_tooltip_value);
+			o->tooltip(Knob_tooltip[currentvoice][((Fl_Valuator*)o)->argument()]);
+			// printf("parmset tooltip %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
 		} // end of if is_button
 #ifdef _DEBUG
 		fflush(stdout);
@@ -623,7 +636,6 @@ static void parmset(Fl_Widget* o, void*) {
 		Fl::awake();
 		Fl::unlock();
 	} // end of o != NULL
-
 } // end of parmset
 
 /**
@@ -675,6 +687,12 @@ static void midiparmCallback(Fl_Widget* o, void*) {
 #endif
 	setmulti_changed(); // All midi parameters belong to the multi
 }
+static void checkrangeCallback(Fl_Widget* o, void*) {
+	double val=((Fl_Valuator*)o)->value();
+	val=min(val,((Fl_Valuator*)o)->maximum());
+	val=max(val,((Fl_Valuator*)o)->minimum());
+	((Fl_Valuator*)o)->value(val);
+}
 
 /**
  * copybutton parmCallback, called whenever the user wants to copy filterparameters
@@ -718,16 +736,23 @@ static void finetuneCallback(Fl_Widget* o, void*)
 			double val_min = ((Fl_Valuator* )Knob[currentvoice][currentParameter])->minimum();
 			double val_max = ((Fl_Valuator* )Knob[currentvoice][currentParameter])->maximum();
 			if(val_max<val_min){ // Reversed range
-				val=max(val, val_max);
-				val=min(val, val_min);
-			}else{
-				val=max(val, val_min);
-				val=min(val, val_max);
+				val_max=val_min;
+				val_min=((Fl_Valuator* )Knob[currentvoice][currentParameter])->maximum();
 			}
-			((Fl_Valuator* )Knob[currentvoice][currentParameter])->value(val);
+			/*
+			val=max(val, val_min);
+			val=min(val, val_max);
+			*/
 // #ifdef _DEBUG
 			printf("=%f\n", val);
-			parmCallback(Knob[currentvoice][currentParameter], NULL);
+// #endif
+			if(val<=val_max && val>=val_min){
+				((Fl_Value_Input* )o)->textcolor(FL_BLACK);
+				((Fl_Valuator* )Knob[currentvoice][currentParameter])->value(val);
+				parmCallback(Knob[currentvoice][currentParameter], NULL);
+			}else{
+				((Fl_Value_Input* )o)->textcolor(FL_RED);
+			}
 			Fl::awake();
 			Fl::unlock();
 // #ifdef _DEBUG
@@ -759,12 +784,18 @@ static void lfoCallback(Fl_Widget* o, void*)
 static void cutoffCallback(Fl_Widget* o, void*)
 {
 	Fl::lock();
-	int Faktor = ((int)(((Fl_Valuator* )o)->value()/500)*500);
-	float Rem = ((Fl_Valuator* )o)->value()-Faktor;
-	int Argument = ((Fl_Valuator* )o)->argument();
-	((Fl_Positioner* )Knob[currentvoice][Argument])->xvalue(Faktor);
-	((Fl_Positioner* )Knob[currentvoice][Argument])->yvalue(Rem);
-	parmCallback(Knob[currentvoice][Argument],NULL);
+	float f = ((Fl_Valuator* )o)->value();
+	if(f<=(((Fl_Valuator* )o)->maximum()) && f>=(((Fl_Valuator* )o)->minimum())){
+		((Fl_Value_Input* )o)->textcolor(FL_BLACK);
+		int Faktor = ((int)(f/500)*500);
+		float Rem = f-Faktor;
+		int Argument = ((Fl_Valuator* )o)->argument();
+		((Fl_Positioner* )Knob[currentvoice][Argument])->xvalue(Faktor);
+		((Fl_Positioner* )Knob[currentvoice][Argument])->yvalue(Rem);
+		parmCallback(Knob[currentvoice][Argument],NULL);
+	}else{
+		((Fl_Value_Input* )o)->textcolor(FL_RED);
+	}
 	Fl::awake();
 	Fl::unlock();
 }
@@ -777,12 +808,18 @@ static void cutoffCallback(Fl_Widget* o, void*)
 static void tuneCallback(Fl_Widget* o, void*)
 {
 	Fl::lock();
-	int Faktor = (int)((Fl_Valuator* )o)->value();
-	float Rem = ((Fl_Valuator* )o)->value()-Faktor;
-	int Argument = ((Fl_Valuator* )o)->argument();
-	((Fl_Positioner* )Knob[currentvoice][Argument])->xvalue(Faktor);
-	((Fl_Positioner* )Knob[currentvoice][Argument])->yvalue(Rem);
-	parmCallback(Knob[currentvoice][Argument],NULL);
+	float f = ((Fl_Valuator* )o)->value();
+	if(f<=(((Fl_Valuator* )o)->maximum()) && f>=(((Fl_Valuator* )o)->minimum())){
+		((Fl_Value_Input* )o)->textcolor(FL_BLACK);
+		int Faktor = (int)f;
+		float Rem = f-Faktor;
+		int Argument = ((Fl_Valuator* )o)->argument();
+		((Fl_Positioner* )Knob[currentvoice][Argument])->xvalue(Faktor);
+		((Fl_Positioner* )Knob[currentvoice][Argument])->yvalue(Rem);
+		parmCallback(Knob[currentvoice][Argument],NULL);
+	}else{
+		((Fl_Value_Input* )o)->textcolor(FL_RED);
+	}
 	Fl::awake();
 	Fl::unlock();
 }
@@ -792,9 +829,14 @@ static void fixedfrequencyCallback(Fl_Widget* o, void*)
 	Fl::lock();
 	float f = ((Fl_Valuator* )o)->value();
 	// No conversion needed
-	int Argument = ((Fl_Valuator* )o)->argument();
-	((Fl_Valuator*)Knob[currentvoice][Argument])->value(f);
-	parmCallback(Knob[currentvoice][Argument],NULL);
+	if(f<=(((Fl_Valuator* )o)->maximum()) && f>=(((Fl_Valuator* )o)->minimum())){
+		((Fl_Value_Input* )o)->textcolor(FL_BLACK);
+		int Argument = ((Fl_Valuator* )o)->argument();
+		((Fl_Valuator*)Knob[currentvoice][Argument])->value(f);
+		parmCallback(Knob[currentvoice][Argument], NULL);
+	}else{
+		((Fl_Value_Input* )o)->textcolor(FL_RED);
+	}
 	Fl::awake();
 	Fl::unlock();
 }
@@ -803,13 +845,19 @@ static void BPMtuneCallback(Fl_Widget* o, void*)
 { // Used for BPM to tune conversion
 // like for osc 3 tune (90)
 	Fl::lock();
-	float f = ((Fl_Valuator* )o)->value()/60.f;
-	int Faktor = (int)f;
-	float Rem = f-Faktor;
-	int Argument = ((Fl_Valuator* )o)->argument();
-	((Fl_Positioner* )Knob[currentvoice][Argument])->xvalue(Faktor);
-	((Fl_Positioner* )Knob[currentvoice][Argument])->yvalue(Rem);
-	parmCallback(Knob[currentvoice][Argument],NULL);
+	float f = ((Fl_Valuator* )o)->value();
+	if(f<=(((Fl_Valuator* )o)->maximum()) && f>=(((Fl_Valuator* )o)->minimum())){
+		((Fl_Value_Input* )o)->textcolor(FL_BLACK);
+		f=f/60.f;
+		int Faktor = (int)f;
+		float Rem = f-Faktor;
+		int Argument = ((Fl_Valuator* )o)->argument();
+		((Fl_Positioner* )Knob[currentvoice][Argument])->xvalue(Faktor);
+		((Fl_Positioner* )Knob[currentvoice][Argument])->yvalue(Rem);
+		parmCallback(Knob[currentvoice][Argument], NULL);
+	}else{
+		((Fl_Value_Input* )o)->textcolor(FL_RED);
+	}
 	Fl::awake();
 	Fl::unlock();
 }
@@ -817,14 +865,22 @@ static void BPMtuneCallback(Fl_Widget* o, void*)
 static void BPMtimeCallback(Fl_Widget* o, void*)
 { // Used for BPM to time conversion
 // like for delay time (111)
+// In this case we already know minimum()<maximum()
 	Fl::lock();
 	float f = ((Fl_Valuator* )o)->value();
+	/*
 	f=(f<((Fl_Valuator*)o)->minimum())?(((Fl_Valuator* )o)->minimum()):f;
 	f=(f>((Fl_Valuator*)o)->maximum())?(((Fl_Valuator* )o)->maximum()):f;
-	if(f!=0) f=60.f/f; // else f remains 0
-	int argument = ((Fl_Valuator* )o)->argument();
-	((Fl_Valuator*)Knob[currentvoice][argument])->value(f);
-	parmCallback(Knob[currentvoice][argument], NULL);
+	*/
+	if(f<=(((Fl_Valuator* )o)->maximum()) && f>=(((Fl_Valuator* )o)->minimum())){
+		((Fl_Value_Input* )o)->textcolor(FL_BLACK);
+		if(f!=0) f=60.f/f; // else f remains 0
+		int argument = ((Fl_Valuator* )o)->argument();
+		((Fl_Valuator*)Knob[currentvoice][argument])->value(f);
+		parmCallback(Knob[currentvoice][argument], NULL);
+	}else{
+		((Fl_Value_Input* )o)->textcolor(FL_RED);
+	}
 	Fl::awake();
 	Fl::unlock();
 }
@@ -981,15 +1037,14 @@ Fl_File_Chooser *fc = new Fl_File_Chooser(".","TEXT Files (*.txt)\t",Fl_File_Cho
 		Fl::lock();
 		fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
 		Fl::check();
-		
+
 		Speicher.exportSound(fc->value(),atoi(soundnumber[currentvoice]->value()));
-		
+
 		fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 		Fl::check();
 		Fl::awake();
 		Fl::unlock();
 	}
-
 }
 /** parmCallback when import button was pressed, shows a filedialog
  */
@@ -1010,7 +1065,7 @@ Fl_File_Chooser *fc = new Fl_File_Chooser(".","TEXT Files (*.txt)\t",Fl_File_Cho
 		Fl::lock();
 		fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
 		Fl::check();
-  		
+
 		Speicher.importSound(fc->value(),atoi(soundnumber[currentvoice]->value()));//soundname[currentvoice]->menubutton()->value());	
 		// ok, now we have a new sound saved but we should update the userinterface
 		soundname[currentvoice]->value(Speicher.getName(0,atoi(soundnumber[currentvoice]->value())).c_str());
@@ -1212,7 +1267,7 @@ static void recall0(unsigned int destsound, patch *srcpatch)
 	srcpatch=&Speicher.sounds[Speicher.getChoice(destsound)];
 	*/
 
-	printf("recall0 dest %u\n", destsound);
+	// printf("recall0 dest %u\n", destsound);
 	for(int i=0;i<_PARACOUNT;++i)
 	{
 		if (Knob[destsound][i] != NULL && needs_multi[i]==0)
@@ -1412,8 +1467,8 @@ static void loadmultiCallback(Fl_Widget*, void*)
 			printf("i ist %i Speicher ist %i\n",i,Speicher.multis[currentmulti].sound[i]);
 			fflush(stdout);
 #endif
-			char temp_name[128];
-			strnrtrim(temp_name, Speicher.getName(0,Speicher.multis[currentmulti].sound[i]).c_str(), 128);
+			char temp_name[_NAMESIZE];
+			strnrtrim(temp_name, Speicher.getName(0,Speicher.multis[currentmulti].sound[i]).c_str(), _NAMESIZE);
 #ifdef _DEBUG
 			printf("loadmultiCallback voice %u: \"%s\"\n", i, temp_name);
 #endif
@@ -1834,7 +1889,7 @@ void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int
 	  o->box(FL_ROUNDED_BOX);
 	  o->labelsize(_TEXT_SIZE);
 	  o->textsize(_TEXT_SIZE);
-	  o->maximum(9500);
+	  o->maximum(9499);
 	  o->step(0.01);
 	  o->value(200);
 	  o->argument(filter_base);
@@ -2353,7 +2408,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelsize(_TEXT_SIZE);
 		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 		o->argument(0);
-		o->callback((Fl_Callback*)parmCallback);
+		o->callback((Fl_Callback*)parmCallback); // !?
 		clearstateBtn[i]=o;
 	  }
 	}
@@ -2961,7 +3016,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->step(1);
 			o->value(69);
-			// o->callback((Fl_Callback*)parmCallback);
+			o->callback((Fl_Callback*)checkrangeCallback);
 			o->argument(125);
 			Knob[voice][o->argument()] = o;
 		  }
@@ -2974,7 +3029,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->step(1);
 			o->value(80);
-			// o->callback((Fl_Callback*)parmCallback);
+			o->callback((Fl_Callback*)checkrangeCallback);
 			o->argument(126);
 			Knob[voice][o->argument()] = o;
 		  }
