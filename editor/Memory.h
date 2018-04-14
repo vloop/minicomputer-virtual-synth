@@ -63,22 +63,28 @@ class Memory
 {
 public:
 	Memory();
+	void copysound(int src, int dest);
+	void copypatch(patch *src, patch *dest);
 	void save();
 	void load();
+	void loadInit();
 	void saveMulti();
 	void loadMulti();
 	void store(patch Sound);
 	void overwrite(patch Sound);
-	void importSound(string filename,unsigned int current); // import a single sound
-	void exportSound(string filename,unsigned int current); // export a single sound
+	void importSound(string filename, unsigned int current); // import a single sound
+	void exportSound(string filename, unsigned int current); // export a single sound
+	void importPatch(string filename, patch *p); // import single sound to patch
 
-	patch temp;
-	string getName(unsigned int voice,unsigned int Eintrag);
+	patch initSound;
+	string getName(unsigned int soundnum);
+	void setName(unsigned int soundnum, const char *new_name);
 	virtual ~Memory();
 	patch sounds[512];
 	multi multis[128];
 	void setChoice(unsigned int voice,unsigned int i);
 	unsigned int getChoice(unsigned int voice);
+	
 	private:
 	unsigned int choice[_MULTITEMP];
 	bool parseNumbers(string &str,int &iParameter,int &i2Parameter,float &fValue);

@@ -97,14 +97,14 @@ void reloadSoundNames()
   
   for (i=0;i<512;i++) 
   {
-  	Schaltbrett.soundchoice[0]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[1]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[2]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[3]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[4]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[5]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[6]->add(Speicher.getName(0,i).c_str());
-  	Schaltbrett.soundchoice[7]->add(Speicher.getName(0,i).c_str());
+  	Schaltbrett.soundchoice[0]->add(Speicher.getName(i).c_str());
+  	Schaltbrett.soundchoice[1]->add(Speicher.getName(i).c_str());
+  	Schaltbrett.soundchoice[2]->add(Speicher.getName(i).c_str());
+  	Schaltbrett.soundchoice[3]->add(Speicher.getName(i).c_str());
+  	Schaltbrett.soundchoice[4]->add(Speicher.getName(i).c_str());
+  	Schaltbrett.soundchoice[5]->add(Speicher.getName(i).c_str());
+  	Schaltbrett.soundchoice[6]->add(Speicher.getName(i).c_str());
+  	Schaltbrett.soundchoice[7]->add(Speicher.getName(i).c_str());
   }
 }*/
 /** @brief handling the midi messages in an extra thread
@@ -348,6 +348,7 @@ int main(int argc, char **argv)
 	Fenster* w =Schaltbrett.make_window(temp_name);
 	Speicher.load();
 	Speicher.loadMulti();
+	Speicher.loadInit();
   
 	int multi=atoi(multinumber->value());
 

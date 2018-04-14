@@ -55,6 +55,9 @@
 #include <math.h>
 #include <lo/lo.h>
 #include <FL/Fl_Image.H>
+#include <FL/Fl_Table_Row.H>
+#include <FL/fl_ask.H>
+#include <FL/Fl_Output.H>
 #include "../common.h"
 extern lo_address t;
 extern Memory Speicher;
@@ -74,11 +77,12 @@ extern Memory Speicher;
 #define _LOGO_HEIGHT2 12
 #define _INIT_WIDTH 995
 #define _INIT_HEIGHT 515
+#define _TABLE_COLUMNS 16
 
 #define _TEXT_SIZE 8
 
-// One tab per voice plus midi and about
-#define _TABCOUNT _MULTITEMP+2
+// One tab per voice plus midi, librarian and about
+#define _TABCOUNT _MULTITEMP+3
 // Minidisplays
 #define _MINICOUNT 13
 
@@ -107,7 +111,6 @@ class Fenster:public Fl_Double_Window
 	void resize (int x, int y, int w, int h);
 	private:
 	int current_text_size;
-
 };
 
 class UserInterface {
@@ -152,7 +155,44 @@ private:
 
 };
 
-// Fl_Widget* Knob[8][_PARACOUNT];
+class miniTable : public Fl_Table_Row
+{
+	int row_selected;
+	int col_selected;
+	int cell_copied;
+protected:
+	void draw_cell(TableContext context, // table cell drawing
+				int R=0, int C=0, int X=0, int Y=0, int W=0, int H=0);
+	static void event_callback(Fl_Widget*, void*);
+	void event_callback2();	// callback for table events
+
+public:
+	miniTable(int x, int y, int w, int h, const char *l=0) : Fl_Table_Row(x,y,w,h,l)
+	{
+		row_selected=0;
+		col_selected=0;
+		cell_copied=-1;
+		// context_menu = new Fl_Menu_Button(x, y, w, h,"Sound...");
+		callback(&event_callback, (void*)this);
+	end();
+	}
+	~miniTable() { }
+	void resize_cols(int W);
+	int get_selected_row(){return(row_selected);}
+	int get_selected_col(){return(col_selected);}
+	int get_selected_cell(){return(row_selected*cols()+col_selected);}
+	int get_copied_cell(){return(cell_copied);}
+	void set_copied_cell(int c){cell_copied=c;}
+};
+
+void soundcopymnuCallback(Fl_Widget*, void*);
+void soundpastemnuCallback(Fl_Widget*, void*);
+void soundinitmnuCallback(Fl_Widget*, void*);
+void soundrenamemnuCallback(Fl_Widget*, void*T);
+void soundimportmnuCallback(Fl_Widget*, void*);
+void soundexportmnuCallback(Fl_Widget*, void*);
+
+
 int EG_draw(unsigned int voice, unsigned int EGnum, unsigned int stage);
 void EG_draw_all();
 void replace_color (unsigned char * bits, unsigned int pixcount, unsigned char r1, unsigned char g1, unsigned char b1, unsigned char r2, unsigned char g2, unsigned char b2);
@@ -160,7 +200,6 @@ void replace_color (unsigned char * bits, unsigned int pixcount, unsigned char r
 char *strnrtrim(char *dest, const char*source, size_t len);
 
 extern Fl_Roller *multiRoller;
-// extern Fl_Value_Output *multinumber;
 extern Fl_Int_Input *multinumber;
 extern Fl_Input* Multichoice;
 extern bool sense;

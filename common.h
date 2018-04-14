@@ -37,6 +37,10 @@
 // how many additional settings common to all sounds in multi to store
 #define _MULTIPARMS 13
 
+// Available memory slots for sounds and multis
+#define _SOUNDS 512
+#define _MULTIS 128
+
 // the version number as string
 #define _VERSION "1.4a"
 

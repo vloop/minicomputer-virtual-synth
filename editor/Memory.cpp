@@ -30,12 +30,12 @@ Memory::Memory()
 	{
 		choice[i] = 0;
 	}	
-	for ( i = 0;i<512;++i)
+	for ( i = 0;i<_SOUNDS;++i)
 	{
 		sprintf(sounds[i].name,"%i untitled sound",i);
 	}
 	
-	for ( i = 0;i<128;++i)
+	for ( i = 0;i<_MULTIS;++i)
 	{
 		sprintf(multis[i].name,"%i untitled multi",i);
 	}
@@ -75,9 +75,10 @@ Memory::~Memory()
  * @param soundnumber
  * @return the name as string
  */
-string Memory::getName(unsigned int voice,unsigned int Eintrag)
+string Memory::getName(unsigned int soundnum)
 {
-	return sounds[Eintrag].name;
+	if(soundnum<_SOUNDS) return sounds[soundnum].name;
+	return("???");
 }
 /**
  * set the soundnumber to a certain voice
@@ -86,7 +87,7 @@ string Memory::getName(unsigned int voice,unsigned int Eintrag)
  */
 void Memory::setChoice(unsigned int voice, unsigned int i)
 {
-	if ((i>=0) && (i<512)) // check if its in the range
+	if ((i>=0) && (i<_SOUNDS)) // check if its in the range
 	{
 		choice[voice] = i;
 	}
@@ -95,6 +96,43 @@ void Memory::setChoice(unsigned int voice, unsigned int i)
 		printf("illegal sound choice\n");
 		fflush(stdout);
 	}
+}
+void Memory::setName(unsigned int dest, const char *new_name){
+	strncpy(sounds[dest].name, new_name, _NAMESIZE);
+}
+
+void Memory::copypatch(patch *src, patch *dest)
+{
+	strnrtrim(dest->name, src->name, _NAMESIZE);
+printf("copypatch %s\n", dest->name);
+	int p,j;
+	for (p=0;p<9;++p) // Write the 9 frequencies (Osc1..3 + filters 2x3)
+	{
+		for (j=0;j<2;++j) // ??
+			dest->freq[p][j]=src->freq[p][j];
+	}
+	for (p=0;p<_CHOICECOUNT;++p) // Write listbox items
+		dest->choice[p]=src->choice[p];
+	for (p=0;p<_PARACOUNT;++p)// Write the remaining parameters
+		dest->parameter[p]=src->parameter[p];
+}
+
+void Memory::copysound(int src, int dest)
+{
+	copypatch(&sounds[src], &sounds[dest]);
+	/*
+	strncpy(sounds[dest].name, sounds[src].name, _NAMESIZE);
+	int p,j;
+	for (p=0;p<9;++p) // Write the 9 frequencies (Osc1..3 + filters 2x3)
+	{
+		for (j=0;j<2;++j) // ??
+			sounds[dest].freq[p][j]=sounds[src].freq[p][j];
+	}
+	for (p=0;p<_CHOICECOUNT;++p) // Write listbox items
+		sounds[dest].choice[p]=sounds[src].choice[p];
+	for (p=0;p<_PARACOUNT;++p)// Write the remaining parameters
+		sounds[dest].parameter[p]=sounds[src].parameter[p];
+		*/
 }
 /**
  * return a sound id of a certain given voice number
@@ -112,90 +150,72 @@ unsigned int Memory::getChoice(unsigned int voice)
  */
 void Memory::save()
 {
-char kommand[1200];
-		/*ofstream ofs("minicomputerMemory.mcm", std::ios::binary);
-  //boost::archive::text_oarchive oa(ofs);
-	for (int i=0;i<139;i++)
-	{
-	ofs<<sounds[0].parameter[i];
-	//string name = sounds[0].name;
-	//ofs.write((char *)&name, sizeof(name));
-  //oa << sounds[i];
-	}
-  ofs.close();*/
-// *************************************************************
-// new fileoutput as textfile with a certain coding which is
-// documented in the docs
-	sprintf(kommand,"%s/minicomputerMemory.temp",folder);
+	char kommand[1200];
+	// new fileoutput as textfile with a certain coding which is
+	// documented in the docs
+	sprintf(kommand, "%s/minicomputerMemory.temp", folder);
 
-ofstream File (kommand); // temporary file
-int result;
-int p,j;
-for (int i=0;i<512;++i)
- {  
-	File<< "["<<i<<"]" <<endl;// write the soundnumber
+	ofstream File (kommand); // temporary file
+	int result;
+	int p,j;
+	for (int i=0;i<_SOUNDS;++i)
+	 {  
+		File<< "["<<i<<"]" <<endl;// write the soundnumber
 
-	File<< "'"<<sounds[i].name<<"'"<<endl;// write the name
+		File<< "'"<<sounds[i].name<<"'"<<endl;// write the name
 
-/*
-	// One-shot to discard leading numbers
-	int j,k;
-	char temp_name[_NAMESIZE];
-	strnrtrim(temp_name, sounds[i].name, _NAMESIZE);
-	// Skip up to 3 digits...
-	for(j=0; j<3; j++) if(!isdigit(temp_name[j])) break;
-	if(temp_name[j]==' ') j++; // ... and one space
-	for(k=0; k<_NAMESIZE-j; k++) temp_name[k]=temp_name[k+j];
-	File<< "'"<<temp_name<<"'"<<endl;// write the name
-*/
-	for (p=0;p<9;++p) // Write the 9 frequencies (Osc1..3 + filters 2x3)
-	{
-		for (j=0;j<2;++j) // ??
-			File<< "<"<< p << ";" << j << ":" <<sounds[i].freq[p][j]<<">"<<endl;
-	}
-	for (p=0;p<_CHOICECOUNT;++p) // Write listbox items
-		File<< "{"<< p << ":"<<sounds[i].choice[p]<<"}"<<endl;
-	for (p=0;p<_PARACOUNT;++p)// write the remaining parameters
-		File<< "("<< p << ":"<<sounds[i].parameter[p]<<")"<<endl;
- }// end of for i
+	/*
+		// One-shot to discard leading numbers
+		int j,k;
+		char temp_name[_NAMESIZE];
+		strnrtrim(temp_name, sounds[i].name, _NAMESIZE);
+		// Skip up to 3 digits...
+		for(j=0; j<3; j++) if(!isdigit(temp_name[j])) break;
+		if(temp_name[j]==' ') j++; // ... and one space
+		for(k=0; k<_NAMESIZE-j; k++) temp_name[k]=temp_name[k+j];
+		File<< "'"<<temp_name<<"'"<<endl;// write the name
+	*/
+		for (p=0;p<9;++p) // Write the 9 frequencies (Osc1..3 + filters 2x3)
+		{
+			for (j=0;j<2;++j) // ?? maybe x and y components
+				File<< "<"<< p << ";" << j << ":" <<sounds[i].freq[p][j]<<">"<<endl;
+		}
+		for (p=0;p<_CHOICECOUNT;++p) // Write listbox items
+			File<< "{"<< p << ":"<<sounds[i].choice[p]<<"}"<<endl;
+		for (p=0;p<_PARACOUNT;++p)// write the remaining parameters
+			File<< "("<< p << ":"<<sounds[i].parameter[p]<<")"<<endl;
+	 }// end of for i
 
-File.close();
+	File.close();
 	sprintf(kommand,"%s/minicomputerMemory.txt",folder);
 	if (access(kommand, R_OK) == 0) // check if there a previous file which need to be backed up
 	{
 		sprintf(kommand,"mv %s/minicomputerMemory.txt %s/minicomputerMemory.txt.bak",folder,folder);
 		result=system(kommand);// make a backup
-		printf("mv to .bak result: %u\n", result);
+		if(result) fprintf(stderr, "mv to .bak error, result: %u\n", result);
 	}
 	sprintf(kommand,"mv %s/minicomputerMemory.temp %s/minicomputerMemory.txt",folder,folder);
 	result=system(kommand);// commit the file finally
-	printf("mv to .txt result: %u\n", result);
+	if(result) fprintf(stderr, "mv to .txt error, result: %u\n", result);
 }
 
+void Memory::loadInit()
+{
+	char initfile[1200];
+	sprintf(initfile,"%s/initsinglesound.txt", folder);
+	importPatch(initfile, &initSound);
+}
 /**
  * load the soundmemory (i.e. all preset definitions) from disk
- * supports the depricated binary and textformat.
+ * supports the text format.
  * @see Memory::save()
  */
 void Memory::load()
 {
-	/*ifstream ifs("minicomputerMemory.mcm", std::ios::binary);
-  // boost::archive::text_iarchive ia(ifs, std::ios::binary);
-	for (int i=0;i<139;i++)
-	{
-		ifs>>sounds[0].parameter[i];
-		 //ia >> sounds[i];
-//		 string name;
-//		ifs.read((char *)name, sizeof(name));
-//		sounds[0].name=name;
-	}
-	ifs.close();
-	printf("so ...\n");
-	choice=2;*/
 // new fileinput in textformat which is the way to go
 char path[1200];
 sprintf(path,"%s/minicomputerMemory.txt",folder);
-printf("loading %s",path);
+printf("loading %s\n",path);
 ifstream File (path);
 
 string str,sParameter,sValue;
@@ -237,13 +257,13 @@ while (File)
 		case '\'': // setting the name
 		{
 			j = 1; // important, otherwise it would bail out at the first '	
-			while ((j<str.length()) && (str[j]!='\'') && (j<128) )
+			while ((j<str.length()) && (str[j]!='\'') && (j<_NAMESIZE) )
 			{
 				sounds[current].name[j-1] = str[j];
 				++j;
 			}
 			// printf("Preset # %u : \"%s\"\n", current, sounds[current].name);
-			while (j<128) // fill the rest with blanks to clear the string
+			while (j<_NAMESIZE) // fill the rest with blanks to clear the string
 			{
 				sounds[current].name[j-1]=' ';
 				++j;
@@ -287,7 +307,7 @@ File.close();
  * @param the filename
  * @param the sound memory location which is exported
  */
-void Memory::exportSound(string filename,unsigned int current)
+void Memory::exportSound(string filename, unsigned int current)
 {
 ofstream File (filename.c_str()); // temporary file
 int p,j;
@@ -306,86 +326,98 @@ int p,j;
 
 File.close();
 }
+
+void Memory::importPatch(string filename, patch *p)
+{
+	ifstream File (filename.c_str());
+	if(!File){
+		fprintf(stderr, "importPatch: cannot read from %s\n", filename.c_str());
+		return;
+	}
+	printf("importPatch: reading from %s\n", filename.c_str());
+	string str, sParameter, sValue;
+	float fValue;
+	int iParameter, i2Parameter;
+	unsigned int j;
+	getline(File,str);
+	while (File)
+	{
+		sParameter="";
+		sValue = "";
+		switch (str[0])
+		{
+			case '(':// setting parameter
+			{
+				if (parseNumbers(str, iParameter, i2Parameter, fValue))
+				{
+					p->parameter[iParameter]=fValue;
+				}
+			}
+			break;
+			case '{':// setting additional parameter
+			{
+				if (parseNumbers(str, iParameter, i2Parameter, fValue))
+				{
+					p->choice[iParameter]=(int)fValue;
+				}
+			}
+			break;
+			case '<':// setting additional parameter
+			{
+				if (parseNumbers(str, iParameter, i2Parameter, fValue))
+				{
+					p->freq[iParameter][i2Parameter]=fValue;
+				}
+			}
+			break;
+			case '\'': // setting the name
+			{
+				j = 1; // important, otherwise it would bail out at the first '
+				while ((j<str.length()) && (str[j]!='\'') && (j<_NAMESIZE) )
+				{
+					p->name[j-1] = str[j];
+					++j;
+				}
+				p->name[j-1] = 0;
+	/*
+				if (j<_NAMESIZE) // fill the rest with blanks to clear the string
+				{
+					while (j<_NAMESIZE)
+					{
+						sounds[current].name[j-1]=' ';
+						++j;
+					}
+				}
+	*/
+				printf("importPatch: reading %s\n", p->name);
+			}
+			break;
+			case '#': // Comment
+				printf("importPatch: %s\n", &str[1]);
+			break;
+			default:
+				fprintf(stderr, "importPatch: unexpected leading character %c (%d)\n", str[0], str[0]);
+		}
+
+		getline(File,str); // get the next line of the file
+	}
+	File.close();
+	printf("importPatch: read complete.\n");
+}
 /** import a single sound from a textfile
  * and write it to the given memory location
  * @param the filename
  * @param the sound memory location whose parameters are about to be overwritten
  */
-void Memory::importSound(string filename,unsigned int current)
+void Memory::importSound(string filename, unsigned int current)
 {
-ifstream File (filename.c_str());
-string str,sParameter,sValue;
-float fValue;
-int iParameter,i2Parameter;
-unsigned int j;
-getline(File,str);
-while (File)
-{
-	sParameter="";
-	sValue = "";
-	switch (str[0])
-	{
-		case '(':// setting parameter
-		{
-			if (parseNumbers(str,iParameter,i2Parameter,fValue))
-			{
-				sounds[current].parameter[iParameter]=fValue;
-			}
-		}
-		break;
-		case '{':// setting additional parameter
-		{
-			if (parseNumbers(str,iParameter,i2Parameter,fValue))
-			{
-				sounds[current].choice[iParameter]=(int)fValue;
-			}
-		}
-		break;
-		case '<':// setting additional parameter
-		{
-			if (parseNumbers(str,iParameter,i2Parameter,fValue))
-			{
-				sounds[current].freq[iParameter][i2Parameter]=fValue;
-			}
-		}
-		break;
-		case '\'': // setting the name
-		{
-			j = 1; // important, otherwise it would bail out at the first '
-			while ((j<str.length()) && (str[j]!='\'') && (j<128) )
-			{
-				sounds[current].name[j-1] = str[j];
-				++j;
-			}
-			sounds[current].name[j-1] = 0;
-/*
-			if (j<128) // fill the rest with blanks to clear the string
-			{
-				while (j<128)
-				{
-					sounds[current].name[j-1]=' ';
-					++j;
-				}
-			}
-*/
-		}
-		break;
-		/*case '[':// setting the current sound index
-		{
-			if (parseNumbers(str,iParameter,i2Parameter,fValue))
-			{
-				current = iParameter;
-			}
-		}
-		break;*/
-
+	if(current>=_SOUNDS){
+		fprintf(stderr, "ERROR: unexpected sound number %d\n", current);
+		return;
 	}
-
-	getline(File,str);// get the next line of the file
-}
-File.close();
-// now the new sound is in RAM but need to be saved to the main file
-save();
+	importPatch(filename, &sounds[current]);
+	// now the new sound is in RAM but need to be saved to the main file
+	save();
 }
 /**
  * the multitemperal setup, the choice of sounds and some settings
@@ -440,11 +472,11 @@ void Memory::saveMulti()
  	{
 		sprintf(kommand,"mv %s/minicomputerMulti.txt %s/minicomputerMulti.txt.bak",folder,folder);
 		result=system(kommand);// make a backup of the original file
-		printf("mv to .bak result: %u", result);
+		printf("mv old file to .bak result: %u\n", result);
 	}
 	sprintf(kommand,"mv %s/minicomputerMulti.temp %s/minicomputerMulti.txt",folder,folder);
 	result=system(kommand);// commit the file
-	printf("mv to .txt result: %u", result);
+	printf("mv new file to .txt result: %u\n", result);
 }
 /**
  * load the multitemperal setups which are stored in an extrafile

@@ -84,7 +84,7 @@ float modulator_bias[_MODCOUNT] __attribute__((aligned (16)))={
 	1.0f, // 02 pitch bend
 	1.0f, // 03 osc 1 fm out
 	1.0f, // 04 osc 2 fm out
-	0.0f, // Hole in numbering
+	0.0f, // Note frequency
 	0.0f, // Hole in numbering
 	1.0f, // 05 filter
 	0.0f, // 06 eg 1
@@ -114,7 +114,7 @@ float modulator_scale[_MODCOUNT] __attribute__((aligned (16)))={
 	0.5f, // 02 pitch bend
 	0.5f, // 03 osc 1 fm out
 	0.5f, // 04 osc 2 fm out
-	0.0f, // Hole in numbering
+	1.0f, // Note frequency
 	0.0f, // Hole in numbering
 	0.5f, // 05 filter
 	1.0f, // 06 eg 1
@@ -138,6 +138,7 @@ float modulator_scale[_MODCOUNT] __attribute__((aligned (16)))={
 	1.0f, // 24 cc 16
 	1.0f, // 25 cc 17
 };
+float f_scale, f_offset;
 float midif[_MULTITEMP] __attribute__((aligned (16)));
 
 /*
@@ -563,8 +564,13 @@ int process(jack_nframes_t nframes, void *arg) {
 	for (currentvoice=0;currentvoice<_MULTITEMP;++currentvoice) // for each voice
 	{
 
+		// compute pointers for this voice
+		float * param = parameter[currentvoice];
+		unsigned int * choi = choice[currentvoice];
+		float * current_phase = phase[currentvoice];
+
 		// Calc the modulators
-		float * mod = modulator [currentvoice];
+		float *mod = modulator [currentvoice];
 		// Modulation sources fall in different categories
 		// EG and midi controllers are between 0 and 1, pitch bend between -1 and +1
 		// Audio outputs (osc 3, filter, delay) are between -1 and 1
@@ -581,14 +587,21 @@ int process(jack_nframes_t nframes, void *arg) {
 		// see https://tomroelandts.com/articles/low-pass-single-pole-iir-filter
 		mod[16] += 0.0005f * srDivisor * (modwheel[currentvoice] - mod[16]);
 
+		float bend=pow(2,(mod[2]*param[142]/12.f));
+		// Mod 5 for notes 0..127 is base frequency 8.1758..12543.8556151 scaled to 0..1
+		f_offset=midi2freq[note_min[currentvoice]];
+		if (midi2freq[note_max[currentvoice]]>f_offset)
+			f_scale=1/(midi2freq[note_max[currentvoice]]-f_offset);
+		else
+			f_scale=1.0f;
+		mod[5]=f_scale*(midif[currentvoice]*bend - glide[currentvoice] - f_offset);
+		// mod[5]=f_scale*(midif[currentvoice] - f_offset);
+		// ...and clipped in case bender gets out of hand
+		mod[5]=mod[5]<0.0f?0.0f:(mod[5]>1.0f?1.0f:mod[5]);
+
 // ------------------------------------------------------------
 // --------------- calc the main audio signal -----------------
 // ------------------------------------------------------------
-
-		// compute pointers for this voice
-		float * param = parameter[currentvoice];
-		unsigned int * choi = choice[currentvoice];
-		float * current_phase = phase[currentvoice];
 
 		// casting floats to int for indexing the 3 oscillator wavetables with custom typecaster
 		Psub.f =  current_phase[0];
@@ -733,7 +746,6 @@ int process(jack_nframes_t nframes, void *arg) {
 		// modulator[voice][2] is pitch bend
 		// param[142] is pitch bend scaling (semitones)
 		// tfo1_1+=(midif[currentvoice]*(1.0f-param[2])*param[3]); // Note-dependant frequency
-		float bend=pow(2,(modulator[currentvoice][2]*param[142]/12.f));
 		tfo1_1+=(midif[currentvoice]*(1.0f-param[2])*param[3]*bend); // Note-dependant frequency
 		// tf+=(param[4]*param[5])*mod[choi[0]];
 		tfo1_1-=glide[currentvoice]*(1.0f-param[2]);
@@ -934,44 +946,60 @@ int process(jack_nframes_t nframes, void *arg) {
 		to_filter+=copysign(anti_denormal, to_filter); // Absorb denormals
 
 // ------------- calculate the filter settings ------------------------------
-// mod 1 is choice 5, amount 38 -2..2
-// mod 2 is choice 11, amount 48 -2..2, mult. 120
-// morph knob is parm 56, 0..0.5
-// We want to interpolate between left and right filter bank values
-// Assuming morph between 0 and 1
-// parm = parm1 + (parm2 -parm1) * morph
-//      = parm1 (1-morph) + parm2 * morph
 		if (param[137]){ // Filter bypass
 			mod[7] = to_filter; // Pass input unchanged
 		}else{
+			// mod 1 is choice 5, amount 38 -2..2
+			// mod 2 is choice 11, amount 48 -2..2, mult. 120
+			// morph knob is parm 56, 0..0.5
+			// TODO change all ranges to 0..1 and fix presets accordingly
+			// We want to interpolate between left and right filter bank values
+			// Assuming morph between 0 (full left) and 1 (full right)
+			// parm = parm1 + (parm2 -parm1) * morph
+			//      = parm1 (1-morph) + parm2 * morph
+			// Scaling:
+			// If morph1 is 0.5, mod 0..1 should result in morph 0..1
+			// If morph1 is 0.1, mod 0..1 should result in morph 0..0.2
+			// If morph1 is 0.9, mod 0..1 should result in morph 0.8..1.0
 			morph1 = 2.0*param[56]; // 0..1
-			if(param[140]){
-				mf = 0.25f*param[38]*mod[choi[5]]*param[48]*mod[choi[11]]; // -1..1
-				modmax=0.25*fabs(param[38])*fabs(param[48]);
-			}else{
-				mf = 0.25f*(param[38]*mod[choi[5]]+param[48]*mod[choi[11]]); // -1..1
-				modmax=0.25*(fabs(param[38])+fabs(param[48]));
+			float mf1=(mod[choi[5]]+modulator_bias[choi[5]])*modulator_scale[choi[5]]*2.0f-1.0f; // -1..1
+			if (choi[11]){ // 2nd modulator is not none 
+				float mf2=(mod[choi[11]]+modulator_bias[choi[11]])*modulator_scale[choi[11]]*2.0f-1.0f; // -1..1
+				if(choi[5]){
+					if(param[140]){ // Mult
+						mf = 0.125f*param[38]*mf1*param[48]*mf2; // -0.5..0.5
+						modmax = 0.125*fabs(param[38])*fabs(param[48]); // 0..0.5
+					}else{ // Add
+						mf = 0.125f*(param[38]*mf1+param[48]*mf2); // -0.5..0.5
+						modmax = 0.125*(fabs(param[38])+fabs(param[48])); // 0..0.5
+					}
+				}else{ // 1st modulator is none
+					mf = mf2 * param[48] * 0.25f; // -0.5..0.5
+					modmax = 0.25f*fabs(param[48]); // 0..0.5
+				}
+			}else{ // 2nd modulator is none
+				mf = mf1 * param[38] * 0.25f; // -0.5..0.5
+				// if(first_time && currentvoice==0 && index==0) printf("mod factor %f\n", mf); // -1..1 ok
+				modmax = 0.25f*fabs(param[38]); // 0..0.5
 			}
 			
-			
-			// Prescaling ensures bounds are respected
-			/*
-			if (morph1>0.5f) mf *= 1.0f-morph1; // * <0.5 --> -0.5..0.5
-			else mf *= morph1; // * <0.5 --> -0.5..0.5
-			*/
+			// Prescaling ensures morph1 stays between 0 and 1
 			// The conditions will never be met for modmax==0
-			// We don't need to habdle divide by zero
+			// We don't need to handle divide by zero
 			if (morph1<modmax) mf*=morph1/modmax;
 			if (1-morph1<modmax) mf*=(1-morph1)/modmax;
-
-			morph1+=mf;
+#ifdef _DEBUG
+			if(first_time && currentvoice==0 && index==0)
+				printf("param[38] %f mod[choi[5]] %f param[48] %f mod[choi[11] %f morph1 %f mf %f modmax %f\n", param[38], mod[choi[5]], param[48], mod[choi[11]], morph1, mf, modmax);
+#endif
+			morph1+=mf; // 0..1
 
 			// Clip to range (should not be needed if prescaled)
-			// clipping doesn't sound good
-	#ifdef _DEBUG
+			// Clipping doesn't sound good!
+#ifdef _DEBUG
 			if ((morph1<0.0f) || (morph1>1.0f))
 				printf("Morph clipping %f*%f %f*%f, %f %f %f!\n",param[38],mod[choi[5]],param[48],mod[choi[11]], morph1, mf, morph1-2.0f*mf);
-	#endif
+#endif
 			if (morph1<0.0f) morph1=0.0f;
 			// "else" is useless if the compiler can use conditional mov
 			if (morph1>1.0f) morph1=1.0f;
@@ -1139,20 +1167,30 @@ int process(jack_nframes_t nframes, void *arg) {
 				v[currentvoice][0] += param[35]*morph1;
 				v[currentvoice][1] += param[45]*morph1;
 				v[currentvoice][2] += param[55]*morph1;
-
+#ifdef _DEBUG
+	if(first_time && currentvoice==0 && index==0)
+		printf("tf1 %f = param[30] %f * morph2 %f + param[33] %f * morph1 %f\n", tf1, param[30], morph2, param[33], morph1);
+#endif
 				tf1*=srate;
 				tf2*=srate;
 				tf3*=srate;
 				
 				// Sin approximation sin(x) ~~ x - x^3 / 6.7901358
 				// 1 / 6.7901358 = 0.1472725f
-				// Why 2.f * ?
+				// Why 2.f * ? Why sin?
+				f[currentvoice][0] = tf1;
+				f[currentvoice][1] = tf2;
+				f[currentvoice][2] = tf3; 
+/*
 				f[currentvoice][0] = 2.f * tf1;
 				f[currentvoice][1] = 2.f * tf2;
 				f[currentvoice][2] = 2.f * tf3; 
 				f[currentvoice][0] -= (tf1*tf1*tf1) * 0.1472725f;
 				f[currentvoice][1] -= (tf2*tf2*tf2) * 0.1472725f;
 				f[currentvoice][2] -= (tf3*tf3*tf3) * 0.1472725f;
+*/
+// if(first_time && currentvoice==0 && index==0)
+//	printf("f[currentvoice][0] %f\n", f[currentvoice][0]);
 			#endif
 			// morph1 and morph2 not used past this point
 	//----------------------- actual filter calculation -------------------------
@@ -1469,6 +1507,9 @@ void init ()
 		midi2freq0[i] = 8.1758f * pow(2,(i/12.f));
 		midi2freq[i] = midi2freq0[i]; // No detune yet
 	}
+	// f_offset=midi2freq0[0];
+	// f_scale=1/(midi2freq0[127]-f_offset);
+	// printf("init: f offset %f scale %f max %fHz\n", f_offset, f_scale, midi2freq0[127]);
 
 } // end of initialization
 
