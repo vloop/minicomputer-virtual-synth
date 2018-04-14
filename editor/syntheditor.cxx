@@ -66,7 +66,10 @@ Fl_Button *loadmultiBtn, *storemultiBtn, *multidecBtn, *multiincBtn;
 Fl_Roller* multiRoller;
 bool multi_changed;
 Fl_Menu_Button *multimenu;
-miniTable *multitable;
+multiTable *multitable;
+Fl_Button *savemultisBtn;
+Fl_Output *multinamedisplay;
+
 
 Fl_Value_Input* multiparm[_MULTIPARMS];
 
@@ -82,7 +85,7 @@ bool transmit;
 bool sense=false; // Core not sensed yet
 
 int groups=0;
-Fl_Group *group[157];
+Fl_Group *group[158];
 
 patch compare_buffer;
 Fl_Toggle_Button *compareBtn;
@@ -322,7 +325,7 @@ static void tabCallback(Fl_Widget* o, void* )
 {
 Fl::lock();
 	Fl_Widget* e =((Fl_Tabs*)o)->value();
-	if (e==tab[9]) // The "Sounds" tab
+	if (e==tab[9] || e==tab[10]) // The "Sounds" and "Multis" tabs
 	{
 		panicBtn->hide();
 		logogroup->hide();
@@ -330,15 +333,15 @@ Fl::lock();
 		panicBtn->show();
 		logogroup->show();
 	}
-	if (e==tab[9] || e==tab[10]) // The "Sounds" and "About" tabs
+	if (e==tab[9] || e==tab[10] || e==tab[11]) // The "Sounds", "Multis" and "About" tabs
 	{
 		multigroup->hide();
 	}else{
 		multigroup->show();
 	}
-	if (e==tab[8] || e==tab[9] || e==tab[10]) // The "midi", "library" and "About" tabs
+	if (e==tab[8] || e==tab[9] || e==tab[10] || e==tab[11]) // The "midi", "Sounds, "Multis" and "About" tabs
 	{
-		// The controls below are displayed on all the tabs except "About" and "midi"
+		// The controls below are displayed on all the voice tabs
 		if (paramon != NULL)
 			paramon->hide();
 		else
@@ -983,7 +986,7 @@ static void multiRollerCallback(Fl_Widget* o, void*)
 	int pgm = (int)((Fl_Valuator* )o)->value();
 	char spgm[]="***";
 	snprintf(spgm, 4, "%i", pgm);
-	multiname->value(Speicher.multis[pgm].name);// set gui
+	multiname->value(Speicher.getMultiName(pgm).c_str());// set gui
 	multiname->position(0);// put cursor at the beginning, make sure the start of the string is visible
 	multinumber->value(spgm);
 	setmulti_changed();
@@ -1459,7 +1462,7 @@ static void sound_recall(unsigned int preset)
 #endif
 	Speicher.setChoice(currentvoice, preset);
 	// In case name has been edited
-	soundname[currentvoice]->value(Speicher.sounds[preset].name);
+	soundname[currentvoice]->value(Speicher.getName(preset).c_str());
 	soundname[currentvoice]->position(0);
 	sound_recall0(currentvoice, &Speicher.sounds[preset]);
 	clearsound_changed();
@@ -1516,12 +1519,11 @@ static void loadmultiCallback(Fl_Widget*, void*)
 	//Fl::awake();
 	currentmulti = (unsigned int)multiRoller->value();
 	// In case name has been edited
-	multiname->value(Speicher.multis[currentmulti].name);
+	multiname->value(Speicher.getMultiName(currentmulti).c_str());
 	multiname->position(0);
 #ifdef _DEBUG
 	printf("loadmultiCallback #%u transmit %u\n", currentmulti, transmit);
 #endif
-	//multi[currentmulti][currentvoice]=(unsigned int)((Fl_Input_Choice*)e)->menubutton()->value();
 	for (int i=0;i<_MULTITEMP;++i)
 	{
 		currentvoice = i;
@@ -1610,14 +1612,9 @@ static void storemultiCallback(Fl_Widget* o, void* e)
 	else
 		printf("problems with the multichoice widgets!\n");
 
-	strcpy(Speicher.multis[currentmulti].name,((Fl_Input*)e)->value());
-	//printf("input choice %s\n",((Fl_Input_Choice*)e)->value());
+	Speicher.setMultiName(currentmulti, ((Fl_Input*)e)->value());
 
-	//((Fl_Input_Choice*)e)->menubutton()->replace(currentmulti,((Fl_Input_Choice*)e)->value());
-
-	//Schaltbrett.soundchoice-> add(Speicher.getName(i).c_str());
 	// get the knobs of the mix
-	
 	for (i=0;i<_MULTITEMP;++i)
 	{
 		Speicher.multis[currentmulti].sound[i]=Speicher.getChoice(i);
@@ -1705,6 +1702,7 @@ void miniTable::draw_cell(TableContext context,
 	    return;
     }
 }
+
 void miniTable::event_callback(Fl_Widget*, void *data)
 {
 	miniTable *o = (miniTable*)data;
@@ -1731,20 +1729,20 @@ void miniTable::event_callback2()
 	};
 	switch(Fl::event()){
 		case FL_PUSH:
-			if(R>=0 && C>=0){ // && (C&1)==1){
+			if(R>=0 && C>=0 && (C&1)==1){
 				row_selected=R;
 				col_selected=C;
 				soundnamedisplay->value(Speicher.getName(m).c_str());
+				if ( Fl::event_button() == FL_RIGHT_MOUSE ) {
+	// printf("Right mouse button pushed\n");
+					const Fl_Menu_Item *m = menu_rclick->popup(Fl::event_x(), Fl::event_y(), 0, 0, 0);
+					if ( m ) m->do_callback(0, m->user_data());
+					// return(1);          // (tells caller we handled this event)
+				}else{
+	// printf("Left or middle mouse button pushed\n");
+				}
+				redraw();
 			}
-			if ( Fl::event_button() == FL_RIGHT_MOUSE ) {
-// printf("Right mouse button pushed\n");
-				const Fl_Menu_Item *m = menu_rclick->popup(Fl::event_x(), Fl::event_y(), 0, 0, 0);
-				if ( m ) m->do_callback(0, m->user_data());
-				// return(1);          // (tells caller we handled this event)
-			}else{
-// printf("Left or middle mouse button pushed\n");
-			}
-			redraw();
 			break;
 		case FL_RELEASE:
 			// Right mouse released - never caught?
@@ -1818,6 +1816,9 @@ void soundexportmnuCallback(Fl_Widget*, void*T) {
 void soundssavebtnCallback(Fl_Widget*, void*) {
 	Speicher.save();
 }
+void multissavebtnCallback(Fl_Widget*, void*) {
+	Speicher.saveMulti();
+}
 /*
 static void soundmenuCallback(Fl_Widget*, void*) {
 	// Determine which item user picked
@@ -1840,17 +1841,155 @@ printf("Menu on sound %d\n", n);
 	if ( strcmp(text, "Load as voice 8") == 0 ) { fl_message("to be implemented"); }
 }
 */
+void updatemultiname(unsigned int dest, const char* new_name){
+	// update name input field
+	// What if name has been changed manually?
+	if(currentmulti==dest){
+		multiname->value(new_name);
+		multiname->position(0);
+		setmulti_changed();
+	}
+}
+void multicopymnuCallback(Fl_Widget*, void*T) {
+	int cell=((multiTable *)T)->get_selected_cell();
+	 printf("copy %d\n", cell);
+	((multiTable *)T)->set_copied_cell(cell);
+}
+void multipastemnuCallback(Fl_Widget*, void*T) {
+	int src=((multiTable *)T)->get_copied_cell()/2;
+	if(src<0 || src>=_MULTIS) return;
+	int dest=((multiTable *)T)->get_selected_cell()/2;
+	if(dest<0 || dest>=_MULTIS) return;
+	 printf("paste %d to %d\n", src, dest);
+	Speicher.copymulti(src, dest);
+	multinamedisplay->value(Speicher.getMultiName(dest).c_str());
+	updatemultiname(dest, Speicher.getMultiName(dest).c_str());
+}
+void multirenamemnuCallback(Fl_Widget*, void*T) {
+	int dest=((multiTable *)T)->get_selected_cell()/2;
+	if(dest<0 || dest>=_MULTIS) return;
+	// printf("rename %d\n", dest);
+	char old_name[_NAMESIZE];
+	strnrtrim(old_name, Speicher.getMultiName(dest).c_str(), _NAMESIZE);
+	const char *new_name=fl_input("New name?", old_name);
+	if(new_name){
+		multinamedisplay->value(new_name);
+		Speicher.setMultiName(dest, new_name);
+		updatemultiname(dest, new_name);
+	}
+}
+
+void multiTable::draw_cell(TableContext context, 
+			  int R, int C, int X, int Y, int W, int H)
+{
+	static char s[40];
+	int m=R*(cols()/2)+(C/2); // 2 cells per sound
+	if(m<0 || m>=_MULTIS) return;
+
+	switch ( context )
+	{
+	case CONTEXT_STARTPAGE:
+		fl_font(FL_HELVETICA, 12);
+		return;
+
+	case CONTEXT_CELL:
+	{
+		// fl_font(FL_HELVETICA, 12);
+		fl_push_clip(X, Y, W, H);
+		{
+		// BG COLOR
+		if (C==col_selected && R==row_selected){
+			fl_color((C&1) ? FL_RED: _BGCOLOR);
+		}else{
+			fl_color((C&1) ? FL_WHITE: _BGCOLOR);
+		}
+		fl_rectf(X, Y, W, H);
+
+		// TEXT
+		fl_color(FL_BLACK);
+		if(C&1){
+			fl_draw(Speicher.getMultiName(m).c_str(), X+2, Y, W-2, H, FL_ALIGN_LEFT);
+		}else{
+			sprintf(s, "%d", m); // text for sound number cell
+			fl_draw(s, X+1, Y, W-1, H, FL_ALIGN_LEFT);
+		}
+
+		// BORDER
+		fl_color(color()); 
+		fl_rect(X, Y, W, H);
+		}
+		fl_pop_clip();
+		return;
+	}
+
+	case CONTEXT_TABLE:
+	    fprintf(stderr, "TABLE CONTEXT CALLED\n");
+	    return;
+
+	case CONTEXT_ROW_HEADER:
+	case CONTEXT_COL_HEADER:
+	case CONTEXT_ENDPAGE:
+	case CONTEXT_RC_RESIZE:
+	case CONTEXT_NONE:
+	    return;
+    }
+}
+
+void multiTable::event_callback(Fl_Widget*, void *data)
+{
+	multiTable *o = (multiTable*)data;
+	o->event_callback2();
+}
+
+void multiTable::event_callback2()
+{
+	int R = callback_row(),
+		C = callback_col();
+	int m=R*(cols()/2)+(C/2); // 2 cells per sound
+//	printf("'%s' callback: ", (label() ? label() : "?"));
+	TableContext context = callback_context();
+	printf("Row=%d Col=%d Context=%d Event=%d sound %d InteractiveResize? %d\n",
+		R, C, (int)context, (int)Fl::event(), m, (int)is_interactive_resize());
+	Fl_Menu_Item menu_rclick[] = {
+		{ "Copy",   0, multicopymnuCallback, (void*)this },
+		{ "Paste",  0, multipastemnuCallback, (void*)this },
+		{ "Rename",  0, multirenamemnuCallback, (void*)this },
+		// { "Init",  0, soundinitmnuCallback, (void*)this },
+		// { "Import",  0, soundimportmnuCallback, (void*)this },
+		// { "Export",  0, soundexportmnuCallback, (void*)this },
+		{ 0 }
+	};
+	switch(Fl::event()){
+		case FL_PUSH:
+			// We get an event on C0 R0 outside the table contents??
+			// Fortunately we need only odd rows
+			// Otherwise event_x might do the trick
+			if(R>=0 && C>0 && (C&1)==1){
+				row_selected=R;
+				col_selected=C;
+				multinamedisplay->value(Speicher.getMultiName(m).c_str());
+				if ( Fl::event_button() == FL_RIGHT_MOUSE ) {
+					const Fl_Menu_Item *m = menu_rclick->popup(Fl::event_x(), Fl::event_y(), 0, 0, 0);
+					if ( m ) m->do_callback(0, m->user_data());
+				}
+				redraw();
+			}
+			break;
+		return;
+	}
+}
+
 /**
  * change the multisetup, should be called from a Midi Program Change event on Channel 9
  * @param int the Program number between 0 and 127
  */
 void UserInterface::changeMulti(int pgm)
 {
-	char temp_name[128];
+	char temp_name[_NAMESIZE];
 	char spgm[]="***";
 	snprintf(spgm, 4, "%i", pgm);
 	Fl::lock();
-	strnrtrim(temp_name, Speicher.multis[pgm].name, 128);
+	strnrtrim(temp_name, Speicher.getMultiName(pgm).c_str(), _NAMESIZE);
 	multiname->value(temp_name); // multichoice
 	#ifdef _DEBUG
 	printf("UserInterface::changeMulti # %u: \"%s\"\n", pgm, temp_name);
@@ -3370,9 +3509,9 @@ Fenster* UserInterface::make_window(const char* title) {
 		{
 		miniTable* o = new miniTable(0, 10, _INIT_WIDTH, _INIT_HEIGHT-35);
 		soundtable=o;
-		// o->selection_color(FL_YELLOW);
+		o->selection_color(FL_YELLOW);
 		o->color(_BGCOLOR);
-		o->when(FL_WHEN_RELEASE|FL_WHEN_CHANGED);
+		o->when(FL_WHEN_CHANGED); // FL_WHEN_RELEASE|
 		o->table_box(FL_NO_BOX);
 		o->col_resize_min(10);
 		o->row_resize_min(10);
@@ -3436,7 +3575,59 @@ Fenster* UserInterface::make_window(const char* title) {
 
 		tab[i]=d;
 		i++;
-	}// ==================================== end librarian tab
+	}// ==================================== end sounds tab
+	// ==================================== multi librarian tab
+	{ 
+		tablabel[i]="Multis";
+		Fl_Group* d = new Fl_Group(0, 10, _INIT_WIDTH, _INIT_HEIGHT, tablabel[i].c_str());
+		group[groups++]=d;
+		d->labelsize(_TEXT_SIZE);
+		d->color(_BGCOLOR);
+		{
+		multiTable* o = new multiTable(0, 10, _INIT_WIDTH, _INIT_HEIGHT-35);
+		multitable=o;
+		o->selection_color(FL_YELLOW);
+		o->color(_BGCOLOR);
+		o->when(FL_WHEN_CHANGED);//FL_WHEN_RELEASE|
+		o->table_box(FL_NO_BOX);
+		o->col_resize_min(10);
+		o->row_resize_min(10);
+
+		// ROWS
+		o->row_header(0);
+		o->row_resize(1);
+		o->rows(2*_MULTIS/_TABLE_COLUMNS); // 2 cells per sound
+		o->row_height_all(16);
+
+		// COLS
+		o->cols(_TABLE_COLUMNS);
+		o->col_header(0);
+		o->col_resize(1);
+		o->col_width_all(96);
+		for(int c=0; c<_TABLE_COLUMNS; c+=2) o->col_width(c,25);
+		
+		o->end(); 
+		}
+		{ Fl_Button* o = new Fl_Button(5, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "save multis");
+			o->tooltip("save all multis data");
+			o->box(FL_BORDER_BOX);
+			o->labelsize(_TEXT_SIZE);
+			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+			o->callback((Fl_Callback*)multissavebtnCallback);
+			savemultisBtn=o;
+		}
+		{ Fl_Output* o = new Fl_Output(70, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 180, _LOGO_HEIGHT2);
+			o->box(FL_BORDER_BOX);
+			o->textsize(_TEXT_SIZE);
+			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+			multinamedisplay=o;
+		}
+
+		d->end();
+
+		tab[i]=d;
+		i++;
+	}// ==================================== end multi librarian tab
 
 	// ==================================== about tab 
 	{ 
@@ -3465,14 +3656,18 @@ Fenster* UserInterface::make_window(const char* title) {
 		  const char *about="<html><body>"
 			  "<i><center>version %s</center></i><br>"
 			  "<p><br>a standalone industrial grade softwaresynthesizer for Linux<br>"
-			  "<p><br>developed by Malte Steiner 2007-2009"
-			  "<p>distributed as free open source software under GPL3 licence<br>"
-			  "<p>additional bugs by Marc Périlleux 2018"
-			  "<p>OSC currently using ports %s and %s"
+			  "<p><br>originally developed by Malte Steiner 2007-2009"
 			  "<p>contact:<br>"
 			  "<center>steiner@block4.com"
 			  "<br>http://www.block4.com"
 			  "<br>http://minicomputer.sourceforge.net"
+			  "</center>"
+			  "<p>distributed as free open source software under GPL3 licence<br>"
+			  "<p>additional bugs by Marc Périlleux 2018"
+			  "<p>OSC currently using ports %s and %s"
+			  "<p>contact:<br>"
+			  "<center>marc.perilleux@laposte.net"
+			  "<br>https://github.com/vloop/minicomputer-virtual-synth"
 			  "</center>"
 			  "</body></html>";
 		  char *Textausgabe;
@@ -3745,6 +3940,7 @@ void Fenster::resize (int x, int y, int w, int h)
 	compareBtn->position(compareBtn->x(), storesoundBtn[0]->y());
 	panicBtn->position(panicBtn->x(), loadsoundBtn[0]->y());
 	soundtable->resize_cols(w);
+	multitable->resize_cols(w);
 
 	// Set text size for all widgets
 	float minscale=min((float)this->w()/_INIT_WIDTH, (float)this->h()/_INIT_HEIGHT);
@@ -3761,12 +3957,14 @@ void Fenster::resize (int x, int y, int w, int h)
 		panicBtn->labelsize(new_text_size);
 		loadmultiBtn->labelsize(new_text_size);
 		storemultiBtn->labelsize(new_text_size);
+		savemultisBtn->labelsize(new_text_size);
 		savesoundsBtn->labelsize(new_text_size);
 		multinumber->textsize(16*minscale);
 		multinumber->labelsize(new_text_size);
 		multiname->textsize(new_text_size);
 		multiname->labelsize(new_text_size);
 		soundnamedisplay->textsize(new_text_size);
+		multinamedisplay->textsize(new_text_size);
 
 		for(unsigned int i=0; i<sizeof(menu_amod)/sizeof(menu_amod[0]);i++){
 			menu_amod[i].labelsize(new_text_size);
@@ -3868,6 +4066,10 @@ int Fenster::handle (int event)
 		break;
 				case FL_F+10:
 			tabs->value(tab[9]);
+			tabCallback(tabs,NULL);
+		break;
+				case FL_F+11:
+			tabs->value(tab[10]);
 			tabCallback(tabs,NULL);
 		break;
 				case FL_Escape:

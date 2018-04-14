@@ -80,6 +80,12 @@ string Memory::getName(unsigned int soundnum)
 	if(soundnum<_SOUNDS) return sounds[soundnum].name;
 	return("???");
 }
+
+string Memory::getMultiName(unsigned int multinum)
+{
+	if(multinum<_SOUNDS) return multis[multinum].name;
+	return("???");
+}
 /**
  * set the soundnumber to a certain voice
  * @param voice number
@@ -101,8 +107,13 @@ void Memory::setName(unsigned int dest, const char *new_name){
 	strncpy(sounds[dest].name, new_name, _NAMESIZE);
 }
 
+void Memory::setMultiName(unsigned int dest, const char *new_name){
+	strncpy(multis[dest].name, new_name, _NAMESIZE);
+}
+
 void Memory::copypatch(patch *src, patch *dest)
 {
+	// Could we achieve this with memcpy?!
 	strnrtrim(dest->name, src->name, _NAMESIZE);
 printf("copypatch %s\n", dest->name);
 	int p,j;
@@ -437,7 +448,7 @@ void Memory::saveMulti()
 	ofstream File (kommand); // temporary file
 
 	int p,j;
-	for (i=0;i<128;++i)// write the whole 128 multis
+	for (i=0;i<_MULTIS;++i)// write the whole 128 multis
 	{
 		File<< "["<<i<<"]" <<endl;// write the multi id number
 		File<< "'"<<multis[i].name<<"'"<<endl;// write the name of the multi
@@ -472,12 +483,29 @@ void Memory::saveMulti()
  	{
 		sprintf(kommand,"mv %s/minicomputerMulti.txt %s/minicomputerMulti.txt.bak",folder,folder);
 		result=system(kommand);// make a backup of the original file
-		printf("mv old file to .bak result: %u\n", result);
+		if(result) fprintf(stderr, "mv old file to .bak failed, result: %u\n", result);
 	}
 	sprintf(kommand,"mv %s/minicomputerMulti.temp %s/minicomputerMulti.txt",folder,folder);
 	result=system(kommand);// commit the file
-	printf("mv new file to .txt result: %u\n", result);
+	if(result) fprintf(stderr, "mv new file to .txt failed, result: %u\n", result);
 }
+
+void Memory::copymulti(int src, int dest)
+{
+	strncpy(multis[dest].name, multis[src].name, _NAMESIZE);
+	int p,j;
+	for (p=0;p<_MULTITEMP;++p) // store the sound ids and volume/midi settings of all 8 voices
+	{
+		multis[dest].sound[p]=multis[src].sound[p];
+		for (j=0;j<_MULTISETTINGS;++j)
+			multis[dest].settings[p][j]=multis[src].settings[p][j];
+	}
+	for (p=0;p<_MULTIPARMS;++p) // store the global multi parameters
+	{
+		multis[dest].parms[p]=multis[src].parms[p];
+	}
+}
+
 /**
  * load the multitemperal setups which are stored in an extrafile
  * no longer supports the deprecated binary format

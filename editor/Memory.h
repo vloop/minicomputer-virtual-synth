@@ -65,6 +65,7 @@ public:
 	Memory();
 	void copysound(int src, int dest);
 	void copypatch(patch *src, patch *dest);
+	void copymulti(int src, int dest);
 	void save();
 	void load();
 	void loadInit();
@@ -78,7 +79,9 @@ public:
 
 	patch initSound;
 	string getName(unsigned int soundnum);
+	string getMultiName(unsigned int multinum);
 	void setName(unsigned int soundnum, const char *new_name);
+	void setMultiName(unsigned int multinum, const char *new_name);
 	virtual ~Memory();
 	patch sounds[512];
 	multi multis[128];

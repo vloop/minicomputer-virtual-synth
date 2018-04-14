@@ -81,8 +81,8 @@ extern Memory Speicher;
 
 #define _TEXT_SIZE 8
 
-// One tab per voice plus midi, librarian and about
-#define _TABCOUNT _MULTITEMP+3
+// One tab per voice plus midi, sounds, multis and about
+#define _TABCOUNT _MULTITEMP+4
 // Minidisplays
 #define _MINICOUNT 13
 
@@ -157,10 +157,10 @@ private:
 
 class miniTable : public Fl_Table_Row
 {
+protected:
 	int row_selected;
 	int col_selected;
 	int cell_copied;
-protected:
 	void draw_cell(TableContext context, // table cell drawing
 				int R=0, int C=0, int X=0, int Y=0, int W=0, int H=0);
 	static void event_callback(Fl_Widget*, void*);
@@ -169,9 +169,9 @@ protected:
 public:
 	miniTable(int x, int y, int w, int h, const char *l=0) : Fl_Table_Row(x,y,w,h,l)
 	{
-		row_selected=0;
-		col_selected=0;
-		cell_copied=-1;
+		row_selected=-1;
+		col_selected=-1;
+		cell_copied=-2;
 		// context_menu = new Fl_Menu_Button(x, y, w, h,"Sound...");
 		callback(&event_callback, (void*)this);
 	end();
@@ -191,6 +191,26 @@ void soundinitmnuCallback(Fl_Widget*, void*);
 void soundrenamemnuCallback(Fl_Widget*, void*T);
 void soundimportmnuCallback(Fl_Widget*, void*);
 void soundexportmnuCallback(Fl_Widget*, void*);
+
+class multiTable : public miniTable
+{
+protected:
+	void draw_cell(TableContext context, // table cell drawing
+				int R=0, int C=0, int X=0, int Y=0, int W=0, int H=0);
+	static void event_callback(Fl_Widget*, void*);
+	void event_callback2();	// callback for table events
+
+public:
+	multiTable(int x, int y, int w, int h, const char *l=0) : miniTable(x,y,w,h,l)
+	{
+		row_selected=-1;
+		col_selected=-1;
+		cell_copied=-2;
+		callback(&event_callback, (void*)this);
+	end();
+	}
+	~multiTable() { }
+};
 
 
 int EG_draw(unsigned int voice, unsigned int EGnum, unsigned int stage);
