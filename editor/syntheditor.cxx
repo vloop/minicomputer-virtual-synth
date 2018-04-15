@@ -45,12 +45,14 @@ Fl_Int_Input *soundnumber[_MULTITEMP];
 Fl_Input* soundname[_MULTITEMP];
 Fl_Button *loadsoundBtn[_MULTITEMP], *storesoundBtn[_MULTITEMP];
 Fl_Button *importsoundBtn[_MULTITEMP], *exportsoundBtn[_MULTITEMP];
+Fl_Button *soundloadBtn[_MULTITEMP];
 Fl_Roller* soundRoller[_MULTITEMP];
 bool sound_changed[_MULTITEMP];
 miniTable *soundtable;
 Fl_Menu_Button *soundmenu;
 Fl_Button *savesoundsBtn;
 Fl_Output *soundnamedisplay;
+Fl_Output *soundnumberdisplay[_MULTITEMP];
 
 int audition_state[_MULTITEMP];
 Fl_Toggle_Button *auditionBtn;
@@ -171,11 +173,12 @@ static void setsound_changed(int voice=-1){
 		soundname[voice]->redraw();
 	}
 }
-static void clearsound_changed(){
-	if(sound_changed[currentvoice]){
-		sound_changed[currentvoice]=false;
-		soundname[currentvoice]->textcolor(FL_BLACK);
-		soundname[currentvoice]->redraw();
+static void clearsound_changed(int voice=-1){
+	if (voice==-1) voice=currentvoice;
+	if(sound_changed[voice]){
+		sound_changed[voice]=false;
+		soundname[voice]->textcolor(FL_BLACK);
+		soundname[voice]->redraw();
 	}
 }
 static void setmulti_changed(){
@@ -1320,8 +1323,7 @@ static void storesoundCallback(Fl_Widget* o, void* e)
  * which should handle both display update
  * and OSC transmission
  */
-// static void sound_recall(unsigned int preset)
-static void sound_recall0(unsigned int destsound, patch *srcpatch)
+static void sound_recall0(unsigned int destvoice, patch *srcpatch)
 {
 /*
 #ifdef _DEBUG
@@ -1330,122 +1332,121 @@ static void sound_recall0(unsigned int destsound, patch *srcpatch)
 #endif
 	Speicher.setChoice(currentvoice, preset);
 	patch *srcpatch;
-	int destsound;
-	destsound=currentvoice;
-	srcpatch=&Speicher.sounds[Speicher.getChoice(destsound)];
+	int destvoice;
+	destvoice=currentvoice;
+	srcpatch=&Speicher.sounds[Speicher.getChoice(destvoice)];
 	*/
 
-	// printf("sound_recall0 dest %u\n", destsound);
+	// printf("sound_recall0 dest %u\n", destvoice);
 	for(int i=0;i<_PARACOUNT;++i)
 	{
-		if (Knob[destsound][i] != NULL && needs_multi[i]==0)
+		if (Knob[destvoice][i] != NULL && needs_multi[i]==0)
 		{
 			if(is_button[i]){
 #ifdef _DEBUG
-				printf("sound_recall0 voice %u button # %u\n", destsound, i);
+				printf("sound_recall0 voice %u button # %u\n", destvoice, i);
 				fflush(stdout);
 #endif
 				if (srcpatch->parameter[i]==0.0f)
 				{
-					((Fl_Light_Button*)Knob[destsound][i])->value(0);
+					((Fl_Light_Button*)Knob[destvoice][i])->value(0);
 				}
 				else
 				{
-					((Fl_Light_Button*)Knob[destsound][i])->value(1);
+					((Fl_Light_Button*)Knob[destvoice][i])->value(1);
 				}
 			}else{
 #ifdef _DEBUG
-				printf("sound_recall0 voice %u parameter # %u\n", destsound, i);
+				printf("sound_recall0 voice %u parameter # %u\n", destvoice, i);
 				fflush(stdout);
 #endif
 				switch (i)
 				{
 				case 3:
 						{
-					((Fl_Positioner*)Knob[destsound][i])->xvalue(srcpatch->freq[0][0]);
-					((Fl_Positioner*)Knob[destsound][i])->yvalue(srcpatch->freq[0][1]);
+					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[0][0]);
+					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[0][1]);
 					break;
 				}
 				case 18:
 						{
-					((Fl_Positioner*)Knob[destsound][i])->xvalue(srcpatch->freq[1][0]);
-					((Fl_Positioner*)Knob[destsound][i])->yvalue(srcpatch->freq[1][1]);
+					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[1][0]);
+					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[1][1]);
 					break;
 				}
 				//************************************ filter cuts *****************************
 				case 30:
 						{
-					((Fl_Positioner*)Knob[destsound][i])->xvalue(srcpatch->freq[2][0]);
-					((Fl_Positioner*)Knob[destsound][i])->yvalue(srcpatch->freq[2][1]);
+					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[2][0]);
+					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[2][1]);
 				break;
 				}
 				case 33:
 						{
-					((Fl_Positioner*)Knob[destsound][i])->xvalue(srcpatch->freq[3][0]);
-					((Fl_Positioner*)Knob[destsound][i])->yvalue(srcpatch->freq[3][1]);
+					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[3][0]);
+					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[3][1]);
 				break;
 				}
 				case 40:
 						{
-					((Fl_Positioner*)Knob[destsound][i])->xvalue(srcpatch->freq[4][0]);
-					((Fl_Positioner*)Knob[destsound][i])->yvalue(srcpatch->freq[4][1]);
+					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[4][0]);
+					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[4][1]);
 				break;
 				}
 				case 43:
 						{
-					((Fl_Positioner*)Knob[destsound][i])->xvalue(srcpatch->freq[5][0]);
-					((Fl_Positioner*)Knob[destsound][i])->yvalue(srcpatch->freq[5][1]);
+					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[5][0]);
+					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[5][1]);
 				break;
 				}
 				case 50:
 						{
-					((Fl_Positioner*)Knob[destsound][i])->xvalue(srcpatch->freq[6][0]);
-					((Fl_Positioner*)Knob[destsound][i])->yvalue(srcpatch->freq[6][1]);
+					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[6][0]);
+					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[6][1]);
 				break;
 				}
 				case 53:
 				{
-					((Fl_Positioner*)Knob[destsound][i])->xvalue(srcpatch->freq[7][0]);
-					((Fl_Positioner*)Knob[destsound][i])->yvalue(srcpatch->freq[7][1]);
+					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[7][0]);
+					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[7][1]);
 				break;
 				}
 				case 90:
 				{
-					((Fl_Positioner*)Knob[destsound][i])->xvalue(srcpatch->freq[8][0]);
-					((Fl_Positioner*)Knob[destsound][i])->yvalue(srcpatch->freq[8][1]);
+					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[8][0]);
+					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[8][1]);
 				break;
 				}
 				default:
 				{
-					((Fl_Valuator*)Knob[destsound][i])->value(srcpatch->parameter[i]);
+					((Fl_Valuator*)Knob[destvoice][i])->value(srcpatch->parameter[i]);
 				break;
 				}
 				} // End of switch
 			} // End of if is_button 
-			// parmCallback(Knob[destsound][i], NULL);
-			parmset(Knob[destsound][i], NULL);
+			parmset(Knob[destvoice][i], NULL);
 #ifdef _DEBUG
 		}else{
-			printf("sound_recall0 voice %i parameter %i : null or multi\n", destsound, i);
+			printf("sound_recall0 voice %i parameter %i : null or multi\n", destvoice, i);
 #endif
 		} // End of if not null & not multi
 	} // End of loop for parameters
 
 	for (int i=0; i<_CHOICECOUNT; ++i)
 	{
-		if (auswahl[destsound][i] != NULL)
+		if (auswahl[destvoice][i] != NULL)
 		{
-			auswahl[destsound][i]->value(srcpatch->choice[i]);
-			choiceCallback(auswahl[destsound][i],NULL);
+			auswahl[destvoice][i]->value(srcpatch->choice[i]);
+			choiceCallback(auswahl[destvoice][i],NULL);
 #ifdef _DEBUG 
-			printf("sound_recall0 voice %i choice # %i : %i\n", destsound, i,Speicher.sounds[Speicher.getChoice(destsound)].choice[i]);
+			printf("sound_recall0 voice %i choice # %i : %i\n", destvoice, i, Speicher.sounds[Speicher.getChoice(destvoice)].choice[i]);
 		}else{
-			printf("sound_recall0 voice %i choice %i : null or multi\n", destsound, i);
+			printf("sound_recall0 voice %i choice %i : null or multi\n", destvoice, i);
 #endif
 		}
 	}
 	// send a reset (clears filters and delay buffer)
-	if (transmit) lo_send(t, "/Minicomputer", "iif", destsound, 0, 0.0f);
+	if (transmit) lo_send(t, "/Minicomputer", "iif", destvoice, 0, 0.0f);
 #ifdef _DEBUG 
 	fflush(stdout);
 #endif
@@ -1454,18 +1455,31 @@ static void sound_recall0(unsigned int destsound, patch *srcpatch)
 /**
  * recall a single sound into current tab
  */
-static void sound_recall(unsigned int preset)
+static void sound_recall(int voice, unsigned int preset)
 {
+	Fl::lock();
+	if(voice==-1) voice=currentvoice;
 #ifdef _DEBUG
-	printf("sound_recall: voice %u preset %u\n", currentvoice, preset);
+	printf("sound_recall: voice %u preset %u\n", voice, preset);
 	fflush(stdout);
 #endif
-	Speicher.setChoice(currentvoice, preset);
+	if(voice>=_MULTITEMP) return;
+	if(preset>=_SOUNDS) return;
+	Speicher.setChoice(voice, preset);
+	// Update display
+	char s[]="####";
+	snprintf(s, 4, "%d", preset);
+	soundnumberdisplay[voice]->value(s);
+	soundnumber[voice]->value(s);
+	soundRoller[voice]->value(preset);
 	// In case name has been edited
-	soundname[currentvoice]->value(Speicher.getName(preset).c_str());
-	soundname[currentvoice]->position(0);
-	sound_recall0(currentvoice, &Speicher.sounds[preset]);
-	clearsound_changed();
+	soundname[voice]->value(Speicher.getName(preset).c_str());
+	soundname[voice]->position(0);
+	sound_recall0(voice, &Speicher.sounds[preset]);
+	clearsound_changed(voice);
+	setmulti_changed();
+	Fl::awake();
+	Fl::unlock();
 }
 
 static void do_compare(Fl_Widget* o, void* ){
@@ -1487,7 +1501,7 @@ static void loadsoundCallback(Fl_Widget* o, void* )
 {
 	Fl::lock();
 	int oldParameter=currentParameter;
-	sound_recall((unsigned int)(atoi(soundnumber[currentvoice]->value())));
+	sound_recall(-1, (unsigned int)(atoi(soundnumber[currentvoice]->value())));
 	parmCallback(Knob[currentvoice][oldParameter], NULL);
 	clearsound_changed();
 	if ((unsigned)atoi(soundnumber[currentvoice]->value())!=Speicher.multis[currentmulti].sound[currentvoice])
@@ -1495,6 +1509,13 @@ static void loadsoundCallback(Fl_Widget* o, void* )
 	Fl::awake();
 	Fl::unlock();
 }
+static void soundloadbtnCallback(Fl_Widget* o, void* )
+{
+	unsigned int voice=o->argument();
+	int patchnum=soundtable->get_selected_cell()/2;
+	sound_recall(voice, patchnum);
+}
+
 static void soundnameCallback(Fl_Widget* o, void* ){
 	setsound_changed();
 }
@@ -1529,7 +1550,7 @@ static void loadmultiCallback(Fl_Widget*, void*)
 		currentvoice = i;
 		if ((Speicher.multis[currentmulti].sound[i]>=0) && (Speicher.multis[currentmulti].sound[i]<512))
 		{
-			sound_recall(Speicher.multis[currentmulti].sound[i]);
+			sound_recall(i, Speicher.multis[currentmulti].sound[i]);
 #ifdef _DEBUG
 			printf("i ist %i Speicher ist %i\n",i,Speicher.multis[currentmulti].sound[i]);
 			fflush(stdout);
@@ -3556,7 +3577,9 @@ Fenster* UserInterface::make_window(const char* title) {
 		}
 		*/
 
-		{ Fl_Button* o = new Fl_Button(5, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "save sounds");
+		int y=_INIT_HEIGHT-_LOGO_HEIGHT2-6;
+		int h=_LOGO_HEIGHT2+1;
+		{ Fl_Button* o = new Fl_Button(5, y, 60, h, "save sounds");
 			o->tooltip("save all sound data");
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
@@ -3564,8 +3587,26 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)soundssavebtnCallback);
 			savesoundsBtn=o;
 		}
-		{ Fl_Output* o = new Fl_Output(70, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 180, _LOGO_HEIGHT2);
+		int x=70;
+		for(int v=0; v<_MULTITEMP; v++){
+			char sv[10]="Load #";
+			snprintf(sv, 10, "load %d", v+1);
+			Fl_Button* o = new Fl_Button(x+66*v, y, 35, h);
+			o->copy_label(sv);
 			o->box(FL_BORDER_BOX);
+			o->labelsize(_TEXT_SIZE);
+			o->argument(v);
+			o->callback((Fl_Callback*)soundloadbtnCallback);
+			soundloadBtn[v]=o;
+			Fl_Output* o2 = new Fl_Output(x+37+66*v, y, 22, h);
+			o2->box(FL_BORDER_BOX);
+			o2->color(_BGCOLOR);
+			o2->textsize(_TEXT_SIZE);
+			soundnumberdisplay[v]=o2;
+		}
+		{ Fl_Output* o = new Fl_Output(606, y, 190, h);
+			o->box(FL_BORDER_BOX);
+			o->color(_BGCOLOR);
 			o->textsize(_TEXT_SIZE);
 			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 			soundnamedisplay=o;
@@ -3987,10 +4028,12 @@ void Fenster::resize (int x, int y, int w, int h)
 		for(int i=0; i<_MULTITEMP; i++){
 			soundnumber[i]->textsize(16*minscale);
 			soundnumber[i]->labelsize(new_text_size);
+			soundnumberdisplay[i]->textsize(new_text_size);
 			soundname[i]->textsize(new_text_size);
 			soundname[i]->labelsize(new_text_size);
 			loadsoundBtn[i]->labelsize(new_text_size);
 			storesoundBtn[i]->labelsize(new_text_size);
+			soundloadBtn[i]->labelsize(new_text_size);
 			clearstateBtn[i]->labelsize(new_text_size);
 			importsoundBtn[i]->labelsize(new_text_size);
 			exportsoundBtn[i]->labelsize(new_text_size);

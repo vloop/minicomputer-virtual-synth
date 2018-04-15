@@ -78,29 +78,30 @@ Memory::~Memory()
 string Memory::getName(unsigned int soundnum)
 {
 	if(soundnum<_SOUNDS) return sounds[soundnum].name;
-	return("???");
+	return(NULL);
 }
 
 string Memory::getMultiName(unsigned int multinum)
 {
 	if(multinum<_SOUNDS) return multis[multinum].name;
-	return("???");
+	return(NULL);
 }
 /**
  * set the soundnumber to a certain voice
  * @param voice number
  * @param sound number
  */
-void Memory::setChoice(unsigned int voice, unsigned int i)
+int Memory::setChoice(unsigned int voice, unsigned int i)
 {
-	if ((i>=0) && (i<_SOUNDS)) // check if its in the range
+	if (voice<_MULTITEMP && i<_SOUNDS) // check if its in the range
 	{
 		choice[voice] = i;
+		return(0);
 	}
 	else // oha, should not happen
 	{
-		printf("illegal sound choice\n");
-		fflush(stdout);
+		fprintf(stderr, "setChoice: illegal voice %d or sound %d\n", voice, i);
+		return(-1);
 	}
 }
 void Memory::setName(unsigned int dest, const char *new_name){
@@ -169,6 +170,7 @@ void Memory::save()
 	ofstream File (kommand); // temporary file
 	int result;
 	int p,j;
+	File<<"# Minicomputer sounds file"<<endl;
 	for (int i=0;i<_SOUNDS;++i)
 	 {  
 		File<< "["<<i<<"]" <<endl;// write the soundnumber
@@ -289,6 +291,9 @@ while (File)
 			}
 		}
 		break;
+		case '#': // Comment
+			printf("load: %s\n", &str[1]);
+		break;
 
 	}
 
@@ -322,6 +327,7 @@ void Memory::exportSound(string filename, unsigned int current)
 {
 ofstream File (filename.c_str()); // temporary file
 int p,j;
+	File<<"# Minicomputer single sound file"<<endl;
 	//File<< "["<<i<<"]" <<endl;// write the soundnumber
 	File<< "'"<<sounds[current].name<<"'"<<endl;// write the name
 	
@@ -446,6 +452,7 @@ void Memory::saveMulti()
 
 	sprintf(kommand,"%s/minicomputerMulti.temp",folder);
 	ofstream File (kommand); // temporary file
+	File<<"# Minicomputer multis file"<<endl;
 
 	int p,j;
 	for (i=0;i<_MULTIS;++i)// write the whole 128 multis
@@ -587,6 +594,9 @@ while (File)// as long as there is anything in the file
 				multis[current].settings[iParameter][i2Parameter]=fValue;
 			}
 		}
+		break;
+		case '#': // Comment
+			printf("loadMulti: %s\n", &str[1]);
 		break;
 	}// end of switch
 	getline(File,str);// get the next line

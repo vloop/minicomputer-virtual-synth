@@ -85,7 +85,7 @@ public:
 	virtual ~Memory();
 	patch sounds[512];
 	multi multis[128];
-	void setChoice(unsigned int voice,unsigned int i);
+	int setChoice(unsigned int voice,unsigned int i);
 	unsigned int getChoice(unsigned int voice);
 	
 	private:
