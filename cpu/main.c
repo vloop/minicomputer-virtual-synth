@@ -668,7 +668,7 @@ int process(jack_nframes_t nframes, void *arg) {
 	#endif
 #endif
 		// write the oscillator 3 output to modulators
-		mod[14] = table[choi[12]][iP3] ;
+		mod[14] = table[choi[12]][iP3] * (param[145]?mod[16]:1.0f);
 
 // --------------- calculate the parameters and modulations of main oscillators 1 and 2
 		// 1-((1-p)*48000/sr) = 48000/sr*p + 1 - 48000/sr

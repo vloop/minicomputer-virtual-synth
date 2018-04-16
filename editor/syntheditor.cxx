@@ -64,7 +64,7 @@ Fl_Box* sounding[_MULTITEMP];
 Fl_Group *multigroup;
 Fl_Int_Input *multinumber;
 Fl_Input* multiname;
-Fl_Button *loadmultiBtn, *storemultiBtn, *multidecBtn, *multiincBtn;
+Fl_Button *loadmultiBtn, *loadmultiBtn2, *storemultiBtn, *multidecBtn, *multiincBtn;
 Fl_Roller* multiRoller;
 bool multi_changed;
 Fl_Menu_Button *multimenu;
@@ -256,6 +256,8 @@ int EG_draw(unsigned int voice, unsigned int EGnum, unsigned int stage){
 }
 
 static void tabCallback(Fl_Widget* o, void* );
+static void parmCallback(Fl_Widget* o, void*);
+
 void EG_draw_all(){
 	// Refresh EG label lights
 	// Called by timer_handler
@@ -328,7 +330,19 @@ static void tabCallback(Fl_Widget* o, void* )
 {
 Fl::lock();
 	Fl_Widget* e =((Fl_Tabs*)o)->value();
-	if (e==tab[9] || e==tab[10]) // The "Sounds" and "Multis" tabs
+	int currenttab=-1;
+	for (int i=0; i<_TABCOUNT; i++){
+		if (e==tab[i]){ 
+			currenttab=i;
+			break;
+		}
+	}
+	if(currenttab==-1){
+		fprintf(stderr, "tabCallback: tab not found");
+		return;
+	}
+
+	if (currenttab==9 || currenttab==10) // The "Sounds" and "Multis" tabs
 	{
 		panicBtn->hide();
 		logogroup->hide();
@@ -336,13 +350,29 @@ Fl::lock();
 		panicBtn->show();
 		logogroup->show();
 	}
-	if (e==tab[9] || e==tab[10] || e==tab[11]) // The "Sounds", "Multis" and "About" tabs
+	if (currenttab>=9 && currenttab<=11) // The "Sounds", "Multis" and "About" tabs
 	{
 		multigroup->hide();
 	}else{
 		multigroup->show();
 	}
-	if (e==tab[8] || e==tab[9] || e==tab[10] || e==tab[11]) // The "midi", "Sounds, "Multis" and "About" tabs
+	if (currenttab<_MULTITEMP) // The "midi", "Sounds, "Multis" and "About" tabs
+	{
+		currentvoice=currenttab;
+		bool c=sound_changed[currentvoice];
+		parmCallback(Knob[currentvoice][currentParameter], NULL);
+		// parmCallback sets sound changed, clear again if needed
+		if(!c) clearsound_changed(currentvoice);
+		paramon->show();
+		auditionBtn->show();
+		((Fl_Toggle_Button*)auditionBtn)->value(audition_state[currentvoice]);
+		compareBtn->show();
+#ifdef _DEBUG
+		printf("tabCallback: sound %i\n", currentvoice );
+		fflush(stdout);
+#endif
+	}
+	else // Voice tabs
 	{
 		// The controls below are displayed on all the voice tabs
 		if (paramon != NULL)
@@ -357,35 +387,6 @@ Fl::lock();
 			compareBtn->hide();
 		else
 			printf("there seems to be something wrong with the compare button widget");
-	}
-	else // Voice tabs
-	{
-		// Update currentvoice
-		for (int i=0; i<_MULTITEMP;++i)
-		{
-			if (e==tab[i]){ 
-				currentvoice=i;
-				break;
-			}
-		}	
-
-		if (paramon != NULL)
-			paramon->show();
-		else
-			printf("there seems to be something wrong with paramon widget");
-		if (auditionBtn != NULL){
-			auditionBtn->show();
-			((Fl_Toggle_Button*)auditionBtn)->value(audition_state[currentvoice]);
-		}else
-			printf("there seems to be something wrong with audition widget");
-		if (compareBtn!= NULL)
-			compareBtn->show();
-		else
-			printf("there seems to be something wrong with the compare button widget");
-#ifdef _DEBUG
-	printf("sound %i\n", currentvoice );
-	fflush(stdout);
-#endif
  	} // end of else
 Fl::awake();
 Fl::unlock();
@@ -679,9 +680,20 @@ static void parmCallback(Fl_Widget* o, void*) {
 
 		// show parameter on fine tune only when relevant (not a frequency...)
 		if(needs_finetune[currentParameter]){
-			paramon->value(((Fl_Valuator*)o)->value());
-			paramon->minimum(((Fl_Valuator*)o)->minimum());
-			paramon->maximum(((Fl_Valuator*)o)->maximum());
+			if(needs_finetune[currentParameter]==2){ // Fl_Positioner
+				// printf("x %f y %f\n", ((Fl_Positioner*)o)->xvalue(), ((Fl_Positioner*)o)->yvalue());
+				// printf("min x %f y %f\n", ((Fl_Positioner*)o)->xminimum(), ((Fl_Positioner*)o)->yminimum());
+				// printf("max x %f y %f\n", ((Fl_Positioner*)o)->xmaximum(), ((Fl_Positioner*)o)->ymaximum());
+				// Assume y is reversed (min>max) decimal part
+				paramon->value(((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue());
+				paramon->minimum(((Fl_Positioner*)o)->xminimum()+((Fl_Positioner*)o)->ymaximum());
+				paramon->maximum(((Fl_Positioner*)o)->xmaximum()+((Fl_Positioner*)o)->yminimum());
+				// printf("min %f max %f\n", paramon->minimum(), paramon->maximum());
+			}else{
+				paramon->value(((Fl_Valuator*)o)->value());
+				paramon->minimum(((Fl_Valuator*)o)->minimum());
+				paramon->maximum(((Fl_Valuator*)o)->maximum());
+			}
 			snprintf(currentParameterName, 32, "%31s", ((Fl_Valuator*)o)->label());
 			paramon->label(currentParameterName);
 			paramon->labelcolor(FL_YELLOW);
@@ -757,22 +769,30 @@ static void finetuneCallback(Fl_Widget* o, void*)
 			printf("finetuneCallback voice %u parameter %u", currentvoice, currentParameter);
 #endif
 			double val=((Fl_Valuator* )o)->value();
-			double val_min = ((Fl_Valuator* )Knob[currentvoice][currentParameter])->minimum();
-			double val_max = ((Fl_Valuator* )Knob[currentvoice][currentParameter])->maximum();
+			double val_min = ((Fl_Valuator* )o)->minimum();
+			double val_max = ((Fl_Valuator* )o)->maximum();
 			if(val_max<val_min){ // Reversed range
 				val_max=val_min;
-				val_min=((Fl_Valuator* )Knob[currentvoice][currentParameter])->maximum();
+				val_min=((Fl_Valuator* )o)->maximum();
 			}
-			/*
-			val=max(val, val_min);
-			val=min(val, val_max);
-			*/
 #ifdef _DEBUG
-			printf("=%f\n", val);
+			printf("=%f [%f..%f]\n", val, val_min, val_max);
 #endif
 			if(val<=val_max && val>=val_min){
 				((Fl_Value_Input* )o)->textcolor(FL_BLACK);
-				((Fl_Valuator* )Knob[currentvoice][currentParameter])->value(val);
+				// cannot cast Fl_Positioner to Fl_Valuator, needs ad hoc handling
+				if(needs_finetune[currentParameter]==2){ // Fl_Positioner
+					float x, y, ymax;
+					// y is reversed (min>max)
+					ymax=((Fl_Positioner* )Knob[currentvoice][currentParameter])->yminimum();
+					x = (int)(val/ymax)*ymax;
+					y = val-x;
+					// printf("x %f y %f ymax %f\n", x, y, ymax);
+					((Fl_Positioner* )Knob[currentvoice][currentParameter])->xvalue(x);
+					((Fl_Positioner* )Knob[currentvoice][currentParameter])->yvalue(y);
+				}else{ // Any regular valuator
+					((Fl_Valuator* )Knob[currentvoice][currentParameter])->value(val);
+				}
 				parmCallback(Knob[currentvoice][currentParameter], NULL);
 			}else{
 				((Fl_Value_Input* )o)->textcolor(FL_RED);
@@ -1523,6 +1543,81 @@ static void multinameCallback(Fl_Widget* o, void* ){
 	setmulti_changed();
 }
 
+static void loadmulti(int multi)
+{
+	if(multi>=_MULTIS) return;
+	currentmulti = multi;
+	char smulti[]="***";
+	snprintf(smulti, 4, "%i", multi);
+	multinumber->value(smulti);
+	multiname->value(Speicher.getMultiName(multi).c_str());// set gui
+	multiname->position(0);// put cursor at the beginning, make sure the start of the string is visible
+	multiRoller->value(multi);
+#ifdef _DEBUG
+	printf("loadmulti #%u transmit %u\n", currentmulti, transmit);
+#endif
+	for (int i=0;i<_MULTITEMP;++i)
+	{
+		currentvoice = i;
+		if ((Speicher.multis[currentmulti].sound[i]>=0) && (Speicher.multis[currentmulti].sound[i]<512))
+		{
+			sound_recall(i, Speicher.multis[currentmulti].sound[i]);
+#ifdef _DEBUG
+			printf("i ist %i Speicher ist %i\n",i,Speicher.multis[currentmulti].sound[i]);
+			fflush(stdout);
+#endif
+			char temp_name[_NAMESIZE];
+			strnrtrim(temp_name, Speicher.getName(Speicher.multis[currentmulti].sound[i]).c_str(), _NAMESIZE);
+#ifdef _DEBUG
+			printf("loadmulti voice %u: \"%s\"\n", i, temp_name);
+#endif
+			soundname[i]->value(temp_name);
+			soundRoller[i]->value(Speicher.multis[currentmulti].sound[i]);// set gui
+			char ssoundnum[]="***";
+			snprintf(ssoundnum, 4, "%i", Speicher.multis[currentmulti].sound[i]);
+			soundnumber[i]->value(ssoundnum);
+		}
+		// set the knobs of the mix, 0..4
+		int MULTI_parm_num[]={101, 106, 107, 108, 109};
+		for (unsigned int j=0; j<sizeof(MULTI_parm_num)/sizeof(int); j++)
+		{
+			((Fl_Valuator*)Knob[i][MULTI_parm_num[j]])->value(Speicher.multis[currentmulti].settings[i][j]);
+			parmset(Knob[i][MULTI_parm_num[j]],NULL);
+		}
+		// set the midi parameters, 5..10
+		int MIDI_parm_num[]={125, 126, 127, 128, 129, 130};
+		int start=5; // sizeof(MULTI_parm_num)/sizeof(int);
+		for (unsigned int j=0; j<sizeof(MIDI_parm_num)/sizeof(int); j++)
+		{
+			((Fl_Valuator*)Knob[i][MIDI_parm_num[j]])->value(Speicher.multis[currentmulti].settings[i][j+start]);
+			midiparmCallback(Knob[i][MIDI_parm_num[j]],NULL);
+		}
+		clearsound_changed(i);
+	}
+	for (int i=0;i<_MULTIPARMS;++i){
+		((Fl_Valuator*)multiparm[i])->value(Speicher.multis[currentmulti].parms[i]);
+		multiparmCallback(multiparm[i], NULL);
+	}
+	// Restore previous state
+	// currentvoice = oldvoice;
+	// tabs->value(oldtab);
+	// tabCallback(tabs,NULL);
+	// parmCallback(Knob[currentvoice][currentParameter], NULL);
+	clearmulti_changed(); // current multi == selected multi !
+#ifdef _DEBUG
+	printf("loadmulti multi %u voice %i parameter %i\n", currentmulti, currentvoice, oldParameter);
+	fflush(stdout);
+#endif
+	//fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
+	//Fl::check();
+	Fl::awake();
+	Fl::unlock();
+}
+static void loadmultibtn2Callback(Fl_Widget*, void*)
+{
+	int multinum=multitable->get_selected_cell()/2;
+	loadmulti(multinum);
+}
 /**
  * parmCallback when the load multi button is pressed
  * recall a multitemperal setup
@@ -1534,7 +1629,7 @@ static void loadmultiCallback(Fl_Widget*, void*)
 {
 	Fl_Widget* oldtab=tabs->value();
 	int oldvoice=currentvoice;
-	int oldParameter=currentParameter;
+	// int oldParameter=currentParameter;
 	Fl::lock();
 	//fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
 	//Fl::awake();
@@ -1592,7 +1687,8 @@ static void loadmultiCallback(Fl_Widget*, void*)
 	currentvoice = oldvoice;
 	tabs->value(oldtab);
 	tabCallback(tabs,NULL);
-	parmCallback(Knob[currentvoice][oldParameter], NULL);
+//	parmCallback(Knob[currentvoice][oldParameter], NULL);
+// Need to restore current parm depending on tab?!
 	clearmulti_changed(); // current multi == selected multi !
 #ifdef _DEBUG
 	printf("loadmultiCallback multi %u voice %i parameter %i\n", currentmulti, currentvoice, oldParameter);
@@ -1968,9 +2064,9 @@ void multiTable::event_callback2()
 		C = callback_col();
 	int m=R*(cols()/2)+(C/2); // 2 cells per sound
 //	printf("'%s' callback: ", (label() ? label() : "?"));
-	TableContext context = callback_context();
-	printf("Row=%d Col=%d Context=%d Event=%d sound %d InteractiveResize? %d\n",
-		R, C, (int)context, (int)Fl::event(), m, (int)is_interactive_resize());
+//	TableContext context = callback_context();
+//	printf("Row=%d Col=%d Context=%d Event=%d sound %d InteractiveResize? %d\n",
+//		R, C, (int)context, (int)Fl::event(), m, (int)is_interactive_resize());
 	Fl_Menu_Item menu_rclick[] = {
 		{ "Copy",   0, multicopymnuCallback, (void*)this },
 		{ "Paste",  0, multipastemnuCallback, (void*)this },
@@ -1984,7 +2080,7 @@ void multiTable::event_callback2()
 		case FL_PUSH:
 			// We get an event on C0 R0 outside the table contents??
 			// Fortunately we need only odd rows
-			// Otherwise event_x might do the trick
+			// Otherwise event_y might do the trick
 			if(R>=0 && C>0 && (C&1)==1){
 				row_selected=R;
 				col_selected=C;
@@ -2214,7 +2310,7 @@ float EG_rate_max=0.01;
 
 void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG_label){
 	  // ----------- knobs for envelope generator n ---------------
-	  { Fl_Group* o = new Fl_Group(x, y, 200, 45, EG_label); // 608 31
+	  { Fl_Group* o = new Fl_Group(x, y, 200, 44, EG_label);
 		group[groups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
@@ -2271,7 +2367,8 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int x, int y){
 	{Fl_Positioner* o = new Fl_Positioner(x, y, 70, 79, "cut");
 	o->xbounds(0,9000);
-	o->ybounds(499,0); o->selection_color(0);
+	o->ybounds(500,0);
+	o->selection_color(0);
 	o->xstep(500);
 	o->box(FL_BORDER_BOX);
 	o->labelsize(_TEXT_SIZE);
@@ -2333,13 +2430,13 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[voice][o->argument()] = o;
 	  }
-	  { Fl_Value_Input* o = new Fl_Value_Input(x, y+46, 46, 15); // Fixed frequency display for oscillator 1
+	  { Fl_Value_Input* o = new Fl_Value_Input(x, y+46, 46, 15); // Fixed frequency display for oscillator
 		o->box(FL_ROUNDED_BOX);
 		o->labelsize(_TEXT_SIZE);
 		o->textsize(_TEXT_SIZE);
 		o->maximum(1000);
 		o->step(0.001);
-		o->argument(osc_base);
+		o->argument(osc_base); // Same as fixed frequency dial
 		o->callback((Fl_Callback*)fixedfrequencyCallback);
 		miniDisplay[voice][minidisplay_base]=o;
 	  }
@@ -2367,7 +2464,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->labelsize(_TEXT_SIZE);
 		o->textsize(_TEXT_SIZE);
 		o->maximum(10000);
-		o->argument(osc_base+2);
+		o->argument(osc_base+2); // Same as "tune" Fl_positioner
 		o->step(0.001);
 		o->callback((Fl_Callback*)tuneCallback);
 		miniDisplay[voice][minidisplay_base+1]=o;
@@ -2553,18 +2650,18 @@ Fenster* UserInterface::make_window(const char* title) {
 
 	// show parameter on fine tune only when relevant (not a frequency...)
 	for (int i=0;i<_PARACOUNT;++i) needs_finetune[i]=1;
-	needs_finetune[0]=0; // clear state
-	needs_finetune[1]=0; // Osc 1 fixed frequency
-	needs_finetune[3]=0; // Osc 1 tune
-	needs_finetune[16]=0; // Osc 2 fixed frequency
-	needs_finetune[18]=0; // Osc 2 tune
-	needs_finetune[30]=0; // Filter 1 A cut
-	needs_finetune[33]=0; // Filter 1 B cut
-	needs_finetune[40]=0; // Filter 2 A cut
-	needs_finetune[43]=0; // Filter 2 B cut
-	needs_finetune[50]=0; // Filter 3 A cut
-	needs_finetune[53]=0; // Filter 3 B cut
-	needs_finetune[90]=0; // Osc 3 tune
+	needs_finetune[0]=2; // clear state
+	// needs_finetune[1]=0; // Osc 1 fixed frequency
+	needs_finetune[3]=2; // Osc 1 tune
+	// needs_finetune[16]=0; // Osc 2 fixed frequency
+	needs_finetune[18]=2; // Osc 2 tune
+	needs_finetune[30]=2; // Filter 1 A cut
+	needs_finetune[33]=2; // Filter 1 B cut
+	needs_finetune[40]=2; // Filter 2 A cut
+	needs_finetune[43]=2; // Filter 2 B cut
+	needs_finetune[50]=2; // Filter 3 A cut
+	needs_finetune[53]=2; // Filter 3 B cut
+	needs_finetune[90]=2; // Osc 3 tune
 	needs_finetune[125]=0; // Audition note number
 	needs_finetune[126]=0; // Audition note velocity
 	needs_finetune[127]=0; // Midi channel
@@ -2594,6 +2691,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	needs_finetune[89]=0; // EG 6 repeat
 	needs_finetune[139]=0; // Legato
 	needs_finetune[143]=0; // Time modulator 2 mult.
+	needs_finetune[145]=0; // oscillator 3 mult. mod wheel
 
 	for (int i=0;i<_PARACOUNT;++i) is_button[i]=0;
 	is_button[2]=1; // Fixed frequency osc 1
@@ -2623,6 +2721,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	is_button[137]=1; // Bypass filters
 	is_button[139]=1; // Legato
 	is_button[143]=1; // Time modulator 2 mult.
+	is_button[145]=1; // oscillator 3 mult. mod wheel
 
 
 	transmit=true;
@@ -2846,23 +2945,25 @@ Fenster* UserInterface::make_window(const char* title) {
 	  }
 	  */
 	  // ----------- knobs for envelope generators ---------------
+	  int h=57;
 	  make_EG(i, 60, 608, 31, "EG 1");
-	  make_EG(i, 65, 608, 90, "EG 2");
-	  make_EG(i, 70, 608, 147, "EG 3");
-	  make_EG(i, 75, 608, 204, "EG 4");
-	  make_EG(i, 80, 608, 263, "EG 5");
-	  make_EG(i, 85, 608, 324, "EG 6");
+	  make_EG(i, 65, 608, 31+h, "EG 2");
+	  make_EG(i, 70, 608, 31+2*h, "EG 3");
+	  make_EG(i, 75, 608, 31+3*h, "EG 4");
+	  make_EG(i, 80, 608, 31+4*h, "EG 5");
+	  make_EG(i, 85, 608, 31+5*h, "EG 6");
 	  
 	  // ----------- knobs for mod oscillator ---------------
-	  { Fl_Group* o = new Fl_Group(608, 380, 200, 54, "mod osc");
+	  int y=31+6*h;
+	  { Fl_Group* o = new Fl_Group(608, y, 200, 60, "mod osc");
 		group[groups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
 		o->labelsize(_TEXT_SIZE);
 
-		{  Fl_Positioner* o = new Fl_Positioner(620,384,50,40,"tune");
+		{  Fl_Positioner* o = new Fl_Positioner(620, y+5, 55, 40,"tune");
 		o->xbounds(0,128);
-		o->ybounds(0.99,0);
+		o->ybounds(1,0);
 		o->box(FL_BORDER_BOX);
 		o->xstep(1);
 		o->labelsize(_TEXT_SIZE);
@@ -2875,7 +2976,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)parmCallback);
 		  o->maximum(500); */
 		}
-		{ Fl_Choice* o = new Fl_Choice(680, 397, 120, 15, "waveform");
+		{ Fl_Choice* o = new Fl_Choice(680, y+12, 85, 15, "waveform");
 		  o->box(FL_BORDER_BOX);
 		  o->down_box(FL_BORDER_BOX);
 		  o->labelsize(_TEXT_SIZE);
@@ -2886,7 +2987,16 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)choiceCallback);
 		  auswahl[i][o->argument()]=o;
 		} 
-		{ Fl_Value_Input* o = new Fl_Value_Input(680, 415, 38, 15, "Hz"); // frequency display for modulation oscillator
+		{ Fl_Light_Button* o = new Fl_Light_Button(768, y+12, 33, 15, "mod.");
+		  o->box(FL_BORDER_BOX);
+		  o->labelsize(_TEXT_SIZE);
+		  o->tooltip("Multiply modulation oscillator by modulation wheel");
+		  o->selection_color(FL_RED);
+		  o->argument(145);
+		  o->callback((Fl_Callback*)parmCallback);
+		  Knob[i][o->argument()] = o;
+		}
+		{ Fl_Value_Input* o = new Fl_Value_Input(680, y+30, 38, 15, "Hz"); // frequency display for modulation oscillator
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(_TEXT_SIZE);
 		  o->align(FL_ALIGN_RIGHT);
@@ -2897,7 +3007,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->argument(90);
 		  miniDisplay[i][10]=o;
 		}
-		{ Fl_Value_Input* o = new Fl_Value_Input(740, 415, 38, 15, "BPM"); // BPM display for modulation oscillator
+		{ Fl_Value_Input* o = new Fl_Value_Input(740, y+30, 38, 15, "BPM"); // BPM display for modulation oscillator
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(_TEXT_SIZE);
 		  o->align(FL_ALIGN_RIGHT);
@@ -3657,7 +3767,15 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)multissavebtnCallback);
 			savemultisBtn=o;
 		}
-		{ Fl_Output* o = new Fl_Output(70, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 180, _LOGO_HEIGHT2);
+		{ Fl_Button* o = new Fl_Button(70, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "load multi");
+			o->tooltip("load currently selected multi");
+			o->box(FL_BORDER_BOX);
+			o->labelsize(_TEXT_SIZE);
+			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+			o->callback((Fl_Callback*)loadmultibtn2Callback);
+			loadmultiBtn2=o;
+		}
+		{ Fl_Output* o = new Fl_Output(135, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 180, _LOGO_HEIGHT2);
 			o->box(FL_BORDER_BOX);
 			o->textsize(_TEXT_SIZE);
 			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
@@ -3997,6 +4115,7 @@ void Fenster::resize (int x, int y, int w, int h)
 		auditionBtn->labelsize(new_text_size);
 		panicBtn->labelsize(new_text_size);
 		loadmultiBtn->labelsize(new_text_size);
+		loadmultiBtn2->labelsize(new_text_size);
 		storemultiBtn->labelsize(new_text_size);
 		savemultisBtn->labelsize(new_text_size);
 		savesoundsBtn->labelsize(new_text_size);
@@ -4115,6 +4234,10 @@ int Fenster::handle (int event)
 			tabs->value(tab[10]);
 			tabCallback(tabs,NULL);
 		break;
+				case FL_F+12:
+			tabs->value(tab[11]);
+			tabCallback(tabs,NULL);
+		break;
 				case FL_Escape:
 			do_all_off(NULL, NULL);
 		break;
@@ -4130,8 +4253,7 @@ int Fenster::handle (int event)
 
 		default:
 				// pass other events to the base class...
-
-		return Fl_Double_Window::handle(event);
+				return Fl_Double_Window::handle(event);
 		}
 }
 /*
