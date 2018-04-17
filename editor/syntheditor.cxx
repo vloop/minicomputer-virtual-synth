@@ -166,6 +166,7 @@ char *strnrtrim(char *dest, const char*source, size_t len){
 }
 
 static void setsound_changed(int voice=-1){
+// printf("setsound_changed %d\n", voice);
 	if (voice==-1) voice=currentvoice;
 	if(!sound_changed[voice]){
 		sound_changed[voice]=true;
@@ -174,6 +175,7 @@ static void setsound_changed(int voice=-1){
 	}
 }
 static void clearsound_changed(int voice=-1){
+// printf("clearsound_changed %d\n", voice);
 	if (voice==-1) voice=currentvoice;
 	if(sound_changed[voice]){
 		sound_changed[voice]=false;
@@ -182,6 +184,7 @@ static void clearsound_changed(int voice=-1){
 	}
 }
 static void setmulti_changed(){
+// printf("setmulti_changed\n");
 	if(!multi_changed){
 		multi_changed=true;
 		multiname->textcolor(FL_RED);
@@ -189,6 +192,7 @@ static void setmulti_changed(){
 	}
 }
 static void clearmulti_changed(){
+// printf("clearmulti_changed\n");
 	if(multi_changed){
 		multi_changed=false;
 		multiname->textcolor(FL_BLACK);
@@ -356,13 +360,15 @@ Fl::lock();
 	}else{
 		multigroup->show();
 	}
-	if (currenttab<_MULTITEMP) // The "midi", "Sounds, "Multis" and "About" tabs
+	if (currenttab<_MULTITEMP)  // Voice tabs
 	{
 		currentvoice=currenttab;
-		bool c=sound_changed[currentvoice];
+		// parmCallback may set sound/multi changed, clear again if needed
+		bool sc=sound_changed[currentvoice];
+		bool mc=multi_changed;
 		parmCallback(Knob[currentvoice][currentParameter], NULL);
-		// parmCallback sets sound changed, clear again if needed
-		if(!c) clearsound_changed(currentvoice);
+		if(!sc) clearsound_changed(currentvoice);
+		if(!mc) clearmulti_changed();
 		paramon->show();
 		auditionBtn->show();
 		((Fl_Toggle_Button*)auditionBtn)->value(audition_state[currentvoice]);
@@ -372,7 +378,7 @@ Fl::lock();
 		fflush(stdout);
 #endif
 	}
-	else // Voice tabs
+	else // The "midi", "Sounds, "Multis" and "About" tabs
 	{
 		// The controls below are displayed on all the voice tabs
 		if (paramon != NULL)
@@ -1558,7 +1564,7 @@ static void loadmulti(int multi)
 #endif
 	for (int i=0;i<_MULTITEMP;++i)
 	{
-		currentvoice = i;
+		// currentvoice = i;
 		if ((Speicher.multis[currentmulti].sound[i]>=0) && (Speicher.multis[currentmulti].sound[i]<512))
 		{
 			sound_recall(i, Speicher.multis[currentmulti].sound[i]);
@@ -1592,8 +1598,9 @@ static void loadmulti(int multi)
 			((Fl_Valuator*)Knob[i][MIDI_parm_num[j]])->value(Speicher.multis[currentmulti].settings[i][j+start]);
 			midiparmCallback(Knob[i][MIDI_parm_num[j]],NULL);
 		}
-		clearsound_changed(i);
 	}
+	for (int i=0;i<_MULTITEMP;++i)
+		clearsound_changed(i);
 	for (int i=0;i<_MULTIPARMS;++i){
 		((Fl_Valuator*)multiparm[i])->value(Speicher.multis[currentmulti].parms[i]);
 		multiparmCallback(multiparm[i], NULL);
@@ -1627,6 +1634,8 @@ static void loadmultibtn2Callback(Fl_Widget*, void*)
  */
 static void loadmultiCallback(Fl_Widget*, void*)
 {
+	loadmulti(multiRoller->value());
+/*
 	Fl_Widget* oldtab=tabs->value();
 	int oldvoice=currentvoice;
 	// int oldParameter=currentParameter;
@@ -1698,6 +1707,7 @@ static void loadmultiCallback(Fl_Widget*, void*)
 	//Fl::check();
 	Fl::awake();
 	Fl::unlock();
+	*/
 }
 
 /**
@@ -4162,9 +4172,6 @@ void Fenster::resize (int x, int y, int w, int h)
 			}
 			for(int j=0; j<_CHOICECOUNT; j++){
 				auswahl[i][j]->textsize(new_text_size); // No effect??
-				// auswahl[i][j]->redraw(); // Doesn't help
-				// auswahl[i][j]->menu()->labelsize(new_text_size);
-				// auswahl[i][j]->selection_color(FL_RED); // When selected only
 				auswahl[i][j]->labelsize(new_text_size);
 			}
 			for(int j=0; j<_PARACOUNT; j++){
