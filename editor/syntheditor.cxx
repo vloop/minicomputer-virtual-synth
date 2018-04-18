@@ -410,6 +410,7 @@ static void paramon_flash(void *userdata){
  * parmset, quick set and send parameter value
  * used by parmCallback
  * will *not* set changed or paramon
+ * Beware! This refers to current voice
  * @param Fl_Widget the calling widget
  * @param defined by FLTK but not used
  */
@@ -690,7 +691,7 @@ static void parmCallback(Fl_Widget* o, void*) {
 				// printf("x %f y %f\n", ((Fl_Positioner*)o)->xvalue(), ((Fl_Positioner*)o)->yvalue());
 				// printf("min x %f y %f\n", ((Fl_Positioner*)o)->xminimum(), ((Fl_Positioner*)o)->yminimum());
 				// printf("max x %f y %f\n", ((Fl_Positioner*)o)->xmaximum(), ((Fl_Positioner*)o)->ymaximum());
-				// Assume y is reversed (min>max) decimal part
+				// Assume y is reversed (min>max)
 				paramon->value(((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue());
 				paramon->minimum(((Fl_Positioner*)o)->xminimum()+((Fl_Positioner*)o)->ymaximum());
 				paramon->maximum(((Fl_Positioner*)o)->xmaximum()+((Fl_Positioner*)o)->yminimum());
@@ -717,11 +718,11 @@ static void parmCallback(Fl_Widget* o, void*) {
 }
 
 static void midiparmCallback(Fl_Widget* o, void*) {
-	int voice=(((Fl_Valuator*)o)->argument())>>8;
-	int parm=(((Fl_Valuator*)o)->argument())&0xFF;
-	double val=((Fl_Valuator*)o)->value();
-	val=min(val,((Fl_Valuator*)o)->maximum());
-	val=max(val,((Fl_Valuator*)o)->minimum());
+	int voice = (((Fl_Valuator*)o)->argument()) >> 8;
+	int parm = (((Fl_Valuator*)o)->argument()) & 0xFF;
+	double val = ((Fl_Valuator*)o)->value();
+	val = min(val,((Fl_Valuator*)o)->maximum());
+	val = max(val,((Fl_Valuator*)o)->minimum());
 	((Fl_Valuator*)o)->value(val);
 	if (transmit) lo_send(t, "/Minicomputer", "iif", voice, parm, val);
 #ifdef _DEBUG
@@ -1364,6 +1365,9 @@ static void sound_recall0(unsigned int destvoice, patch *srcpatch)
 	*/
 
 	// printf("sound_recall0 dest %u\n", destvoice);
+	if (destvoice > _MULTITEMP) return;
+	int oldvoice=currentvoice;
+	currentvoice=destvoice; // needed by parmset and choiceCallback
 	for(int i=0;i<_PARACOUNT;++i)
 	{
 		if (Knob[destvoice][i] != NULL && needs_multi[i]==0)
@@ -1450,7 +1454,7 @@ static void sound_recall0(unsigned int destvoice, patch *srcpatch)
 				}
 				} // End of switch
 			} // End of if is_button 
-			parmset(Knob[destvoice][i], NULL);
+			parmset(Knob[destvoice][i], NULL); // Beware this relies on currentvoice
 #ifdef _DEBUG
 		}else{
 			printf("sound_recall0 voice %i parameter %i : null or multi\n", destvoice, i);
@@ -1463,7 +1467,7 @@ static void sound_recall0(unsigned int destvoice, patch *srcpatch)
 		if (auswahl[destvoice][i] != NULL)
 		{
 			auswahl[destvoice][i]->value(srcpatch->choice[i]);
-			choiceCallback(auswahl[destvoice][i],NULL);
+			choiceCallback(auswahl[destvoice][i],NULL); // Beware this relies on currentvoice
 #ifdef _DEBUG 
 			printf("sound_recall0 voice %i choice # %i : %i\n", destvoice, i, Speicher.sounds[Speicher.getChoice(destvoice)].choice[i]);
 		}else{
@@ -1471,6 +1475,8 @@ static void sound_recall0(unsigned int destvoice, patch *srcpatch)
 #endif
 		}
 	}
+	currentvoice=oldvoice;
+
 	// send a reset (clears filters and delay buffer)
 	if (transmit) lo_send(t, "/Minicomputer", "iif", destvoice, 0, 0.0f);
 #ifdef _DEBUG 
@@ -1485,10 +1491,10 @@ static void sound_recall(int voice, unsigned int preset)
 {
 	Fl::lock();
 	if(voice==-1) voice=currentvoice;
-#ifdef _DEBUG
+// #ifdef _DEBUG
 	printf("sound_recall: voice %u preset %u\n", voice, preset);
 	fflush(stdout);
-#endif
+// #endif
 	if(voice>=_MULTITEMP) return;
 	if(preset>=_SOUNDS) return;
 	Speicher.setChoice(voice, preset);
@@ -1539,6 +1545,7 @@ static void soundloadbtnCallback(Fl_Widget* o, void* )
 {
 	unsigned int voice=o->argument();
 	int patchnum=soundtable->get_selected_cell()/2;
+	currentvoice=voice;
 	sound_recall(voice, patchnum);
 }
 
@@ -1549,53 +1556,51 @@ static void multinameCallback(Fl_Widget* o, void* ){
 	setmulti_changed();
 }
 
-static void loadmulti(int multi)
+static void loadmulti(unsigned int multi)
 {
+	printf("loadmulti: multi #%d\n", multi);
 	if(multi>=_MULTIS) return;
 	currentmulti = multi;
 	char smulti[]="***";
 	snprintf(smulti, 4, "%i", multi);
 	multinumber->value(smulti);
-	multiname->value(Speicher.getMultiName(multi).c_str());// set gui
-	multiname->position(0);// put cursor at the beginning, make sure the start of the string is visible
+	multiname->value(Speicher.getMultiName(multi).c_str()); // set gui
+	multiname->position(0); // put cursor at the beginning, make sure the start of the string is visible
 	multiRoller->value(multi);
+	int oldvoice=currentvoice;
+	for (int i=0; i<_MULTITEMP; ++i) {
+		currentvoice = i; // Required by parmset
+		unsigned int soundnum = Speicher.multis[multi].sound[i];
+		if (soundnum >= 0 && soundnum < _SOUNDS) {
+			sound_recall(i, soundnum);
 #ifdef _DEBUG
-	printf("loadmulti #%u transmit %u\n", currentmulti, transmit);
-#endif
-	for (int i=0;i<_MULTITEMP;++i)
-	{
-		// currentvoice = i;
-		if ((Speicher.multis[currentmulti].sound[i]>=0) && (Speicher.multis[currentmulti].sound[i]<512))
-		{
-			sound_recall(i, Speicher.multis[currentmulti].sound[i]);
-#ifdef _DEBUG
-			printf("i ist %i Speicher ist %i\n",i,Speicher.multis[currentmulti].sound[i]);
+			printf("i ist %i Speicher ist %i\n", i, soundnum);
 			fflush(stdout);
 #endif
 			char temp_name[_NAMESIZE];
-			strnrtrim(temp_name, Speicher.getName(Speicher.multis[currentmulti].sound[i]).c_str(), _NAMESIZE);
+			strnrtrim(temp_name, Speicher.getName(soundnum).c_str(), _NAMESIZE);
 #ifdef _DEBUG
 			printf("loadmulti voice %u: \"%s\"\n", i, temp_name);
 #endif
 			soundname[i]->value(temp_name);
-			soundRoller[i]->value(Speicher.multis[currentmulti].sound[i]);// set gui
+			soundRoller[i]->value(soundnum); // set gui
 			char ssoundnum[]="***";
-			snprintf(ssoundnum, 4, "%i", Speicher.multis[currentmulti].sound[i]);
+			snprintf(ssoundnum, 4, "%i", soundnum);
 			soundnumber[i]->value(ssoundnum);
+		} else {
+			fprintf(stderr, "loadmulti: sound %d is out of range!\n", soundnum);
 		}
 		// set the knobs of the mix, 0..4
 		int MULTI_parm_num[]={101, 106, 107, 108, 109};
-		for (unsigned int j=0; j<sizeof(MULTI_parm_num)/sizeof(int); j++)
-		{
-			((Fl_Valuator*)Knob[i][MULTI_parm_num[j]])->value(Speicher.multis[currentmulti].settings[i][j]);
-			parmset(Knob[i][MULTI_parm_num[j]],NULL);
+		for (unsigned int j=0; j<sizeof(MULTI_parm_num)/sizeof(int); j++) {
+			((Fl_Valuator*)Knob[i][MULTI_parm_num[j]])->value(Speicher.multis[multi].settings[i][j]);
+			parmset(Knob[i][MULTI_parm_num[j]],NULL); // Beware! This relies on currentvoice
 		}
 		// set the midi parameters, 5..10
 		int MIDI_parm_num[]={125, 126, 127, 128, 129, 130};
 		int start=5; // sizeof(MULTI_parm_num)/sizeof(int);
-		for (unsigned int j=0; j<sizeof(MIDI_parm_num)/sizeof(int); j++)
-		{
-			((Fl_Valuator*)Knob[i][MIDI_parm_num[j]])->value(Speicher.multis[currentmulti].settings[i][j+start]);
+		for (unsigned int j=0; j<sizeof(MIDI_parm_num)/sizeof(int); j++) {
+			((Fl_Valuator*)Knob[i][MIDI_parm_num[j]])->value(Speicher.multis[multi].settings[i][j+start]);
 			midiparmCallback(Knob[i][MIDI_parm_num[j]],NULL);
 		}
 	}
@@ -1606,10 +1611,11 @@ static void loadmulti(int multi)
 		multiparmCallback(multiparm[i], NULL);
 	}
 	// Restore previous state
-	// currentvoice = oldvoice;
+	 currentvoice = oldvoice;
 	// tabs->value(oldtab);
 	// tabCallback(tabs,NULL);
 	// parmCallback(Knob[currentvoice][currentParameter], NULL);
+	paramon->hide(); // Should set to a certain parameter and do what's needed?
 	clearmulti_changed(); // current multi == selected multi !
 #ifdef _DEBUG
 	printf("loadmulti multi %u voice %i parameter %i\n", currentmulti, currentvoice, oldParameter);
@@ -3976,7 +3982,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	}*/
 
 	// parameter tuning
-	{ Fl_Value_Input* o = new Fl_Value_Input(895, 390, 80, 20, "current parameter");
+	{ Fl_Value_Input* o = new Fl_Value_Input(900, 390, 80, 20);
 		o->box(FL_ROUNDED_BOX);
 		o->labelsize(12);
 		o->textsize(12);
