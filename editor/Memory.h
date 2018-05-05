@@ -70,7 +70,7 @@ public:
 	void load();
 	void loadInit();
 	void saveMulti();
-	void loadMulti();
+	void loadMultis();
 	void store(patch Sound);
 	void overwrite(patch Sound);
 	void importSound(string filename, unsigned int current); // import a single sound

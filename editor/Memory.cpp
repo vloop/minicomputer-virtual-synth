@@ -519,7 +519,7 @@ void Memory::copymulti(int src, int dest)
  * @see Memory::load
  * @see Memory::save
  */
-void Memory::loadMulti()
+void Memory::loadMultis()
 {
 // *********************************** the new text format **********************
 string str,sValue,sParameter;
@@ -548,7 +548,7 @@ while (File)// as long as there is anything in the file
 				if(iParameter<_MULTITEMP)
 					multis[current].sound[iParameter]=(int)fValue;
 				else
-					fprintf(stderr, "ERROR: loadMulti - unexpected parameter number %i", iParameter);
+					fprintf(stderr, "ERROR: loadMultis - unexpected parameter number %i", iParameter);
 			}
 		}
 		break;
@@ -559,7 +559,7 @@ while (File)// as long as there is anything in the file
 				if(iParameter<_MULTIPARMS)
 					multis[current].parms[iParameter]=(int)fValue;
 				else
-					fprintf(stderr, "ERROR: loadMulti - unexpected parameter number %i", iParameter);
+					fprintf(stderr, "ERROR: loadMultis - unexpected parameter number %i", iParameter);
 			}
 		}
 		break;
@@ -596,7 +596,7 @@ while (File)// as long as there is anything in the file
 		}
 		break;
 		case '#': // Comment
-			printf("loadMulti: %s\n", &str[1]);
+			printf("loadMultis: %s\n", &str[1]);
 		break;
 	}// end of switch
 	getline(File,str);// get the next line

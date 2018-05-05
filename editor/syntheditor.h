@@ -117,7 +117,7 @@ class UserInterface {
 public:
   Fenster* make_window(const char *title);
   void changeMulti(int pgm);
-  void changeSound(int channel, int pgm);
+  void changeSound(int voice, int pgm);
   static Fl_Menu_Item menu_pitch[];
   static Fl_Menu_Item menu_pitch1[];
   Fl_Dial *f1cut1;
@@ -192,7 +192,7 @@ void soundrenamemnuCallback(Fl_Widget*, void*T);
 void soundimportmnuCallback(Fl_Widget*, void*);
 void soundexportmnuCallback(Fl_Widget*, void*);
 
-class multiTable : public miniTable
+class MultiTable : public miniTable
 {
 protected:
 	void draw_cell(TableContext context, // table cell drawing
@@ -201,7 +201,7 @@ protected:
 	void event_callback2();	// callback for table events
 
 public:
-	multiTable(int x, int y, int w, int h, const char *l=0) : miniTable(x,y,w,h,l)
+	MultiTable(int x, int y, int w, int h, const char *l=0) : miniTable(x,y,w,h,l)
 	{
 		row_selected=-1;
 		col_selected=-1;
@@ -209,7 +209,7 @@ public:
 		callback(&event_callback, (void*)this);
 	end();
 	}
-	~multiTable() { }
+	~MultiTable() { }
 };
 
 
@@ -220,7 +220,7 @@ void replace_color (unsigned char * bits, unsigned int pixcount, unsigned char r
 char *strnrtrim(char *dest, const char*source, size_t len);
 
 extern Fl_Roller *multiRoller;
-extern Fl_Int_Input *multinumber;
+extern Fl_Int_Input *multiNoInput;
 extern Fl_Input* Multichoice;
 extern bool sense;
 extern char *oport;

@@ -182,6 +182,7 @@ int channel[_MULTITEMP];
 int note_min[_MULTITEMP];
 int note_max[_MULTITEMP];
 int transpose[_MULTITEMP];
+int bank[_MULTITEMP];
 
 jack_port_t *port[_MULTITEMP + 4]; // _multitemp * ports + 2 mix and 2 aux
 jack_port_t *_jack_midipt;
@@ -270,6 +271,7 @@ snd_seq_t *open_seq() {
 	// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_CLOCK);
 	// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_SONGPOS);
 	// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_QFRAME);
+	snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_PGMCHANGE);
 	if ( snd_seq_set_client_info( seq_handle, info) != 0){
 		fprintf(stderr, "Error setting info for event filter setup.\n");
 		exit(1);
@@ -459,9 +461,9 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 	return EG[voice][number][6];
 }
 
-/** @brief the audio processing function from jack
+/** @brief the audio and midi processing function from jack
  * 
- * this is the heart of the client. the process callback. 
+ * the process callback. This is the heart of the client.
  * this will be called by jack every process cycle.
  * jack provides us with a buffer for every output port, 
  * which we can happily write into.
@@ -470,7 +472,7 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
  * @param *arg pointer to additional arguments
  * @return integer 0 when everything is ok
  */
-int process(jack_nframes_t nframes, void *arg) {
+int jackProcess(jack_nframes_t nframes, void *arg) {
 
 	float tfo1_1, tfo1_2, tfo2_1, tfo2_2; // Osc freq related
 	float ta1_1, ta1_2, ta1_3, ta1_4, ta2, ta3; // Osc amp related
@@ -1519,6 +1521,7 @@ void doControlChange(int voice, int n, int v){
 	if  (voice <_MULTITEMP)
 	{
 		switch(n){ // Controller number
+			// MIDI Controller  0 = Bank Select MSB (Most Significant Byte) - ignored
 			case 1:{ // Modulation wheel
 				// modulator[voice][16]=v*scale127;
 				modwheel[voice]=v*scale127;
@@ -1561,6 +1564,10 @@ void doControlChange(int voice, int n, int v){
 				modulator[voice][27]=v*scale127;
 				break;
 			}
+			case 32:{ // Bank Select LSB (Least Significant Byte)
+				bank[voice]=v;
+				break;
+			}
 			case 120:{ // All sound off
 				egOff(voice); // Instant mute
 				doReset(voice);
@@ -1590,20 +1597,26 @@ void doControlChange(int voice, int n, int v){
 
 void doMidi(int status, int n, int v){
 	int c = status & 0x0F;
-	int t = status & 0xF0;
 	int voice;
 #ifdef _DEBUG      
-	fprintf(stderr,"doMidi %u %u %u\n", status, n, v);
+	fprintf(stderr,"doMidi: %u %u %u\n", status, n, v);
 #endif
 	for(voice=0; voice<_MULTITEMP; voice++){
 		if(channel[voice]==c){
-			switch(t){
+			switch(status & 0xF0){
 				case 0x90:{ // Note on
 					doNoteOn(voice, n, v);
 					break;
 				}
 				case 0x80:{ // Note off
 					doNoteOff(voice, n, v);
+					break;
+				}
+				case 0xC0:{ // Program change
+#ifdef _DEBUG
+					printf("doMidi: Program change channel %u voice %u program %u\n", c, voice, n);
+#endif
+					lo_send(t, "/Minicomputer/programChange", "ii", voice, n+(bank[voice]<<7));
 					break;
 				}
 				case 0xD0: // Channel pressure
@@ -1735,7 +1748,7 @@ void doReset(unsigned int voice){
  *
  * @param pointer/handle of alsa midi
  */
-static void *midiprocessor(void *handle) {
+static void *alsaMidiProcess(void *handle) {
 	struct sched_param param;
 	int policy;
 	snd_seq_t *seq_handle = (snd_seq_t *)handle;
@@ -1824,7 +1837,7 @@ static void *midiprocessor(void *handle) {
 				for(voice=0; voice<_MULTITEMP; voice++){
 					if(channel[voice]==c){
 #ifdef _DEBUG      
-						printf("midiprocessor note on voice %u channel %u %u..%u : %u %u\n",
+						printf("alsaMidiProcess: note on voice %u channel %u %u..%u : %u %u\n",
 							voice, channel[voice], note_min[voice], note_max[voice], c, ev->data.note.note);
 #endif
 						doNoteOn(voice, ev->data.note.note, ev->data.note.velocity);
@@ -1840,6 +1853,22 @@ static void *midiprocessor(void *handle) {
 				}
 				break;       
 			}
+			case SND_SEQ_EVENT_PGMCHANGE:{
+				int n=ev->data.control.value;
+#ifdef _DEBUG
+				printf("alsaMidiProcess: program change channel %u program %u\n", c, n);
+#endif
+				for(voice=0; voice<_MULTITEMP; voice++){
+					if(channel[voice]==c){
+#ifdef _DEBUG
+						printf("alsaMidiProcess: program change channel %u voice %u program %u\n", c, voice, n);
+#endif
+						lo_send(t, "/Minicomputer/programChange", "ii", voice, n+(bank[voice]<<7));
+					}
+				}
+				break;
+			}
+
 
 #ifdef _DEBUG      
 			default:
@@ -1848,7 +1877,7 @@ static void *midiprocessor(void *handle) {
 				ev->data.control.channel, ev->data.control.value);
 			}
 #endif
-		}// end of switch
+		} // end of switch
 	snd_seq_free_event(ev);
 	usleep(10);// absolutely necessary, otherwise stream of mididata would block the whole computer, sleep for 10 microseconds
 	} // end of if
@@ -1865,7 +1894,7 @@ static void *midiprocessor(void *handle) {
  printf("midi thread stopped\n");
  fflush(stdout);
 return 0;// its insisited on this although it should be a void function
-}// end of midiprocessor
+}// end of alsaMidiProcess
 
 void usage(){
 	printf(
@@ -1952,8 +1981,8 @@ int i;
 	pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
 	snd_seq_poll_descriptors(seq_handle, pfd, npfd, POLLIN);
 	
-	// create the thread and tell it to use midiprocessor as thread function
-	int err = pthread_create(&midithread, NULL, midiprocessor,seq_handle);
+	// create the thread and tell it to use alsaMidiProcess as thread function
+	int err = pthread_create(&midithread, NULL, alsaMidiProcess,seq_handle);
 	// printf("start err %i\n", err);
  
 
@@ -2031,7 +2060,7 @@ int i;
 	/* jack is callback based. That means we register 
 	 * a callback function (see process() above)
 	 * which will then get called by jack once per process cycle */
-	jack_set_process_callback(client, process, 0);
+	jack_set_process_callback(client, jackProcess, 0);
 	bufsize = jack_get_buffer_size(client);
 
 	// handling the sampling frequency
@@ -2193,7 +2222,6 @@ static inline int audition_handler(const char *path, const char *types, lo_arg *
 static inline int midi_handler(const char *path, const char *types, lo_arg **argv,
 			int argc, void *data, void *user_data)
 {
-	// Beware that midi parameters (channel, note range) don't apply to osc
 	int i, c;
 	// first byte argv[0] is 0 for 3-byte messages such as note on/off
 #ifdef _DEBUG
@@ -2237,9 +2265,10 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 								// Fall through all note off
 							  }
 							  case 123:{ // All note off
-								doNoteOn(c,lastnote[c], 0);
+								doNoteOn(c, lastnote[c], 0);
 								break;
 							  }
+							  // What about the other controllers?? TODO
 							}
 						}
 					}
@@ -2349,8 +2378,8 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 	 case 104:EG[voice][0][3]=argv[2]->f;break;
 	 case 105:EG[voice][0][4]=argv[2]->f;break;
 
-	 // 125 test note and 126 test velocity intentionally ignored
-	 case 127:channel[voice]=(argv[2]->f)-1;break;
+	 // 127 test note and 126 test velocity intentionally ignored
+	 case 125:channel[voice]=(argv[2]->f)-1;break;
 	 case 128:note_min[voice]=argv[2]->f;break;
 	 case 129:note_max[voice]=argv[2]->f;break;
 	 case 130:transpose[voice]=argv[2]->f;break;

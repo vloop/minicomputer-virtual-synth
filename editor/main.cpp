@@ -113,7 +113,7 @@ void reloadSoundNames()
  * Channels are hard-coded, 1..8 for voices, 9 for multi change
  * @param handle to alsaseq
  */
-static void *midiprocessor(void *handle) {
+static void *alsaMidiProcess(void *handle) {
 	struct sched_param param;
 	int policy;
 	snd_seq_t *seq_handle = (snd_seq_t *)handle;
@@ -139,10 +139,10 @@ if (poll(pfd, npfd, 100000) > 0)
 		  {
 			int channel = ev->data.control.channel;
 			int value = ev->data.control.value;
-	#ifdef _DEBUG
-			fprintf(stderr, "Program change event on Channel %2d: %2d %5d       \r",
+#ifdef _DEBUG
+			printf("alsaMidiProcess: program change event on Channel %2d: %2d %5d\n",
 					channel, ev->data.control.param, value);
-	#endif
+#endif
 			// see if it's the control channel
 			if (ev->data.control.channel == 8) { // perform multi program change
 				// first a range check
@@ -151,7 +151,7 @@ if (poll(pfd, npfd, 100000) > 0)
 				}
 			} else if ((channel >= 0) && (channel < _MULTITEMP)) {
 				// program change on the sounds
-				if ((value > -1) && (value < 128)) {
+				if ((value > -1) && (value < _SOUNDS)) {
 					Schaltbrett.changeSound(channel, value+((bank[channel]) << 7));
 				}
 			}
@@ -159,16 +159,16 @@ if (poll(pfd, npfd, 100000) > 0)
 		  }
 		case SND_SEQ_EVENT_CONTROLLER:
 		  {
-	#ifdef _DEBUG
+#ifdef _DEBUG
 			fprintf(stderr, "Control event on Channel %2d: %2d %5d       \r",
 					ev->data.control.channel, ev->data.control.param, ev->data.control.value);
-	#endif
+#endif
 			// MIDI Controller  0 = Bank Select MSB (Most Significant Byte)
 			// MIDI Controller 32 = Bank Select LSB (Least Significant Byte)
 			if ((ev->data.control.param == 32) && (ev->data.control.value < 4) && (ev->data.control.channel < _MULTITEMP)) {
-	#ifdef _DEBUG
+#ifdef _DEBUG
 				printf("Change to bank %u on channel %u\n", ev->data.control.value, ev->data.control.channel);
-	#endif
+#endif
 				bank[ev->data.control.channel] = ev->data.control.value;
 			}
 			/*
@@ -184,7 +184,7 @@ if (poll(pfd, npfd, 100000) > 0)
 		snd_seq_free_event(ev);
 	} // end of first while, emptying the seqdata queue
   } while (true); // doing forever, was  (snd_seq_event_input_pending(seq_handle, 0) > 0);
-  return 0;// why the compiler insists to have this here? Its a void function so what??
+  return 0;
 }
 
 static inline int eg_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data) {
@@ -205,6 +205,9 @@ static void timer_handler(void *userdata) {
 }
 
 static inline int program_change_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data) {
+#ifdef _DEBUG
+	printf("program_change_handler: %u %u\n", argv[0]->i, argv[1]->i);
+#endif
 	Schaltbrett.changeSound(argv[0]->i, argv[1]->i);
 	return 0;
 }
@@ -317,10 +320,10 @@ int main(int argc, char **argv) {
 	strncpy(temp_name+13, oport, _NAMESIZE-13);
 	Fenster* w = Schaltbrett.make_window(temp_name);
 	Speicher.load();
-	Speicher.loadMulti();
+	Speicher.loadMultis();
 	Speicher.loadInit();
 
-	int multi = atoi(multinumber->value());
+	int multi = atoi(multiNoInput->value());
 
 // ------------------------ OSC init ---------------------------------
 	// init for output
@@ -335,7 +338,7 @@ int main(int argc, char **argv) {
 	/* add method that will match /Minicomputer/EG with three integers */
 	if (!lo_error) lo_server_thread_add_method(st, "/Minicomputer/EG", "iii", eg_handler, NULL);
 	if (!lo_error) lo_server_thread_add_method(st, "/Minicomputer/sense", "", sense_handler, NULL);
-	if (!lo_error) lo_server_thread_add_method(st, "/Minicomputer/program change", "ii", program_change_handler, NULL);
+	if (!lo_error) lo_server_thread_add_method(st, "/Minicomputer/programChange", "ii", program_change_handler, NULL);
 	if (!lo_error) lo_server_thread_start(st);
 
 	if (lo_error) {
@@ -371,7 +374,7 @@ int main(int argc, char **argv) {
   snd_seq_poll_descriptors(seq_handle, pfd, npfd, POLLIN);
 
 	// create the thread and tell it to use Midi::work as thread function
-	int err = pthread_create(&midithread, NULL, midiprocessor, seq_handle);
+	int err = pthread_create(&midithread, NULL, alsaMidiProcess, seq_handle);
 	if (err) {
 		fprintf(stderr, "Error %u creating MIDI thread\n", err);
 		// should exit? This is non-blocking for the GUI.
@@ -428,7 +431,7 @@ int main(int argc, char **argv) {
 #endif
   // printf("FLTK API version %u\n", Fl::api_version()); // not found
   // printf("FLTK API version %u\n", Fl::version()); // 0 ???
-  Fl::lock();
+  Fl::lock(); // see http://www.fltk.org/doc-1.3/advanced.html
   w->show(ac, av);
   int result = Fl::run();
   if (launched) lo_send(t, "/Minicomputer/quit", "i", 1);
