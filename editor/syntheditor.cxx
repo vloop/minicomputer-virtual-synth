@@ -495,7 +495,7 @@ static void parmSet(Fl_Widget* o, void*) {
 	if (o){
 		// Fl::lock();
         // Beware not all controls are valuators!
-		currentParameter = ((Fl_Valuator*)o)->argument();
+		currentParameter = o->argument();
 #ifdef _DEBUG
 		printf("parmSet parameter %u\n", currentParameter);
 #endif
@@ -1071,7 +1071,7 @@ static void soundRollerCallback(Fl_Widget* o, void*)
 {
 //	Fl::lock();
 	int soundnum = (int)((Fl_Valuator* )o)->value();
-	soundNameInput[currentVoice]->value((Speicher.getName(soundnum)).c_str());
+	soundNameInput[currentVoice]->value((Speicher.getSoundName(soundnum)).c_str());
 	soundNameInput[currentVoice]->position(0);
 	char ssoundnum[]="***";
 	snprintf(ssoundnum, 4, "%i", soundnum);
@@ -1179,7 +1179,7 @@ static void exportSound(Fl_File_Chooser *w, void *userdata)
 static void do_exportsound(int soundnum)
 {
 	char warn[256], path[256], name[_NAMESIZE];
-	strnrtrim(name, Speicher.getName( soundnum).c_str(), _NAMESIZE);
+	strnrtrim(name, Speicher.getSoundName( soundnum).c_str(), _NAMESIZE);
 	snprintf(warn, 256, "export %s", name);
 	snprintf(path, 256, "./%s.txt", name);
 	Fl_File_Chooser *fc = new Fl_File_Chooser(path,"TEXT Files (*.txt)\t",Fl_File_Chooser::CREATE,warn);
@@ -1255,7 +1255,7 @@ static void do_importsound(int soundnum)
 {
 	// printf("About to import into sound %d\n", soundnum);
 	char warn[256];
-	sprintf (warn, "overwrite %s:", Speicher.getName( soundnum).c_str()); // Is this useful for import ??
+	sprintf (warn, "overwrite %s:", Speicher.getSoundName( soundnum).c_str()); // Is this useful for import ??
 	Fl_File_Chooser *fc = new Fl_File_Chooser(".","TEXT Files (*.txt)\t",Fl_File_Chooser::SINGLE,warn);
 	fc->textsize(9);
 	fc->show();
@@ -1269,7 +1269,7 @@ static void do_importsound(int soundnum)
 		Speicher.importSound(fc->value(), soundnum);
 		// ok, now we have a new sound loaded, but we should flag voices that use it as changed
 		// but not load them?!
-		updatesoundNameInput(soundnum, Speicher.getName(soundnum).c_str());
+		updatesoundNameInput(soundnum, Speicher.getSoundName(soundnum).c_str());
 		fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 //		Fl::check();
 //		Fl::awake();
@@ -1298,7 +1298,7 @@ static void soundimportbtnCallback(Fl_Widget* o, void* )
 
 		Speicher.importSound(fc->value(),atoi(soundNoInput[currentVoice]->value()));
 		// ok, now we have a new sound saved but we should update the userinterface
-		soundNameInput[currentVoice]->value(Speicher.getName(atoi(soundNoInput[currentVoice]->value())).c_str());
+		soundNameInput[currentVoice]->value(Speicher.getSoundName(atoi(soundNoInput[currentVoice]->value())).c_str());
 		soundNameInput[currentVoice]->position(0);
 		setsound_changed();
 		fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
@@ -1422,14 +1422,14 @@ static void storesound(unsigned int srcsound, patch *destpatch)
   
   	for (i=0;i<512;++i) 
   	{
-  		soundNameInput[0]->add(Speicher.getName(i).c_str());
-	  	soundNameInput[1]->add(Speicher.getName(i).c_str());
-	  	soundNameInput[2]->add(Speicher.getName(i).c_str());
-	  	soundNameInput[3]->add(Speicher.getName(i).c_str());
-	  	soundNameInput[4]->add(Speicher.getName(i).c_str());
-	  	soundNameInput[5]->add(Speicher.getName(i).c_str());
-  		soundNameInput[6]->add(Speicher.getName(i).c_str());
-  		soundNameInput[7]->add(Speicher.getName(i).c_str());
+  		soundNameInput[0]->add(Speicher.getSoundName(i).c_str());
+	  	soundNameInput[1]->add(Speicher.getSoundName(i).c_str());
+	  	soundNameInput[2]->add(Speicher.getSoundName(i).c_str());
+	  	soundNameInput[3]->add(Speicher.getSoundName(i).c_str());
+	  	soundNameInput[4]->add(Speicher.getSoundName(i).c_str());
+	  	soundNameInput[5]->add(Speicher.getSoundName(i).c_str());
+  		soundNameInput[6]->add(Speicher.getSoundName(i).c_str());
+  		soundNameInput[7]->add(Speicher.getSoundName(i).c_str());
   	}
 	*/
 //	fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
@@ -1449,7 +1449,7 @@ static void storesoundCallback(Fl_Widget* o, void* e)
 	fflush(stdout);
 #endif
 	storesound(currentVoice, &Speicher.sounds[preset]);
-	Speicher.save();
+	Speicher.saveSounds();
 	clearsound_changed();
 }
 /**
@@ -1612,7 +1612,7 @@ static void sound_recall(int voice, unsigned int sound)
 	char s[]="####";
 	snprintf(s, 4, "%d", sound);
 	soundNoDisplay[voice]->value(s);
-    strnrtrim(soundName[voice], Speicher.getName(sound).c_str(), _NAMESIZE);
+    strnrtrim(soundName[voice], Speicher.getSoundName(sound).c_str(), _NAMESIZE);
 	soundNoDisplay[voice]->tooltip(soundName[voice]);
 	soundNoDisplay[voice]->redraw();
 	soundNoInput[voice]->value(s);
@@ -1692,7 +1692,7 @@ static void loadmulti(unsigned int multi)
 			fflush(stdout);
 #endif
 			char temp_name[_NAMESIZE];
-			strnrtrim(temp_name, Speicher.getName(soundnum).c_str(), _NAMESIZE);
+			strnrtrim(temp_name, Speicher.getSoundName(soundnum).c_str(), _NAMESIZE);
 #ifdef _DEBUG
 			printf("loadmulti voice %u: \"%s\"\n", i, temp_name);
 #endif
@@ -1812,7 +1812,7 @@ static void storemultiCallback(Fl_Widget* o, void* e)
 		Speicher.multis[currentMulti].parms[i]=((Fl_Valuator*)multiParmInput[i])->value();
 	}
 	// write to disk
-	Speicher.saveMulti();
+	Speicher.saveMultis();
 	clearmulti_changed();
 	fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 //	Fl::check();
@@ -1849,8 +1849,8 @@ void miniTable::draw_cell(TableContext context,
 		// TEXT
 		fl_color(FL_BLACK);
 		if(C&1){
-			// printf("%d %s\n", m, Speicher.getName(m).c_str());
-			fl_draw(Speicher.getName(m).c_str(), X+2, Y, W-2, H, FL_ALIGN_LEFT);
+			// printf("%d %s\n", m, Speicher.getSoundName(m).c_str());
+			fl_draw(Speicher.getSoundName(m).c_str(), X+2, Y, W-2, H, FL_ALIGN_LEFT);
 		}else{
 			sprintf(s, "%d", m); // text for sound number cell
 			fl_draw(s, X+1, Y, W-1, H, FL_ALIGN_LEFT);
@@ -1906,7 +1906,7 @@ void miniTable::event_callback2()
 			if(R>=0 && C>=0 && (C&1)==1){
 				row_selected=R;
 				col_selected=C;
-				soundNameDisplay->value(Speicher.getName(m).c_str());
+				soundNameDisplay->value(Speicher.getSoundName(m).c_str());
 				if ( Fl::event_button() == FL_RIGHT_MOUSE ) {
 	// printf("Right mouse button pushed\n");
 					const Fl_Menu_Item *m = menu_rclick->popup(Fl::event_x(), Fl::event_y(), 0, 0, 0);
@@ -1943,7 +1943,7 @@ void miniTable::resize_cols(int W){
 
 void soundcopymnuCallback(Fl_Widget*, void*T) {
 	int cell=((miniTable *)T)->get_selected_cell();
-	// printf("copy %d\n", cell);
+//	printf("copy sound from cell %d\n", cell);
 	((miniTable *)T)->set_copied_cell(cell);
 }
 void soundpastemnuCallback(Fl_Widget*, void*T) {
@@ -1951,36 +1951,36 @@ void soundpastemnuCallback(Fl_Widget*, void*T) {
 	if(src<0 || src>=_SOUNDS) return;
 	int dest=((miniTable *)T)->get_selected_cell()/2;
 	if(dest<0 || dest>=_SOUNDS) return;
-	// printf("paste %d to %d\n", src, dest);
-	Speicher.copysound(src, dest);
-	soundNameDisplay->value(Speicher.getName(dest).c_str());
-	updatesoundNameInput(dest, Speicher.getName(dest).c_str());
+//	printf("paste sound %d to %d\n", src, dest);
+	Speicher.copySound(src, dest);
+	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
+	updatesoundNameInput(dest, Speicher.getSoundName(dest).c_str());
 }
 void soundrenamemnuCallback(Fl_Widget*, void*T) {
 	int dest=((miniTable *)T)->get_selected_cell()/2;
 	if(dest<0 || dest>=_SOUNDS) return;
-	// printf("rename %d\n", dest);
 	char old_name[_NAMESIZE];
-	strnrtrim(old_name, Speicher.getName(dest).c_str(), _NAMESIZE);
+	strnrtrim(old_name, Speicher.getSoundName(dest).c_str(), _NAMESIZE);
 	const char *new_name=fl_input("New name?", old_name);
 	if(new_name){
+//		printf("rename sound %d %s\n", dest, new_name);
 		soundNameDisplay->value(new_name);
-		Speicher.setName(dest, new_name);
+		Speicher.setSoundName(dest, new_name);
 		updatesoundNameInput(dest, new_name);
 	}
 }
 void soundinitmnuCallback(Fl_Widget*, void*T) {
 	int dest=((miniTable *)T)->get_selected_cell()/2;
 	// printf("init %d\n", dest);
-	Speicher.copypatch(&Speicher.initSound, &Speicher.sounds[dest]);
-	soundNameDisplay->value(Speicher.getName(dest).c_str());
-	updatesoundNameInput(dest, Speicher.getName(dest).c_str());
+	Speicher.copyPatch(&Speicher.initSound, &Speicher.sounds[dest]);
+	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
+	updatesoundNameInput(dest, Speicher.getSoundName(dest).c_str());
 }
 void soundimportmnuCallback(Fl_Widget*, void*T) {
 	int dest=((miniTable *)T)->get_selected_cell()/2;
 	// printf("import to %d\n", dest);
 	do_importsound(dest);
-	soundNameDisplay->value(Speicher.getName(dest).c_str());
+	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
 }
 void soundexportmnuCallback(Fl_Widget*, void*T) {
 	int src=((miniTable *)T)->get_selected_cell()/2;
@@ -1988,33 +1988,11 @@ void soundexportmnuCallback(Fl_Widget*, void*T) {
 	do_exportsound(src);
 }
 void soundssavebtnCallback(Fl_Widget*, void*) {
-	Speicher.save();
+	Speicher.saveSounds();
 }
 void multissavebtnCallback(Fl_Widget*, void*) {
-	Speicher.saveMulti();
+	Speicher.saveMultis();
 }
-/*
-static void soundMenuCallback(Fl_Widget*, void*) {
-	// Determine which item user picked
-	const char *text = soundMenu->text(); // get label of item user picked
-	// On right click selection is not set, table callback is not called ??
-	int n=soundTable->get_selected_row()*(_TABLE_COLUMNS/2)+(soundTable->get_selected_col()/2);
-printf("Menu on sound %d\n", n);
-	if ( !text ) return;
-	if ( strcmp(text, "Import") == 0 ) { do_importsound(n); }
-	if ( strcmp(text, "Export") == 0 ) { fl_message("to be implemented"); }
-	if ( strcmp(text, "Copy") == 0 ) { fl_message("to be implemented"); }
-	if ( strcmp(text, "Paste") == 0 ) { fl_message("to be implemented"); }
-	if ( strcmp(text, "Load as voice 1") == 0 ) { fl_message("to be implemented"); }
-	if ( strcmp(text, "Load as voice 2") == 0 ) { fl_message("to be implemented"); }
-	if ( strcmp(text, "Load as voice 3") == 0 ) { fl_message("to be implemented"); }
-	if ( strcmp(text, "Load as voice 4") == 0 ) { fl_message("to be implemented"); }
-	if ( strcmp(text, "Load as voice 5") == 0 ) { fl_message("to be implemented"); }
-	if ( strcmp(text, "Load as voice 6") == 0 ) { fl_message("to be implemented"); }
-	if ( strcmp(text, "Load as voice 7") == 0 ) { fl_message("to be implemented"); }
-	if ( strcmp(text, "Load as voice 8") == 0 ) { fl_message("to be implemented"); }
-}
-*/
 void updatemultiNameInput(unsigned int dest, const char* new_name){
 	// update name input field
 	// What if name has been changed manually?
@@ -2026,7 +2004,7 @@ void updatemultiNameInput(unsigned int dest, const char* new_name){
 }
 void multicopymnuCallback(Fl_Widget*, void*T) {
 	int cell=((MultiTable *)T)->get_selected_cell();
-	 printf("copy %d\n", cell);
+	// printf("copy multi from cell %d\n", cell);
 	((MultiTable *)T)->set_copied_cell(cell);
 }
 void multipastemnuCallback(Fl_Widget*, void*T) {
@@ -2034,8 +2012,8 @@ void multipastemnuCallback(Fl_Widget*, void*T) {
 	if(src<0 || src>=_MULTIS) return;
 	int dest=((MultiTable *)T)->get_selected_cell()/2;
 	if(dest<0 || dest>=_MULTIS) return;
-	 printf("paste %d to %d\n", src, dest);
-	Speicher.copymulti(src, dest);
+	// printf("paste multi %d to %d\n", src, dest);
+	Speicher.copyMulti(src, dest);
 	multiNameDisplay->value(Speicher.getMultiName(dest).c_str());
 	updatemultiNameInput(dest, Speicher.getMultiName(dest).c_str());
 }
@@ -2201,7 +2179,7 @@ void UserInterface::changeSound(int voice, int pgm)
 		int oldVoice = currentVoice;
         char temp_name[_NAMESIZE];
 		currentVoice = voice;
-        strnrtrim(temp_name, Speicher.getName(pgm).c_str(),_NAMESIZE);
+        strnrtrim(temp_name, Speicher.getSoundName(pgm).c_str(),_NAMESIZE);
 // #ifdef _DEBUG
         printf("changeSound: change voice %u to sound %u \"%s\"\n", voice, pgm, temp_name);
 // #endif
@@ -2856,15 +2834,44 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelsize(_TEXT_SIZE);
 		o->labelcolor(FL_BACKGROUND2_COLOR);
 		o->align(FL_ALIGN_BOTTOM | FL_ALIGN_INSIDE);
-		make_osc(i, 16, 2, 6, 16, 244, "oscillator 2", "fm out amp modulator");
-		{ Fl_Light_Button* o = new Fl_Light_Button(16, 404, 63, 15, "sync to osc1");
-		  o->box(FL_BORDER_BOX);
-		  o->selection_color((Fl_Color)89);
-		  o->labelsize(_TEXT_SIZE);
-		  o->argument(115);
-		  o->callback((Fl_Callback*)parmCallback);
-		  Knob[i][o->argument()] = o;
+		int x=16;
+		make_osc(i, 16, 2, 6, x, 244, "oscillator 2", "fm out amp modulator");
+		{ Fl_Light_Button* o = new Fl_Light_Button(x, 404, 63, 15, "sync to osc1");
+			o->box(FL_BORDER_BOX);
+			o->selection_color((Fl_Color)89);
+			o->labelsize(_TEXT_SIZE);
+			o->argument(115);
+			o->callback((Fl_Callback*)parmCallback);
+			Knob[i][o->argument()] = o;
 		}
+		{ Fl_Dial* o = new Fl_Dial(x+77, 417, 20, 20, "base width");
+			o->labelsize(_TEXT_SIZE);
+			o->argument(146); 
+			o->minimum(0.01);
+			o->maximum(0.99);
+			o->callback((Fl_Callback*)parmCallback);
+			Knob[i][o->argument()] = o;
+		}
+		{ Fl_Choice* j = new Fl_Choice(x+119, 420, 120, 15, "pulse width modulator");
+			j->box(FL_BORDER_BOX);
+			j->down_box(FL_BORDER_BOX);
+			j->labelsize(_TEXT_SIZE);
+			j->textsize(_TEXT_SIZE);
+			j->align(FL_ALIGN_TOP_LEFT);
+			j->argument(18);
+			auswahl[i][j->argument()] = j;
+			j->callback((Fl_Callback*)choiceCallback);
+			j->menu(menu_fmod);
+		}
+		{ Fl_Dial* o = new Fl_Dial(x+245, 417, 20, 20, "amount");
+			o->labelsize(_TEXT_SIZE);
+			o->argument(147);
+			o->minimum(-1);
+			o->maximum(1);
+			o->callback((Fl_Callback*)parmCallback);
+			Knob[i][o->argument()] = o;
+		}
+
 		/*Fl_Dial* o = new Fl_SteinerKnob(20, 345, 34, 34, "tune");
 		o->labelsize(_TEXT_SIZE);
 		o->minimum(0.5);
@@ -2921,7 +2928,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		make_filter(i, 53, 9, 456, 241);
 		o->end();
 	  } 
-	  { Fl_Dial* o = new Fl_Dial(418, 360, 60, 57, "morph");
+	  { Fl_Dial* o = new Fl_Dial(420, 360, 60, 57, "morph");
 		o->type(1);
 		o->labelsize(_TEXT_SIZE);
 		o->maximum(0.5f);
@@ -2935,7 +2942,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->argument(38);
 		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Choice* o = new Fl_Choice(325, 366, 85, 15, "morph mod 1");
+	  { Fl_Choice* o = new Fl_Choice(327, 366, 85, 15, "morph mod 1");
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		o->textsize(_TEXT_SIZE);
@@ -2953,7 +2960,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Choice* o = new Fl_Choice(492, 366, 85, 15, "morph mod 2");
+	  { Fl_Choice* o = new Fl_Choice(490, 366, 85, 15, "morph mod 2");
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		o->textsize(_TEXT_SIZE);
@@ -2964,7 +2971,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		auswahl[i][o->argument()]=o;
 	  }
 	  // Mult button morph mod 2
-	  { Fl_Light_Button* o = new Fl_Light_Button(492, 397, 40, 15, "mult.");
+	  { Fl_Light_Button* o = new Fl_Light_Button(490, 397, 40, 15, "mult.");
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(_TEXT_SIZE);
@@ -2975,7 +2982,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	  o->end(); // Group "filters"
 	  filtersGroup[i]=o;
 	  // The two following buttons are not really part of the filter parameters
-	  { Fl_Light_Button* o = new Fl_Light_Button(325, 430, 85, 15, "bypass filters");
+	  { Fl_Light_Button* o = new Fl_Light_Button(327, 430, 85, 15, "bypass filters");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		// o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
@@ -2985,7 +2992,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Button* o = new Fl_Button(492, 430, 85, 15, "clear state");
+	  { Fl_Button* o = new Fl_Button(490, 430, 85, 15, "clear state");
 		o->tooltip("reset the filter and delay");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -3421,6 +3428,13 @@ Fenster* UserInterface::make_window(const char* title) {
 	{ Fl_Dial* o = new Fl_Dial(295, 292, 25, 25, "ring vol");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(138);
+		// o->align(FL_ALIGN_TOP);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
+	}
+	{ Fl_Dial* o = new Fl_Dial(295, 332, 25, 25, "pwm vol");
+		o->labelsize(_TEXT_SIZE);
+		o->argument(148);
 		// o->align(FL_ALIGN_TOP);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;

@@ -75,7 +75,7 @@ Memory::~Memory()
  * @param soundnumber
  * @return the name as string
  */
-string Memory::getName(unsigned int soundnum)
+string Memory::getSoundName(unsigned int soundnum)
 {
 	if(soundnum<_SOUNDS) return sounds[soundnum].name;
 	return(NULL);
@@ -104,7 +104,7 @@ int Memory::setChoice(unsigned int voice, unsigned int i)
 		return(-1);
 	}
 }
-void Memory::setName(unsigned int dest, const char *new_name){
+void Memory::setSoundName(unsigned int dest, const char *new_name){
 	strncpy(sounds[dest].name, new_name, _NAMESIZE);
 }
 
@@ -112,11 +112,14 @@ void Memory::setMultiName(unsigned int dest, const char *new_name){
 	strncpy(multis[dest].name, new_name, _NAMESIZE);
 }
 
-void Memory::copypatch(patch *src, patch *dest)
+void Memory::copyPatch(const patch *src, patch *dest)
 {
+	// printf("%lu %lu \n", sizeof(src), sizeof(*src));
+	*dest=*src;
+	/*
 	// Could we achieve this with memcpy?!
 	strnrtrim(dest->name, src->name, _NAMESIZE);
-printf("copypatch %s\n", dest->name);
+printf("copyPatch %s\n", dest->name);
 	int p,j;
 	for (p=0;p<9;++p) // Write the 9 frequencies (Osc1..3 + filters 2x3)
 	{
@@ -127,11 +130,12 @@ printf("copypatch %s\n", dest->name);
 		dest->choice[p]=src->choice[p];
 	for (p=0;p<_PARACOUNT;++p)// Write the remaining parameters
 		dest->parameter[p]=src->parameter[p];
+		*/
 }
 
-void Memory::copysound(int src, int dest)
+void Memory::copySound(int src, int dest)
 {
-	copypatch(&sounds[src], &sounds[dest]);
+	copyPatch(&sounds[src], &sounds[dest]);
 	/*
 	strncpy(sounds[dest].name, sounds[src].name, _NAMESIZE);
 	int p,j;
@@ -160,7 +164,7 @@ unsigned int Memory::getChoice(unsigned int voice)
  * two fileformats were possible, the historical
  * but deprecated binary format was removed.
  */
-void Memory::save()
+void Memory::saveSounds()
 {
 	char kommand[1200];
 	// new fileoutput as textfile with a certain coding which is
@@ -170,12 +174,16 @@ void Memory::save()
 	ofstream File (kommand); // temporary file
 	int result;
 	int p,j;
-	File<<"# Minicomputer sounds file"<<endl;
+	File<<"# Minicomputer v"<<_VERSION<<" sounds file"<<endl;
 	for (int i=0;i<_SOUNDS;++i)
 	 {  
-		File<< "["<<i<<"]" <<endl;// write the soundnumber
+		File<< "["<<i<<"]" <<endl; // write the soundnumber
 
-		File<< "'"<<sounds[i].name<<"'"<<endl;// write the name
+		// File<< "'"<<sounds[i].name<<"'"<<endl; // write the name
+		char temp_name[_NAMESIZE];
+		strnrtrim(temp_name, sounds[i].name, _NAMESIZE);
+		// printf("%lu \"%s\"\n", strlen(temp_name), temp_name);
+		File<< "'"<<temp_name<<"'"<<endl; // write the name of the multi
 
 	/*
 		// One-shot to discard leading numbers
@@ -221,14 +229,14 @@ void Memory::loadInit()
 /**
  * load the soundmemory (i.e. all preset definitions) from disk
  * supports the text format.
- * @see Memory::save()
+ * @see Memory::saveSounds()
  */
-void Memory::load()
+void Memory::loadSounds()
 {
 // new fileinput in textformat which is the way to go
 char path[1200];
-sprintf(path,"%s/minicomputerMemory.txt",folder);
-printf("loading %s\n",path);
+sprintf(path,"%s/minicomputerMemory.txt", folder);
+printf("loading %s\n", path);
 ifstream File (path);
 
 string str,sParameter,sValue;
@@ -275,12 +283,15 @@ while (File)
 				sounds[current].name[j-1] = str[j];
 				++j;
 			}
+			sounds[current].name[j-1]=0;
 			// printf("Preset # %u : \"%s\"\n", current, sounds[current].name);
+/*
 			while (j<_NAMESIZE) // fill the rest with blanks to clear the string
 			{
 				sounds[current].name[j-1]=' ';
 				++j;
 			}
+*/
 		}
 		break;
 		case '[': // setting the current sound index
@@ -292,7 +303,7 @@ while (File)
 		}
 		break;
 		case '#': // Comment
-			printf("load: %s\n", &str[1]);
+			printf("loadSounds: %s\n", &str[1]);
 		break;
 
 	}
@@ -327,8 +338,9 @@ void Memory::exportSound(string filename, unsigned int current)
 {
 ofstream File (filename.c_str()); // temporary file
 int p,j;
-	File<<"# Minicomputer single sound file"<<endl;
-	//File<< "["<<i<<"]" <<endl;// write the soundnumber
+	File<<"# Minicomputer v"<<_VERSION<<" single sound file"<<endl;
+
+	//File<< "["<<i<<"]" <<endl; // write the soundnumber
 	File<< "'"<<sounds[current].name<<"'"<<endl; // write the name
 	
 	for (p=0;p<9;++p)
@@ -434,15 +446,15 @@ void Memory::importSound(string filename, unsigned int current)
 	}
 	importPatch(filename, &sounds[current]);
 	// now the new sound is in RAM but need to be saved to the main file
-	save();
+	saveSounds();
 }
 /**
  * the multitemperal setup, the choice of sounds and some settings
  * are saved to an extra file
- * supports the old depricated binary format and the new textformat like the sound saving
- * @see Memory::save()
+ * supports the new textformat like the sound saving
+ * @see Memory::saveSounds()
  */
-void Memory::saveMulti()
+void Memory::saveMultis()
 {
 	char kommand[1200];
 	int i;
@@ -452,13 +464,18 @@ void Memory::saveMulti()
 
 	sprintf(kommand,"%s/minicomputerMulti.temp",folder);
 	ofstream File (kommand); // temporary file
-	File<<"# Minicomputer multis file"<<endl;
+//	File<<"# Minicomputer multis file"<<endl;
+	File<<"# Minicomputer v"<<_VERSION<<" multis file"<<endl;
 
 	int p,j;
-	for (i=0;i<_MULTIS;++i)// write the whole 128 multis
+	for (i=0;i<_MULTIS;++i) // write the whole 128 multis
 	{
-		File<< "["<<i<<"]" <<endl;// write the multi id number
-		File<< "'"<<multis[i].name<<"'"<<endl;// write the name of the multi
+		File<< "["<<i<<"]" <<endl; // write the multi id number
+		// File<< "'"<<multis[i].name<<"'"<<endl; // write the name of the multi
+		char temp_name[_NAMESIZE];
+		strnrtrim(temp_name, multis[i].name, _NAMESIZE);
+		// printf("%lu \"%s\"\n", strlen(temp_name), temp_name);
+		File<< "'"<<temp_name<<"'"<<endl; // write the name of the multi
 		/*
 		// One-shot to discard leading numbers
 		int j,k;
@@ -468,7 +485,7 @@ void Memory::saveMulti()
 		for(j=0; j<3; j++) if(!isdigit(temp_name[j])) break;
 		if(temp_name[j]==' ') j++; // ... and one space
 		for(k=0; k<_NAMESIZE-j; k++) temp_name[k]=temp_name[k+j];
-		File<< "'"<<temp_name<<"'"<<endl;// write the name of the multi
+		File<< "'"<<temp_name<<"'"<<endl; // write the name of the multi
 		*/
 		
 		for (p=0;p<_MULTITEMP;++p) // store the sound ids of all 8 voices
@@ -497,8 +514,10 @@ void Memory::saveMulti()
 	if(result) fprintf(stderr, "mv new file to .txt failed, result: %u\n", result);
 }
 
-void Memory::copymulti(int src, int dest)
+void Memory::copyMulti(int src, int dest)
 {
+	multis[dest]=multis[src];
+	/*
 	strncpy(multis[dest].name, multis[src].name, _NAMESIZE);
 	int p,j;
 	for (p=0;p<_MULTITEMP;++p) // store the sound ids and volume/midi settings of all 8 voices
@@ -511,13 +530,14 @@ void Memory::copymulti(int src, int dest)
 	{
 		multis[dest].parms[p]=multis[src].parms[p];
 	}
+	*/
 }
 
 /**
  * load the multitemperal setups which are stored in an extrafile
  * no longer supports the deprecated binary format
- * @see Memory::load
- * @see Memory::save
+ * @see Memory::loadSounds()
+ * @see Memory::saveSounds()
  */
 void Memory::loadMultis()
 {

@@ -161,6 +161,7 @@ unsigned int choice[_MULTITEMP][_CHOICECOUNT] __attribute__((aligned (16)));
 
 // Filter-related variables
 // Use alignas(__mm_128i) ?
+// Only 3 of a possible 4 filters currently used
 float high[_MULTITEMP][4] __attribute__((aligned (16)));
 float band[_MULTITEMP][4] __attribute__((aligned (16)));
 float low[_MULTITEMP][4] __attribute__((aligned (16)));
@@ -175,6 +176,7 @@ float glide[_MULTITEMP];
 int delayI[_MULTITEMP], delayJ[_MULTITEMP];
 float sub[_MULTITEMP];
 int subMSB[_MULTITEMP];
+
 // Could implement a channel reverse lookup array to avoid scanning??
 // We need to be able to stack channels
 int channel[_MULTITEMP];
@@ -478,8 +480,8 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 	float ta1_1, ta1_2, ta1_3, ta1_4, ta2, ta3; // Osc amp related
 	float tf1, tf2, tf3, morph1, morph2, modmax, mf, final_mix, tdelay;
 	// float clib1, clib2; 
-	float osc1, osc2, delayMod, pan;
-	
+	float osc1, osc2, pwm, pwmMod, delayMod, pan;
+
 #ifdef _CHECK_DENORM
 	// Clear FPU exceptions (denormal flag)
 	__asm ("fclex");
@@ -928,6 +930,12 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 #endif
 		osc2 = table[choi[10]][iP2] ;
 		mod[4] *= osc2; // osc2 fm out
+// --------------- generate pwm
+		pwmMod=param[146]+mod[choi[18]]*param[147];
+		if (pwmMod<.05) pwmMod=.05;
+		if (pwmMod>.95) pwmMod=.95;
+		pwm = current_phase[2]<pwmMod*tabF?.05f/pwmMod:.05f/(pwmMod-1.0f); // Make sure there is no DC offset
+		// .05f * (1/p) * p + .05f * (1/(p-1))*(1-p) = .05f *(1 + -1) = 0
 #ifdef _DEBUG
 		if(first_time && index==0 && currentvoice==0)
 			printf("phase osc 2 voice %u %f index %u result %f\n", currentvoice, current_phase[2], iP2, osc2);
@@ -941,14 +949,15 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		__builtin_prefetch(&param[56],0,0);
 #endif
 
-// ------------- mix the 2 oscillators, sub and ring pre filter -------------------
+// ------------- mix the 2 oscillators, sub, ring and pwm pre filter -------------------
 		//temp=(parameter[currentvoice][14]-parameter[currentvoice][14]*ta1);
 		// Why was 1.0f-ta n ?? offset for mod<0 ?? -1..3
 		to_filter=osc1*ta1_4;
 		to_filter+=osc2*ta2;
 		to_filter+=sub[currentvoice]*param[141];
 		to_filter+=osc1*osc2*param[138];
-		to_filter*=0.25f; // get the volume of the sum into a normal range	
+		to_filter+=pwm*param[148];
+		to_filter*=0.2f; // get the volume of the sum into a normal range	
 		to_filter+=copysign(anti_denormal, to_filter); // Absorb denormals
 
 // ------------- calculate the filter settings ------------------------------

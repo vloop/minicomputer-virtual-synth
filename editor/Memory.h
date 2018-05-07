@@ -63,13 +63,13 @@ class Memory
 {
 public:
 	Memory();
-	void copysound(int src, int dest);
-	void copypatch(patch *src, patch *dest);
-	void copymulti(int src, int dest);
-	void save();
-	void load();
+	void copySound(int src, int dest);
+	void copyPatch(const patch *src, patch *dest);
+	void copyMulti(int src, int dest);
+	void saveSounds();
+	void loadSounds();
 	void loadInit();
-	void saveMulti();
+	void saveMultis();
 	void loadMultis();
 	void store(patch Sound);
 	void overwrite(patch Sound);
@@ -78,9 +78,9 @@ public:
 	void importPatch(string filename, patch *p); // import single sound to patch
 
 	patch initSound;
-	string getName(unsigned int soundnum);
+	string getSoundName(unsigned int soundnum);
 	string getMultiName(unsigned int multinum);
-	void setName(unsigned int soundnum, const char *new_name);
+	void setSoundName(unsigned int soundnum, const char *new_name);
 	void setMultiName(unsigned int multinum, const char *new_name);
 	virtual ~Memory();
 	patch sounds[512];

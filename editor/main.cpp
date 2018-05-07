@@ -271,7 +271,7 @@ int main(int argc, char **argv) {
 	strncpy(temp_name, "minicomputer ", _NAMESIZE);
 	strncpy(temp_name+13, oport, _NAMESIZE-13);
 	Fenster* w = Schaltbrett.make_window(temp_name);
-	Speicher.load();
+	Speicher.loadSounds();
 	Speicher.loadMultis();
 	Speicher.loadInit();
 
