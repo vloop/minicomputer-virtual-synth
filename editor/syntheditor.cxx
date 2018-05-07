@@ -87,7 +87,6 @@ char currentParameterName[32]="...............................";
 
 unsigned int currentVoice=0, currentMulti=0;
 bool transmit;
-bool sense=false; // Core not sensed yet
 
 int nGroups=0;
 Fl_Group *groups[158];
@@ -292,7 +291,7 @@ static void choiceCallback(Fl_Widget* o, void*)
 static void do_audition(Fl_Widget* o, void*)
 {
 	if (transmit){
-//		Fl::lock();
+		Fl::lock();
 		int note=((Fl_Valuator*)Knob[currentVoice][127])->value();
 		int velocity=((Fl_Valuator*)Knob[currentVoice][126])->value();
 		audition_state[currentVoice]=((Fl_Toggle_Button*)o)->value();
@@ -301,8 +300,8 @@ static void do_audition(Fl_Widget* o, void*)
 		}else{
 			lo_send(t, "/Minicomputer/audition", "iiii", 0, currentVoice, note, velocity);
 		}
-//		Fl::awake();
-//		Fl::unlock();
+		Fl::awake();
+		Fl::unlock();
 	}
 }
 static void do_all_off(Fl_Widget* o, void*)
@@ -343,8 +342,8 @@ static void parmCallback(Fl_Widget* o, void*);
 void EG_draw_all(){
 	// Refresh EG label lights
 	// Called by timer_handler
+	Fl::lock();
 	int voice, EGnum, stage;
-	// Fl::lock(); // Doesn't help - tab label not redrawn
 	for(voice=0; voice<_MULTITEMP; voice++){
 		if (EG_changed[voice]){
 			EG_changed[voice]=0;
@@ -374,8 +373,8 @@ void EG_draw_all(){
 		}
 	}
 	// Fl::check(); // Doesn't help - tab label not redrawn
-	// Fl::awake(); // Doesn't help - tab label not redrawn
-	// Fl::unlock(); // Doesn't help - tab label not redrawn
+	Fl::awake();
+	Fl::unlock();
 
 }
 
@@ -505,32 +504,32 @@ static void parmSet(Fl_Widget* o, void*) {
 			if(currentParameter==2){ // Fixed frequency button Osc 1
 				if (((Fl_Light_Button *)o)->value())
 				{
-					Knob[currentVoice][1]->activate();
-					Knob[currentVoice][3]->deactivate();
-					miniInput[currentVoice][0]->activate();
-					miniInput[currentVoice][1]->deactivate();
+					Knob[currentVoice][1]->show();
+					Knob[currentVoice][3]->hide();
+					miniInput[currentVoice][0]->show();
+					miniInput[currentVoice][1]->hide();
 				}
 				else
 				{
-					Knob[currentVoice][1]->deactivate();
-					Knob[currentVoice][3]->activate();
-					miniInput[currentVoice][0]->deactivate();
-					miniInput[currentVoice][1]->activate();
+					Knob[currentVoice][1]->hide();
+					Knob[currentVoice][3]->show();
+					miniInput[currentVoice][0]->hide();
+					miniInput[currentVoice][1]->show();
 				}
 			}else if(currentParameter==17){ // Fixed frequency button Osc 2
 				if (((Fl_Light_Button *)o)->value())
 				{
-					Knob[currentVoice][16]->activate();
-					Knob[currentVoice][18]->deactivate();
-					miniInput[currentVoice][2]->activate();
-					miniInput[currentVoice][3]->deactivate();
+					Knob[currentVoice][16]->show();
+					Knob[currentVoice][18]->hide();
+					miniInput[currentVoice][2]->show();
+					miniInput[currentVoice][3]->hide();
 				}
 				else
 				{
-					Knob[currentVoice][16]->deactivate();
-					Knob[currentVoice][18]->activate();
-					miniInput[currentVoice][2]->deactivate();
-					miniInput[currentVoice][3]->activate();
+					Knob[currentVoice][16]->hide();
+					Knob[currentVoice][18]->show();
+					miniInput[currentVoice][2]->hide();
+					miniInput[currentVoice][3]->show();
 				}
 			}else if(currentParameter==137){ // Filter bypass
 				if (((Fl_Button *)o)->value())
@@ -2490,32 +2489,15 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		d->labelcolor(FL_BACKGROUND2_COLOR);
 	  }
 	  */
-	  { Fl_Dial* o= new Fl_Dial(x+5, y, 34, 34, "frequency");
+	  int w=63;
+	  { Fl_Dial* o= new Fl_Dial(x, y+30, w, 60, "frequency");
 		o->labelsize(_TEXT_SIZE);
 		o->maximum(1000); 
 		o->argument(osc_base);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[voice][o->argument()] = o;
 	  }
-	  { Fl_Value_Input* o = new Fl_Value_Input(x, y+46, 46, 15); // Fixed frequency display for oscillator
-		o->box(FL_ROUNDED_BOX);
-		o->labelsize(_TEXT_SIZE);
-		o->textsize(_TEXT_SIZE);
-		o->maximum(1000);
-		o->step(0.001);
-		o->argument(osc_base); // Same as fixed frequency dial
-		o->callback((Fl_Callback*)fixedfrequencyCallback);
-		miniInput[voice][minidisplay_base]=o;
-	  }
-	  { Fl_Light_Button* o = new Fl_Light_Button(x, y+72, 66, 19, "fix frequency");
-		o->box(FL_BORDER_BOX);
-		o->selection_color((Fl_Color)89);
-		o->labelsize(_TEXT_SIZE);
-		o->argument(osc_base+1);
-		o->callback((Fl_Callback*)parmCallback);
-		Knob[voice][o->argument()] = o;
-	  }
-	  { Fl_Positioner* o = new Fl_Positioner(x, y+95, 40, 80, "tune");
+	  { Fl_Positioner* o = new Fl_Positioner(x, y+10, w, 100, "tune");
 		o->xbounds(0,16);
 		o->ybounds(1,0);
 		o->box(FL_BORDER_BOX);
@@ -2526,7 +2508,17 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[voice][o->argument()]=o;
 	  }
-	  { Fl_Value_Input* o = new Fl_Value_Input(x, y+185, 46, 15); // Tune display for oscillator 1
+	  { Fl_Value_Input* o = new Fl_Value_Input(x, y+120, w, 15); // Fixed frequency display for oscillator
+		o->box(FL_ROUNDED_BOX);
+		o->labelsize(_TEXT_SIZE);
+		o->textsize(_TEXT_SIZE);
+		o->maximum(1000);
+		o->step(0.001);
+		o->argument(osc_base); // Same as (fixed) frequency dial
+		o->callback((Fl_Callback*)fixedfrequencyCallback);
+		miniInput[voice][minidisplay_base]=o;
+	  }
+	  { Fl_Value_Input* o = new Fl_Value_Input(x, y+120, w, 15); // Tune display for oscillator
 		o->box(FL_ROUNDED_BOX);
 		o->labelsize(_TEXT_SIZE);
 		o->textsize(_TEXT_SIZE);
@@ -2535,6 +2527,14 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->step(0.001);
 		o->callback((Fl_Callback*)tuneCallback);
 		miniInput[voice][minidisplay_base+1]=o;
+	  }
+	  { Fl_Light_Button* o = new Fl_Light_Button(x, y+140, w, 15, "fixed freq.");
+		o->box(FL_BORDER_BOX);
+		o->selection_color((Fl_Color)89);
+		o->labelsize(_TEXT_SIZE);
+		o->argument(osc_base+1);
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[voice][o->argument()] = o;
 	  }
 	  { Fl_Light_Button* o = new Fl_Light_Button(x+65, y+7, 40, 15, "boost");
 		o->box(FL_BORDER_BOX);
@@ -2715,12 +2715,10 @@ Fenster* UserInterface::make_window(const char* title) {
 	needs_multi[129]=1; // Note max
 	needs_multi[130]=1; // Transpose
 
-	// show parameter on fine tune only when relevant (not a frequency...)
+	// show parameter on fine tune only when relevant
 	for (int i=0;i<_PARACOUNT;++i) needs_finetune[i]=1;
-	needs_finetune[0]=2; // clear state
-	// needs_finetune[1]=0; // Osc 1 fixed frequency
+	needs_finetune[0]=0; // clear state
 	needs_finetune[3]=2; // Osc 1 tune
-	// needs_finetune[16]=0; // Osc 2 fixed frequency
 	needs_finetune[18]=2; // Osc 2 tune
 	needs_finetune[30]=2; // Filter 1 A cut
 	needs_finetune[33]=2; // Filter 1 B cut
@@ -2790,7 +2788,6 @@ Fenster* UserInterface::make_window(const char* title) {
 	is_button[143]=1; // Time modulator 2 mult.
 	is_button[145]=1; // oscillator 3 mult. mod wheel
 
-
 	transmit=true;
 
 	Fenster* o = new Fenster(_INIT_WIDTH, _INIT_HEIGHT, title);
@@ -2808,11 +2805,11 @@ Fenster* UserInterface::make_window(const char* title) {
 	{ Fl_Tabs* o = new Fl_Tabs(0, 0, _INIT_WIDTH, _INIT_HEIGHT);
 		o->callback((Fl_Callback*)tabCallback);
 	int i;
-	for (i=0; i<_MULTITEMP; ++i)// generate a tab for each voice
+	for (i=0; i<_MULTITEMP; ++i) // generate a tab for each voice
 	{
 		{ 
 		ostringstream oss;
-		oss<<"voice "<<(i+1);// create name for tab
+		oss<<"voice "<<(i+1); // create name for tab
 		tablabel[i]=oss.str();
 		Fl_Group* o = new Fl_Group(1, 10, _INIT_WIDTH, _INIT_HEIGHT, tablabel[i].c_str());
 		groups[nGroups++]=o;
@@ -2860,7 +2857,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelcolor(FL_BACKGROUND2_COLOR);
 		o->align(FL_ALIGN_BOTTOM | FL_ALIGN_INSIDE);
 		make_osc(i, 16, 2, 6, 16, 244, "oscillator 2", "fm out amp modulator");
-		{ Fl_Light_Button* o = new Fl_Light_Button(134, 416, 65, 15, "sync to osc1");
+		{ Fl_Light_Button* o = new Fl_Light_Button(16, 404, 63, 15, "sync to osc1");
 		  o->box(FL_BORDER_BOX);
 		  o->selection_color((Fl_Color)89);
 		  o->labelsize(_TEXT_SIZE);
@@ -2876,7 +2873,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);*/
 	  o->end();
 	}
-	// ----------------- knobs  for the filters -------------------------------------- 
+	// ----------------- knobs for the filters -------------------------------------- 
 	{ Fl_Group* o = new Fl_Group(312, 17, 277, 433, "filters");
 	  groups[nGroups++]=o;
 	  o->box(FL_ROUNDED_FRAME);
@@ -3155,29 +3152,6 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)parmCallback);
 		  Knob[i][o->argument()] = o;
 		}
-
-	  /*
-	  { Fl_Counter* o = new Fl_Counter(844, 151, 115, 14, "sound");
-		o->type(1);
-		o->box(FL_BORDER_BOX);
-		o->labelsize(_TEXT_SIZE);
-		o->minimum(0);
-		o->maximum(7);
-		o->step(1);
-		o->value(0);
-		o->textsize(_TEXT_SIZE);
-	  //  o->callback((Fl_Callback*)voiceparmCallback,soundchoice[0]);
-	  }
-	  { Fl_Counter* o = new Fl_Counter(844, 181, 115, 14, "midichannel");
-		o->type(1);
-		o->box(FL_BORDER_BOX);
-		o->labelsize(_TEXT_SIZE);
-		o->minimum(1);
-		o->maximum(16);
-		o->step(1);
-		o->value(1);
-		o->textsize(_TEXT_SIZE);
-	  }*/
 	  { Fl_Dial* o = new Fl_Dial(844, 120, 25, 25, "id vol");
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(101);
@@ -3260,12 +3234,6 @@ Fenster* UserInterface::make_window(const char* title) {
 	  o->labelcolor(FL_BACKGROUND2_COLOR);
 	  o->align(FL_ALIGN_BOTTOM | FL_ALIGN_INSIDE);
 
-	/*  
-	{ Fl_Box* d = new Fl_Box(825, 307, 160, 135, "delay");
-	  d->labelsize(_TEXT_SIZE);
-	  d->labelcolor(FL_BACKGROUND2_COLOR);
-	}
-	*/
 	  { Fl_Choice* o = new Fl_Choice(844, 265, 85, 15, "time modulator 1");
 		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
@@ -3345,23 +3313,6 @@ Fenster* UserInterface::make_window(const char* title) {
 	  d->labelsize(_TEXT_SIZE);
 	  d->labelcolor(FL_BACKGROUND2_COLOR);
 	  d->begin();
-	 /* { Fl_Button* o = new Fl_Button(191, 473, 50, 19, "create bank");
-		o->tooltip("create a new bank after current one");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(_TEXT_SIZE);
-	  }
-	  { Fl_Button* o = new Fl_Button(26, 476, 53, 14, "delete bank");
-		o->tooltip("delete a whole bank of sounds!");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(_TEXT_SIZE);
-		o->labelcolor((Fl_Color)1);
-	  }
-	  { Fl_Button* o = new Fl_Button(732, 475, 59, 14, "delete sound");
-		o->tooltip("delete current sound");
-		o->box(FL_BORDER_BOX);
-		o->labelsize(_TEXT_SIZE);
-		o->labelcolor((Fl_Color)1);
-	  }*/
 	  { Fl_Input* o = new Fl_Input(x0+60, 471, 150, 14, "name");
 		o->box(FL_BORDER_BOX);
 		o->tooltip("Enter the sound name here before storing it");
@@ -3380,7 +3331,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->minimum(0);
 		o->maximum(511);
 		o->step(1);
-	//o->slider_size(0.04);
+		//o->slider_size(0.04);
 		o->box(FL_BORDER_FRAME);
 		soundRoller[i]=o;
 		o->callback((Fl_Callback*)soundRollerCallback, NULL);
@@ -3408,7 +3359,6 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->argument(-1);
 		o->callback((Fl_Callback*)soundincdecCallback);
 	  }
-//	  { Fl_Value_Output* o = new Fl_Value_Output(x0+10, 471, 35, 30,"sound #");
 	  { Fl_Int_Input* o = new Fl_Int_Input(x0+10, 471, 35, 30,"sound #");
 		o->box(FL_BORDER_BOX);
 		o->color(FL_BLACK);
@@ -3446,15 +3396,6 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)soundexportbtnCallback,soundchoice[i]);
 		exportSoundBtn[i]=o;
 	  }
-	  /*{ Fl_Input_Choice* o = new Fl_Input_Choice(83, 476, 105, 14, "bank");
-		o->box(FL_BORDER_FRAME);
-		o->down_box(FL_BORDER_FRAME);
-		o->color(FL_FOREGROUND_COLOR);
-		o->selection_color(FL_FOREGROUND_COLOR);
-		o->labelsize(_TEXT_SIZE);
-		o->textsize(_TEXT_SIZE);
-		o->align(FL_ALIGN_TOP_LEFT);
-	  }*/
 	  d->end();
 	}
 	{ Fl_Dial* o = new Fl_Dial(295, 151, 25, 25, "osc1 vol");
@@ -3636,7 +3577,7 @@ Fenster* UserInterface::make_window(const char* title) {
             o->value(69);
 			o->callback((Fl_Callback*)checkrangeCallback);
 			o->argument(127+(voice<<8)); // Special encoding for voice
-			Knob[voice][127] = o;
+			Knob[voice][127] = o; // NOT argument!!
 			o->hide();
 		  }
 		  // Test note as string
@@ -3837,7 +3778,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		multiTable=o;
 		o->selection_color(FL_YELLOW);
 		o->color(_BGCOLOR);
-		o->when(FL_WHEN_CHANGED);//FL_WHEN_RELEASE|
+		o->when(FL_WHEN_CHANGED); //FL_WHEN_RELEASE|
 		o->table_box(FL_NO_BOX);
 		o->col_resize_min(10);
 		o->row_resize_min(10);
@@ -3991,7 +3932,6 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)multiincdecCallback);
 			decMultiBtn=o;
 		  }
-//		  { Fl_Value_Output* o = new Fl_Value_Output(x0+10, 471, 35, 30,"multi #");
 		  { Fl_Int_Input* o = new Fl_Int_Input(x0+10, 471, 35, 30, "multi #");
 			o->box(FL_BORDER_BOX);
 			o->color(FL_BLACK);
@@ -4112,11 +4052,6 @@ Fenster* UserInterface::make_window(const char* title) {
 	o->end(); // End of main window
 	o->size_range(o->w(), o->h());
 	o->resizable(o);
-	// too early, multi not loaded, loadmultiCallback segfaults
-	// multichoice->value(Speicher.multis[1].name);
-	// multiRoller->value(0);
-	// multiNoInput->value(1);
-	// loadmultiCallback(NULL, NULL);
 
 #ifdef _DEBUG
 	// Dump parm list (from voice 0, same for others)
@@ -4201,11 +4136,8 @@ void Fenster::resize (int x, int y, int w, int h)
 
 	// Set text size for all widgets
 	float minscale=min((float)this->w()/_INIT_WIDTH, (float)this->h()/_INIT_HEIGHT);
-	// printf("resize: scale width=%u/%u, height=%u/%u\n", this->w(), _INIT_WIDTH, this->h(), _INIT_HEIGHT);
 	int new_text_size = _TEXT_SIZE*minscale;
-	// printf("resize: scale=%f, text size=%u\n", minscale, new_text_size);
 	if(new_text_size!=current_text_size){
-		// printf("nGroups %u\n", nGroups);
 		current_text_size=new_text_size;
 		parmInput->textsize(12*minscale);
 		parmInput->labelsize(12*minscale);
@@ -4356,9 +4288,3 @@ int Fenster::handle (int event)
 				return Fl_Double_Window::handle(event);
 		}
 }
-/*
-void close_cb( Fl_Widget* o, void*) {
-	printf("stop editor");
-	fflush(stdout);
-   exit(0);
-}*/

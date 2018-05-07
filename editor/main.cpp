@@ -1,7 +1,8 @@
 /** Minicomputer
  * industrial grade digital synthesizer
- * editorsoftware
+ * software editor
  * Copyright 2007,2008 Malte Steiner
+ * modifications Marc Perilleux 2018
  * This file is part of Minicomputer, which is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -35,6 +36,7 @@ struct pollfd *pfd;
 char midiName[_NAMESIZE] = "MinicomputerEditor"; // signifier for midi connections, to be filled with OSC port number
 lo_address t;
 bool lo_error = false;
+bool sense=false; // Core not sensed yet
 int bank[_MULTITEMP];
 
 // some common definitions
@@ -61,50 +63,7 @@ snd_seq_t *open_seq() {
   }
   return(seq_handle);
 }
-/*
-Fl_Double_Window* make_window() {
-  Fl_Double_Window* w;
-  { Fl_Double_Window* o = new Fl_Double_Window(475, 330);
-	w = o;
-   
-	 { Fl_Dial* knob1 = new Fl_Dial(25, 25, 25, 25,"f1");
-	  knob1->callback((Fl_Callback*)callback);
-}
-	{Fl_Dial* o =new Fl_Dial(65, 25, 25, 25, "f2");
-	o->callback((Fl_Callback*)callback);
-}
-   {Fl_Dial* o = new Fl_Dial(105, 25, 25, 25, "f3");
-o->callback((Fl_Callback*)callback);
-}
-	o->end();
 
-  
-}
-  return w;
-}*/
-/*
-void reloadSoundNames()
-{
-  int i;
-  for (i = 0;i<8;++i)
-  {
-  	Schaltbrett.soundchoice[i]->clear();
-  } 
-  
-  Speicher.load();
-  
-  for (i=0;i<512;i++) 
-  {
-  	Schaltbrett.soundchoice[0]->add(Speicher.getName(i).c_str());
-  	Schaltbrett.soundchoice[1]->add(Speicher.getName(i).c_str());
-  	Schaltbrett.soundchoice[2]->add(Speicher.getName(i).c_str());
-  	Schaltbrett.soundchoice[3]->add(Speicher.getName(i).c_str());
-  	Schaltbrett.soundchoice[4]->add(Speicher.getName(i).c_str());
-  	Schaltbrett.soundchoice[5]->add(Speicher.getName(i).c_str());
-  	Schaltbrett.soundchoice[6]->add(Speicher.getName(i).c_str());
-  	Schaltbrett.soundchoice[7]->add(Speicher.getName(i).c_str());
-  }
-}*/
 /** @brief handling the midi messages in an extra thread
  *
  * the editor only reacts on program changes
@@ -171,13 +130,6 @@ if (poll(pfd, npfd, 100000) > 0)
 #endif
 				bank[ev->data.control.channel] = ev->data.control.value;
 			}
-			/*
-			if  (ev->data.control.param==1)   
-				  modulator[ev->data.control.channel][ 16]=(float)ev->data.control.value*0.007874f; // /127.f;
-				  else 
-				  if  (ev->data.control.param==12)   
-				  modulator[ev->data.control.channel][ 17]=(float)ev->data.control.value*0.007874f;// /127.f;
-			*/
 			break;
 		  }
 		} // end of switch
@@ -335,7 +287,7 @@ int main(int argc, char **argv) {
 	printf("GUI OSC input port: \"%s\"\n", oport2);
 	/* start a new server on port defined where oport2 points to */
 	lo_server_thread st = lo_server_thread_new(oport2, error);
-	/* add method that will match /Minicomputer/EG with three integers */
+	/* add methods that will match /Minicomputer/... messages*/
 	if (!lo_error) lo_server_thread_add_method(st, "/Minicomputer/EG", "iii", eg_handler, NULL);
 	if (!lo_error) lo_server_thread_add_method(st, "/Minicomputer/sense", "", sense_handler, NULL);
 	if (!lo_error) lo_server_thread_add_method(st, "/Minicomputer/programChange", "ii", program_change_handler, NULL);

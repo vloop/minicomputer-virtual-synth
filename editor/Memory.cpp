@@ -243,7 +243,7 @@ while (File)
 	sValue = "";
 	switch (str[0])
 	{
-		case '(':// setting parameter
+		case '(': // setting parameter
 		{
 			if (parseNumbers(str,iParameter,i2Parameter,fValue))
 			{
@@ -251,7 +251,7 @@ while (File)
 			}
 		}
 		break;
-		case '{':// setting additional parameter
+		case '{': // setting additional parameter
 		{
 			if (parseNumbers(str,iParameter,i2Parameter,fValue))
 			{
@@ -259,7 +259,7 @@ while (File)
 			}
 		}
 		break;
-		case '<':// setting additional parameter
+		case '<': // setting additional parameter
 		{
 			if (parseNumbers(str,iParameter,i2Parameter,fValue))
 			{
@@ -283,7 +283,7 @@ while (File)
 			}
 		}
 		break;
-		case '[':// setting the current sound index
+		case '[': // setting the current sound index
 		{
 			if (parseNumbers(str,iParameter,i2Parameter,fValue))
 			{
@@ -329,7 +329,7 @@ ofstream File (filename.c_str()); // temporary file
 int p,j;
 	File<<"# Minicomputer single sound file"<<endl;
 	//File<< "["<<i<<"]" <<endl;// write the soundnumber
-	File<< "'"<<sounds[current].name<<"'"<<endl;// write the name
+	File<< "'"<<sounds[current].name<<"'"<<endl; // write the name
 	
 	for (p=0;p<9;++p)
 	{
@@ -338,7 +338,7 @@ int p,j;
 	}
 	for (p=0;p<_CHOICECOUNT;++p)
 		File<< "{"<< p << ":"<<sounds[current].choice[p]<<"}"<<endl;
-	for (p=0;p<_PARACOUNT;++p)// write the remaining parameters
+	for (p=0;p<_PARACOUNT;++p) // write the remaining parameters
 		File<< "("<< p << ":"<<sounds[current].parameter[p]<<")"<<endl;
 
 File.close();
@@ -363,7 +363,7 @@ void Memory::importPatch(string filename, patch *p)
 		sValue = "";
 		switch (str[0])
 		{
-			case '(':// setting parameter
+			case '(': // setting parameter
 			{
 				if (parseNumbers(str, iParameter, i2Parameter, fValue))
 				{
@@ -371,7 +371,7 @@ void Memory::importPatch(string filename, patch *p)
 				}
 			}
 			break;
-			case '{':// setting additional parameter
+			case '{': // setting additional parameter
 			{
 				if (parseNumbers(str, iParameter, i2Parameter, fValue))
 				{
@@ -379,7 +379,7 @@ void Memory::importPatch(string filename, patch *p)
 				}
 			}
 			break;
-			case '<':// setting additional parameter
+			case '<': // setting additional parameter
 			{
 				if (parseNumbers(str, iParameter, i2Parameter, fValue))
 				{
@@ -483,7 +483,7 @@ void Memory::saveMulti()
 		}
 	}
 
-	File.close();// done
+	File.close(); // done
 
 	sprintf(kommand,"%s/minicomputerMulti.txt",folder);
 	if (access(kommand, R_OK) == 0) // check if there a previous file which need to be backed up
@@ -530,10 +530,10 @@ char path[1200];
 sprintf(path,"%s/minicomputerMulti.txt",folder);
 
 ifstream File (path);
-getline(File,str);// get the first line from the file
+getline(File,str); // get the first line from the file
 int current=0;
 unsigned int j;
-while (File)// as long as there is anything in the file
+while (File) // as long as there is anything in the file
 {
 	// reset some variables
 	sParameter="";
@@ -541,7 +541,7 @@ while (File)// as long as there is anything in the file
 	// parse the entry (line) based on the first character
 	switch (str[0])
 	{
-		case '(':// setting per voice multi parameter
+		case '(': // setting per voice multi parameter
 		{
 			if (parseNumbers(str, iParameter, i2Parameter, fValue))
 			{
@@ -552,7 +552,7 @@ while (File)// as long as there is anything in the file
 			}
 		}
 		break;
-		case '<':// setting global multi parameter
+		case '<': // setting global multi parameter
 		{
 			if (parseNumbers(str, iParameter, i2Parameter, fValue))
 			{
@@ -579,7 +579,7 @@ while (File)// as long as there is anything in the file
 			}
 		}
 		break;
-		case '[':// setting the current sound index
+		case '[': // setting the current sound index
 		{
 			if (parseNumbers(str,iParameter,i2Parameter,fValue))
 			{
@@ -587,7 +587,7 @@ while (File)// as long as there is anything in the file
 			}
 		}
 		break;
-		case '{':// setting additional parameter
+		case '{': // setting additional parameter
 		{
 			if (parseNumbers(str,iParameter,i2Parameter,fValue))
 			{

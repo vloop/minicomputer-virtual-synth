@@ -559,7 +559,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 	bufferAux1[index]=0.f;
 	bufferAux2[index]=0.f;
 	/*
-	 * I dont know if its better to separate the calculation blocks, so I try it
+	 * I don't know if its better to separate the calculation blocks, so I try it
 	 * first calculating the envelopes
 	 */
 	register unsigned int currentvoice;
@@ -590,7 +590,9 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		mod[16] += 0.0005f * srDivisor * (modwheel[currentvoice] - mod[16]);
 
 		float bend=pow(2,(mod[2]*param[142]/12.f));
-		// Mod 5 for notes 0..127 is base frequency 8.1758..12543.8556151 scaled to 0..1
+		// Mod 5 is intended to help with frequency tracking
+		// It is note frenquency over range scaled to 0..1
+		// Mod 5 for notes 0..127 is base frequency 8.1758..12543.8556151
 		f_offset=midi2freq[note_min[currentvoice]];
 		if (midi2freq[note_max[currentvoice]]>f_offset)
 			f_scale=1/(midi2freq[note_max[currentvoice]]-f_offset);
@@ -778,6 +780,8 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		// iPsub=subMSB[currentvoice]+(iP1>>1); // 0..tabM
 		// sub[currentvoice]=(4.f*iPsub/tabF)-1.0f; // Ramp up -1..+1 (beware of int to float)
 #ifdef _USE_FMODF
+		if(current_phase[1] >= tabF)
+			current_phase[2]+= (param[134]*samples_per_degree-current_phase[2])*param[115];
 		current_phase[1]=fmodf(current_phase[1], tabF);
 #else
 		if(current_phase[1] >= tabF)

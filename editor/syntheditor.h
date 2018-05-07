@@ -222,7 +222,6 @@ char *strnrtrim(char *dest, const char*source, size_t len);
 extern Fl_Roller *multiRoller;
 extern Fl_Int_Input *multiNoInput;
 extern Fl_Input* Multichoice;
-extern bool sense;
 extern char *oport;
 extern char *oport2;
 
