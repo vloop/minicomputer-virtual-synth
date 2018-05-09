@@ -274,7 +274,15 @@ int main(int argc, char **argv) {
 	Speicher.loadSounds();
 	Speicher.loadMultis();
 	Speicher.loadInit();
-
+	// One-shot to cleanup empty sounds
+	/*
+	for(int j=0; j<_SOUNDS; j++){
+		if(Speicher.getSoundName(j).length()==0){
+			Speicher.copyPatch(&Speicher.initSound, &Speicher.sounds[j]);
+			Speicher.setSoundName(j, "");
+		}
+	}
+	*/
 	int multi = atoi(multiNoInput->value());
 
 // ------------------------ OSC init ---------------------------------

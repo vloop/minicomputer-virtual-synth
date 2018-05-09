@@ -209,6 +209,7 @@ void Memory::saveSounds()
 
 	File.close();
 	sprintf(kommand,"%s/minicomputerMemory.txt",folder);
+	printf("Saving sounds to file %s\n", kommand);
 	if (access(kommand, R_OK) == 0) // check if there a previous file which need to be backed up
 	{
 		sprintf(kommand,"mv %s/minicomputerMemory.txt %s/minicomputerMemory.txt.bak",folder,folder);
@@ -336,6 +337,7 @@ File.close();
  */
 void Memory::exportSound(string filename, unsigned int current)
 {
+printf("Exporting sound %u to file %s\n", current, filename.c_str());
 ofstream File (filename.c_str()); // temporary file
 int p,j;
 	File<<"# Minicomputer v"<<_VERSION<<" single sound file"<<endl;
@@ -444,6 +446,7 @@ void Memory::importSound(string filename, unsigned int current)
 		fprintf(stderr, "ERROR: unexpected sound number %d\n", current);
 		return;
 	}
+	printf("Importing sound %u from file %s\n", current, filename.c_str());
 	importPatch(filename, &sounds[current]);
 	// now the new sound is in RAM but need to be saved to the main file
 	saveSounds();
@@ -503,6 +506,7 @@ void Memory::saveMultis()
 	File.close(); // done
 
 	sprintf(kommand,"%s/minicomputerMulti.txt",folder);
+	printf("Saving multis to file %s\n", kommand);
 	if (access(kommand, R_OK) == 0) // check if there a previous file which need to be backed up
  	{
 		sprintf(kommand,"mv %s/minicomputerMulti.txt %s/minicomputerMulti.txt.bak",folder,folder);
@@ -591,12 +595,15 @@ while (File) // as long as there is anything in the file
 				multis[current].name[j-1] = str[j];
 				++j;
 			}
+			multis[current].name[j-1]=0;
+			/*
 			// printf("Multi # %u : \"%s\"\n", current, multis[current].name);
 			while (j<_NAMESIZE)
 			{
 				multis[current].name[j-1]=' ';
 				++j;
 			}
+			*/
 		}
 		break;
 		case '[': // setting the current sound index

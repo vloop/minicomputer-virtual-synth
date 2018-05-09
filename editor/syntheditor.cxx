@@ -50,7 +50,7 @@ Fl_Button *importSoundBtn[_MULTITEMP], *exportSoundBtn[_MULTITEMP];
 Fl_Button *voiceLoadBtn[_MULTITEMP];
 Fl_Roller *soundRoller[_MULTITEMP];
 bool sound_changed[_MULTITEMP];
-miniTable *soundTable;
+SoundTable *soundTable;
 Fl_Menu_Button *soundMenu;
 Fl_Button *saveSoundsBtn;
 Fl_Output *soundNameDisplay;
@@ -1658,9 +1658,8 @@ static void soundLoadBtn1Callback(Fl_Widget* o, void* )
 // Load button on sounds tab - based on table selection
 static void soundLoadBtn2Callback(Fl_Widget* o, void* )
 {
-//	unsigned int voice=o->argument();
-//	currentVoice=voice;
-	sound_recall(o->argument(), soundTable->get_selected_cell()/2);
+	int src=soundTable->get_selected_row()+soundTable->rows()*((soundTable->get_selected_col())/2);
+	sound_recall(o->argument(), src);
 }
 
 static void soundNameInputCallback(Fl_Widget* o, void* ){
@@ -1742,7 +1741,8 @@ static void loadmulti(unsigned int multi)
 }
 static void loadmultibtn2Callback(Fl_Widget*, void*)
 {
-	int multinum=multiTable->get_selected_cell()/2;
+	// int multinum=multiTable->get_selected_cell()/2;
+	int multinum=multiTable->get_selected_row()+multiTable->rows()*((multiTable->get_selected_col())/2);
 	loadmulti(multinum);
 }
 /**
@@ -1820,11 +1820,12 @@ static void storemultiCallback(Fl_Widget* o, void* e)
 //	Fl::unlock();
 }
 
-void miniTable::draw_cell(TableContext context, 
+void SoundTable::draw_cell(TableContext context, 
 			  int R, int C, int X, int Y, int W, int H)
 {
 	static char s[40];
-	int m=R*(cols()/2)+(C/2); // 2 cells per sound
+	// int m=R*(cols()/2)+(C/2); // 2 cells per sound
+	int m=R+rows()*(C/2); // 2 cells per sound
 	if(m<0 || m>=_SOUNDS) return;
 
 	switch ( context )
@@ -1841,6 +1842,8 @@ void miniTable::draw_cell(TableContext context,
 		// BG COLOR
 		if (C==col_selected && R==row_selected){
 			fl_color((C&1) ? FL_RED: _BGCOLOR);
+		}else if (Speicher.getSoundName(m).length()==0){
+			fl_color((C&1) ? FL_BLACK: _BGCOLOR);
 		}else{
 			fl_color((C&1) ? FL_WHITE: _BGCOLOR);
 		}
@@ -1877,17 +1880,18 @@ void miniTable::draw_cell(TableContext context,
     }
 }
 
-void miniTable::event_callback(Fl_Widget*, void *data)
+void SoundTable::event_callback(Fl_Widget*, void *data)
 {
-	miniTable *o = (miniTable*)data;
+	SoundTable *o = (SoundTable*)data;
 	o->event_callback2();
 }
 
-void miniTable::event_callback2()
+void SoundTable::event_callback2()
 {
 	int R = callback_row(),
 		C = callback_col();
-	int m=R*(cols()/2)+(C/2); // 2 cells per sound
+	// int m=R*(cols()/2)+(C/2); // 2 cells per sound
+	int m=R+rows()*(C/2); // 2 cells per sound
 //	TableContext context = callback_context();
 //	printf("'%s' callback: ", (label() ? label() : "?"));
 //	printf("Row=%d Col=%d Context=%d Event=%d sound %d InteractiveResize? %d\n",
@@ -1909,8 +1913,8 @@ void miniTable::event_callback2()
 				soundNameDisplay->value(Speicher.getSoundName(m).c_str());
 				if ( Fl::event_button() == FL_RIGHT_MOUSE ) {
 	// printf("Right mouse button pushed\n");
-					const Fl_Menu_Item *m = menu_rclick->popup(Fl::event_x(), Fl::event_y(), 0, 0, 0);
-					if ( m ) m->do_callback(0, m->user_data());
+					const Fl_Menu_Item *mnu = menu_rclick->popup(Fl::event_x(), Fl::event_y(), 0, 0, 0);
+					if ( mnu ) mnu->do_callback(0, mnu->user_data());
 					// return(1);          // (tells caller we handled this event)
 				}else{
 	// printf("Left or middle mouse button pushed\n");
@@ -1931,7 +1935,7 @@ void miniTable::event_callback2()
 	}
 }
 
-void miniTable::resize_cols(int W){
+void SoundTable::resize_cols(int W){
 	// base width: 968 = (96+25)*8
 	// printf("resize_cols: %f %d %d\n", scale, int(96*scale), int(25*scale));
 	if(W>=_INIT_WIDTH){
@@ -1942,48 +1946,54 @@ void miniTable::resize_cols(int W){
 }
 
 void soundcopymnuCallback(Fl_Widget*, void*T) {
-	int cell=((miniTable *)T)->get_selected_cell();
+	int cell=((SoundTable *)T)->get_selected_cell();
 //	printf("copy sound from cell %d\n", cell);
-	((miniTable *)T)->set_copied_cell(cell);
+	((SoundTable *)T)->set_copied_cell(cell);
 }
 void soundpastemnuCallback(Fl_Widget*, void*T) {
-	int src=((miniTable *)T)->get_copied_cell()/2;
+	// int src=((SoundTable *)T)->get_copied_cell()/2;
+	int src=((SoundTable *)T)->get_copied_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_copied_col())/2);
 	if(src<0 || src>=_SOUNDS) return;
-	int dest=((miniTable *)T)->get_selected_cell()/2;
+	// int dest=((SoundTable *)T)->get_selected_cell()/2;
+	int dest=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
 	if(dest<0 || dest>=_SOUNDS) return;
-//	printf("paste sound %d to %d\n", src, dest);
+	printf("paste sound %d to %d\n", src, dest);
 	Speicher.copySound(src, dest);
 	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
 	updatesoundNameInput(dest, Speicher.getSoundName(dest).c_str());
 }
 void soundrenamemnuCallback(Fl_Widget*, void*T) {
-	int dest=((miniTable *)T)->get_selected_cell()/2;
+	// int dest=((SoundTable *)T)->get_selected_cell()/2;
+	int dest=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
 	if(dest<0 || dest>=_SOUNDS) return;
 	char old_name[_NAMESIZE];
 	strnrtrim(old_name, Speicher.getSoundName(dest).c_str(), _NAMESIZE);
 	const char *new_name=fl_input("New name?", old_name);
 	if(new_name){
-//		printf("rename sound %d %s\n", dest, new_name);
+		printf("rename sound %d %s\n", dest, new_name);
 		soundNameDisplay->value(new_name);
 		Speicher.setSoundName(dest, new_name);
 		updatesoundNameInput(dest, new_name);
 	}
 }
 void soundinitmnuCallback(Fl_Widget*, void*T) {
-	int dest=((miniTable *)T)->get_selected_cell()/2;
-	// printf("init %d\n", dest);
+	// int dest=((SoundTable *)T)->get_selected_cell()/2;
+	int dest=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
+	printf("init %d\n", dest);
 	Speicher.copyPatch(&Speicher.initSound, &Speicher.sounds[dest]);
 	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
 	updatesoundNameInput(dest, Speicher.getSoundName(dest).c_str());
 }
 void soundimportmnuCallback(Fl_Widget*, void*T) {
-	int dest=((miniTable *)T)->get_selected_cell()/2;
+	// int dest=((SoundTable *)T)->get_selected_cell()/2;
+	int dest=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
 	// printf("import to %d\n", dest);
 	do_importsound(dest);
 	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
 }
 void soundexportmnuCallback(Fl_Widget*, void*T) {
-	int src=((miniTable *)T)->get_selected_cell()/2;
+	// int src=((SoundTable *)T)->get_selected_cell()/2;
+	int src=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
 	// printf("export %d\n", src);
 	do_exportsound(src);
 }
@@ -2004,23 +2014,28 @@ void updatemultiNameInput(unsigned int dest, const char* new_name){
 }
 void multicopymnuCallback(Fl_Widget*, void*T) {
 	int cell=((MultiTable *)T)->get_selected_cell();
-	// printf("copy multi from cell %d\n", cell);
+	 printf("copy multi from cell %d\n", cell);
 	((MultiTable *)T)->set_copied_cell(cell);
 }
 void multipastemnuCallback(Fl_Widget*, void*T) {
-	int src=((MultiTable *)T)->get_copied_cell()/2;
+	// int src=((MultiTable *)T)->get_copied_cell()/2;
+	// int cellNo=((MultiTable *)T)->get_copied_cell();
+	// int src=(cellNo % ((MultiTable *)T)->rows())+((MultiTable *)T)->rows()*((cellNo / ((MultiTable *)T)->rows())/2);
+	int src=((MultiTable *)T)->get_copied_row()+((MultiTable *)T)->rows()*(((MultiTable *)T)->get_copied_col()/2);
 	if(src<0 || src>=_MULTIS) return;
-	int dest=((MultiTable *)T)->get_selected_cell()/2;
+	// int dest=((MultiTable *)T)->get_selected_cell()/2;
+	int dest=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
 	if(dest<0 || dest>=_MULTIS) return;
-	// printf("paste multi %d to %d\n", src, dest);
+	 printf("paste multi %d to %d\n", src, dest);
 	Speicher.copyMulti(src, dest);
 	multiNameDisplay->value(Speicher.getMultiName(dest).c_str());
 	updatemultiNameInput(dest, Speicher.getMultiName(dest).c_str());
 }
 void multirenamemnuCallback(Fl_Widget*, void*T) {
-	int dest=((MultiTable *)T)->get_selected_cell()/2;
+	// int dest=((MultiTable *)T)->get_selected_cell()/2;
+	int dest=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
 	if(dest<0 || dest>=_MULTIS) return;
-	// printf("rename %d\n", dest);
+	 printf("rename %d\n", dest);
 	char old_name[_NAMESIZE];
 	strnrtrim(old_name, Speicher.getMultiName(dest).c_str(), _NAMESIZE);
 	const char *new_name=fl_input("New name?", old_name);
@@ -2035,7 +2050,8 @@ void MultiTable::draw_cell(TableContext context,
 			  int R, int C, int X, int Y, int W, int H)
 {
 	static char s[40];
-	int m=R*(cols()/2)+(C/2); // 2 cells per sound
+	// int m=R*(cols()/2)+(C/2); // 2 cells per sound
+	int m=R+rows()*(C/2); // 2 cells per sound
 	if(m<0 || m>=_MULTIS) return;
 
 	switch ( context )
@@ -2052,6 +2068,8 @@ void MultiTable::draw_cell(TableContext context,
 		// BG COLOR
 		if (C==col_selected && R==row_selected){
 			fl_color((C&1) ? FL_RED: _BGCOLOR);
+		}else if (Speicher.getMultiName(m).length()==0){
+			fl_color((C&1) ? FL_BLACK: _BGCOLOR);
 		}else{
 			fl_color((C&1) ? FL_WHITE: _BGCOLOR);
 		}
@@ -2075,8 +2093,8 @@ void MultiTable::draw_cell(TableContext context,
 	}
 
 	case CONTEXT_TABLE:
-	    fprintf(stderr, "TABLE CONTEXT CALLED\n");
-	    return;
+		fprintf(stderr, "TABLE CONTEXT CALLED\n");
+		return;
 
 	case CONTEXT_ROW_HEADER:
 	case CONTEXT_COL_HEADER:
@@ -2097,7 +2115,8 @@ void MultiTable::event_callback2()
 {
 	int R = callback_row(),
 		C = callback_col();
-	int m=R*(cols()/2)+(C/2); // 2 cells per sound
+//	int m=R*(cols()/2)+(C/2); // 2 cells per sound
+	int m=R+rows()*(C/2); // 2 cells per sound
 //	printf("'%s' callback: ", (label() ? label() : "?"));
 //	TableContext context = callback_context();
 //	printf("Row=%d Col=%d Context=%d Event=%d sound %d InteractiveResize? %d\n",
@@ -3691,7 +3710,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		d->labelsize(_TEXT_SIZE);
 		d->color(_BGCOLOR);
 		{
-		miniTable* o = new miniTable(0, 10, _INIT_WIDTH, _INIT_HEIGHT-35);
+		SoundTable* o = new SoundTable(0, 10, _INIT_WIDTH, _INIT_HEIGHT-35);
 		soundTable=o;
 		o->selection_color(FL_YELLOW);
 		o->color(_BGCOLOR);
@@ -3713,7 +3732,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		// o->col_header_height(25);
 		o->col_resize(1);
 		o->col_width_all(96);
-		for(int c=0; c<_TABLE_COLUMNS; c+=2) o->col_width(c,25);
+		for(int c=0; c<_TABLE_COLUMNS; c+=2) o->col_width(c, 25);
 		
 		o->end(); 
 		}
@@ -3808,8 +3827,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->col_header(0);
 		o->col_resize(1);
 		o->col_width_all(96);
-		for(int c=0; c<_TABLE_COLUMNS; c+=2) o->col_width(c,25);
-		
+		for(int c=0; c<_TABLE_COLUMNS; c+=2) o->col_width(c, 25);
+
 		o->end(); 
 		}
 		{ Fl_Button* o = new Fl_Button(5, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "save multis");
