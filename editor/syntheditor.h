@@ -161,6 +161,7 @@ protected:
 	int row_selected;
 	int col_selected;
 	int cell_copied;
+	bool cell_is_cut;
 	void draw_cell(TableContext context, // table cell drawing
 				int R=0, int C=0, int X=0, int Y=0, int W=0, int H=0);
 	static void event_callback(Fl_Widget*, void*);
@@ -172,6 +173,7 @@ public:
 		row_selected=-1;
 		col_selected=-1;
 		cell_copied=-2;
+		cell_is_cut=false;
 		// context_menu = new Fl_Menu_Button(x, y, w, h,"Sound...");
 		callback(&event_callback, (void*)this);
 	end();
@@ -186,11 +188,16 @@ public:
 	int get_copied_row(){return(cell_copied % rows());}
 	int get_copied_col(){return(cell_copied / rows());}
 	void set_copied_cell(int c){cell_copied=c;}
+	void set_cell_is_cut(){cell_is_cut=true;}
+	void clear_cell_is_cut(){cell_is_cut=false;}
+	bool get_cell_is_cut(){return(cell_is_cut);}
 };
 
 void soundcopymnuCallback(Fl_Widget*, void*);
+void soundcutmnuCallback(Fl_Widget*, void*);
 void soundpastemnuCallback(Fl_Widget*, void*);
 void soundinitmnuCallback(Fl_Widget*, void*);
+void soundclearmnuCallback(Fl_Widget*, void*);
 void soundrenamemnuCallback(Fl_Widget*, void*T);
 void soundimportmnuCallback(Fl_Widget*, void*);
 void soundexportmnuCallback(Fl_Widget*, void*);

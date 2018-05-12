@@ -600,7 +600,8 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			f_scale=1/(midi2freq[note_max[currentvoice]]-f_offset);
 		else
 			f_scale=1.0f;
-		mod[5]=f_scale*(midif[currentvoice]*bend - glide[currentvoice] - f_offset);
+		float tracking=midif[currentvoice]*bend - glide[currentvoice];
+		mod[5]=f_scale*(tracking - f_offset);
 		// mod[5]=f_scale*(midif[currentvoice] - f_offset);
 		// ...and clipped in case bender gets out of hand
 		mod[5]=mod[5]<0.0f?0.0f:(mod[5]>1.0f?1.0f:mod[5]);
@@ -1186,17 +1187,22 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 	if(first_time && currentvoice==0 && index==0)
 		printf("tf1 %f = param[30] %f * morph2 %f + param[33] %f * morph1 %f\n", tf1, param[30], morph2, param[33], morph1);
 #endif
+				// Apply filter tracking
+				// float tracking=midif[currentvoice]*bend - glide[currentvoice];
+				float fpct= (tracking-440)/440;
+				tf1*=1+param[149]*fpct;
+				tf2*=1+param[150]*fpct;
+				tf3*=1+param[151]*fpct;
 				tf1*=srate;
 				tf2*=srate;
 				tf3*=srate;
-				
-				// Sin approximation sin(x) ~~ x - x^3 / 6.7901358
-				// 1 / 6.7901358 = 0.1472725f
-				// Why 2.f * ? Why sin?
 				f[currentvoice][0] = tf1;
 				f[currentvoice][1] = tf2;
 				f[currentvoice][2] = tf3; 
 /*
+				// Sin approximation sin(x) ~~ x - x^3 / 6.7901358
+				// 1 / 6.7901358 = 0.1472725f
+				// Why 2.f * ? Why sin?
 				f[currentvoice][0] = 2.f * tf1;
 				f[currentvoice][1] = 2.f * tf2;
 				f[currentvoice][2] = 2.f * tf3; 
@@ -1701,7 +1707,13 @@ static inline void doNoteOn(int voice, int note, int velocity){
 						printf("Osc 2 voice %u phase set to %f\n", voice, parameter[voice][134]);
 	#endif
 					}
-					
+					if(parameter[voice][154]){
+						phase[voice][3]=parameter[voice][153]*samples_per_degree;
+	#ifdef _DEBUG
+						printf("Osc 3 voice %u phase set to %f\n", voice, parameter[voice][153]);
+	#endif
+					}
+
 					midif[voice]=midi2freq[note];// lookup the frequency
 					// 1/127=0,007874015748...
 					modulator[voice][19]=note*0.007874f;// fill the value in as normalized modulator

@@ -24,7 +24,7 @@
 // not customizable options ----------------------------------
 #define _NAMESIZE 128
 // amount of parameters per patch
-#define _PARACOUNT 149
+#define _PARACOUNT 155
 #define _CHOICECOUNT 19
 #define _EGCOUNT 7
 

@@ -72,7 +72,8 @@ public:
 	void saveMultis();
 	void loadMultis();
 	void store(patch Sound);
-	void overwrite(patch Sound);
+//	void overwrite(patch Sound);
+	void clearMulti(unsigned int m);
 	void importSound(string filename, unsigned int current); // import a single sound
 	void exportSound(string filename, unsigned int current); // export a single sound
 	void importPatch(string filename, patch *p); // import single sound to patch

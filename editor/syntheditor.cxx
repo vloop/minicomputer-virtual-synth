@@ -1898,9 +1898,11 @@ void SoundTable::event_callback2()
 //		R, C, (int)context, (int)Fl::event(), m, (int)is_interactive_resize());
 	Fl_Menu_Item menu_rclick[] = {
 		{ "Copy",   0, soundcopymnuCallback, (void*)this },
+		{ "Cut",   0, soundcutmnuCallback, (void*)this },
 		{ "Paste",  0, soundpastemnuCallback, (void*)this },
 		{ "Rename",  0, soundrenamemnuCallback, (void*)this },
-		{ "Init",  0, soundinitmnuCallback, (void*)this },
+//		{ "Init",  0, soundinitmnuCallback, (void*)this },
+		{ "Clear",  0, soundclearmnuCallback, (void*)this },
 		{ "Import",  0, soundimportmnuCallback, (void*)this },
 		{ "Export",  0, soundexportmnuCallback, (void*)this },
 		{ 0 }
@@ -1949,6 +1951,13 @@ void soundcopymnuCallback(Fl_Widget*, void*T) {
 	int cell=((SoundTable *)T)->get_selected_cell();
 //	printf("copy sound from cell %d\n", cell);
 	((SoundTable *)T)->set_copied_cell(cell);
+	((SoundTable *)T)->clear_cell_is_cut();
+}
+void soundcutmnuCallback(Fl_Widget*, void*T) {
+	int cell=((SoundTable *)T)->get_selected_cell();
+//	printf("cut sound from cell %d\n", cell);
+	((SoundTable *)T)->set_copied_cell(cell);
+	((SoundTable *)T)->set_cell_is_cut();
 }
 void soundpastemnuCallback(Fl_Widget*, void*T) {
 	// int src=((SoundTable *)T)->get_copied_cell()/2;
@@ -1961,6 +1970,12 @@ void soundpastemnuCallback(Fl_Widget*, void*T) {
 	Speicher.copySound(src, dest);
 	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
 	updatesoundNameInput(dest, Speicher.getSoundName(dest).c_str());
+	if(((SoundTable *)T)->get_cell_is_cut()){
+		printf("cut sound %d\n", src);
+		((SoundTable *)T)->clear_cell_is_cut();
+		Speicher.copyPatch(&Speicher.initSound, &Speicher.sounds[src]);
+		Speicher.setSoundName(src, "");
+	}
 }
 void soundrenamemnuCallback(Fl_Widget*, void*T) {
 	// int dest=((SoundTable *)T)->get_selected_cell()/2;
@@ -1974,6 +1989,7 @@ void soundrenamemnuCallback(Fl_Widget*, void*T) {
 		soundNameDisplay->value(new_name);
 		Speicher.setSoundName(dest, new_name);
 		updatesoundNameInput(dest, new_name);
+		((SoundTable *)T)->clear_cell_is_cut();
 	}
 }
 void soundinitmnuCallback(Fl_Widget*, void*T) {
@@ -1981,6 +1997,15 @@ void soundinitmnuCallback(Fl_Widget*, void*T) {
 	int dest=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
 	printf("init %d\n", dest);
 	Speicher.copyPatch(&Speicher.initSound, &Speicher.sounds[dest]);
+	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
+	updatesoundNameInput(dest, Speicher.getSoundName(dest).c_str());
+}
+void soundclearmnuCallback(Fl_Widget*, void*T) {
+	// int dest=((SoundTable *)T)->get_selected_cell()/2;
+	int dest=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
+	printf("clear %d\n", dest);
+	Speicher.copyPatch(&Speicher.initSound, &Speicher.sounds[dest]);
+	Speicher.setSoundName(dest, "");
 	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
 	updatesoundNameInput(dest, Speicher.getSoundName(dest).c_str());
 }
@@ -2016,6 +2041,19 @@ void multicopymnuCallback(Fl_Widget*, void*T) {
 	int cell=((MultiTable *)T)->get_selected_cell();
 	 printf("copy multi from cell %d\n", cell);
 	((MultiTable *)T)->set_copied_cell(cell);
+	((MultiTable *)T)->clear_cell_is_cut();
+}
+void multicutmnuCallback(Fl_Widget*, void*T) {
+	int cell=((MultiTable *)T)->get_selected_cell();
+	 printf("cut multi from cell %d\n", cell);
+	((MultiTable *)T)->set_copied_cell(cell);
+	((MultiTable *)T)->set_cell_is_cut();
+}
+void multiclearmnuCallback(Fl_Widget*, void*T) {
+	int dest=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
+	if(dest<0 || dest>=_MULTIS) return;
+	 printf("clear multi number %d\n", dest);
+	Speicher.clearMulti(dest);
 }
 void multipastemnuCallback(Fl_Widget*, void*T) {
 	// int src=((MultiTable *)T)->get_copied_cell()/2;
@@ -2030,6 +2068,11 @@ void multipastemnuCallback(Fl_Widget*, void*T) {
 	Speicher.copyMulti(src, dest);
 	multiNameDisplay->value(Speicher.getMultiName(dest).c_str());
 	updatemultiNameInput(dest, Speicher.getMultiName(dest).c_str());
+	if(((MultiTable *)T)->get_cell_is_cut()){
+		printf("cut multi %d\n", src);
+		((MultiTable *)T)->clear_cell_is_cut();
+		Speicher.clearMulti(src);
+	}
 }
 void multirenamemnuCallback(Fl_Widget*, void*T) {
 	// int dest=((MultiTable *)T)->get_selected_cell()/2;
@@ -2043,6 +2086,7 @@ void multirenamemnuCallback(Fl_Widget*, void*T) {
 		multiNameDisplay->value(new_name);
 		Speicher.setMultiName(dest, new_name);
 		updatemultiNameInput(dest, new_name);
+		((MultiTable *)T)->clear_cell_is_cut();
 	}
 }
 
@@ -2123,11 +2167,10 @@ void MultiTable::event_callback2()
 //		R, C, (int)context, (int)Fl::event(), m, (int)is_interactive_resize());
 	Fl_Menu_Item menu_rclick[] = {
 		{ "Copy",   0, multicopymnuCallback, (void*)this },
+		{ "Cut",   0, multicutmnuCallback, (void*)this },
 		{ "Paste",  0, multipastemnuCallback, (void*)this },
 		{ "Rename",  0, multirenamemnuCallback, (void*)this },
-		// { "Init",  0, soundinitmnuCallback, (void*)this },
-		// { "Import",  0, soundimportmnuCallback, (void*)this },
-		// { "Export",  0, soundexportmnuCallback, (void*)this },
+		{ "Clear",   0, multiclearmnuCallback, (void*)this },
 		{ 0 }
 	};
 	switch(Fl::event()){
@@ -2743,6 +2786,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	needs_finetune[133]=0; // Osc 2 Mult amp modulator 2
 	needs_finetune[135]=0; // Osc 2 Start phase enable
 	needs_finetune[115]=0; // Osc 2 sync to osc 1
+	needs_finetune[154]=0; // Osc 3 Start phase enable
 	needs_finetune[140]=0; // Mult morph mod 2
 	needs_finetune[137]=0; // Bypass filter
 	needs_finetune[64]=0; // EG 1 repeat
@@ -2778,8 +2822,9 @@ Fenster* UserInterface::make_window(const char* title) {
 	is_button[121]=1;
 	is_button[136]=1;
 	is_button[133]=1;
-	is_button[120]=1;
-	is_button[135]=1;
+	is_button[120]=1; // Osc 1 start phase enable
+	is_button[135]=1; // Osc 2 start phase enable
+	is_button[154]=1; // Osc 3 start phase enable
 	is_button[137]=1; // Bypass filters
 	is_button[139]=1; // Legato
 	is_button[143]=1; // Time modulator 2 mult.
@@ -2907,7 +2952,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	  o->labelsize(_TEXT_SIZE);
 	  o->labelcolor(FL_BACKGROUND2_COLOR);
 	  o->align(FL_ALIGN_BOTTOM | FL_ALIGN_INSIDE);
-	  { Fl_Group* o = new Fl_Group(330, 28, 239, 92, "filter 1");
+	  { Fl_Group* o = new Fl_Group(330, 28, 241, 92, "filter 1");
 		groups[nGroups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
@@ -2916,7 +2961,16 @@ Fenster* UserInterface::make_window(const char* title) {
 		make_filter(i, 33, 5, 456, 31);
 		o->end();
 	  }
-	  { Fl_Group* o = new Fl_Group(330, 132, 239, 92, "filter 2");
+		{ Fl_Dial* o = new Fl_Dial(559, 40, 20, 20, "tracking");
+			o->labelsize(_TEXT_SIZE);
+			o->argument(150);
+			o->minimum(-1);
+			o->value(0);
+			o->maximum(1);
+			o->callback((Fl_Callback*)parmCallback);
+			Knob[i][o->argument()] = o;
+		}
+	  { Fl_Group* o = new Fl_Group(330, 132, 241, 92, "filter 2");
 		groups[nGroups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
@@ -2938,7 +2992,16 @@ Fenster* UserInterface::make_window(const char* title) {
 		}*/
 		o->end();
 	  }
-	  { Fl_Group* o = new Fl_Group(330, 238, 239, 92, "filter 3");
+		{ Fl_Dial* o = new Fl_Dial(559, 144, 20, 20, "tracking");
+			o->labelsize(_TEXT_SIZE);
+			o->argument(151);
+			o->minimum(-1);
+			o->value(0);
+			o->maximum(1);
+			o->callback((Fl_Callback*)parmCallback);
+			Knob[i][o->argument()] = o;
+		}
+	  { Fl_Group* o = new Fl_Group(330, 238, 241, 92, "filter 3");
 		groups[nGroups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
@@ -2947,6 +3010,15 @@ Fenster* UserInterface::make_window(const char* title) {
 		make_filter(i, 53, 9, 456, 241);
 		o->end();
 	  } 
+		{ Fl_Dial* o = new Fl_Dial(559, 250, 20, 20, "tracking");
+			o->labelsize(_TEXT_SIZE);
+			o->argument(152);
+			o->minimum(-1);
+			o->value(0);
+			o->maximum(1);
+			o->callback((Fl_Callback*)parmCallback);
+			Knob[i][o->argument()] = o;
+		}
 	  { Fl_Dial* o = new Fl_Dial(420, 360, 60, 57, "morph");
 		o->type(1);
 		o->labelsize(_TEXT_SIZE);
@@ -3045,13 +3117,13 @@ Fenster* UserInterface::make_window(const char* title) {
 	  
 	  // ----------- knobs for mod oscillator ---------------
 	  int y=31+6*h;
-	  { Fl_Group* o = new Fl_Group(608, y, 200, 60, "mod osc");
+	  { Fl_Group* o = new Fl_Group(608, y, 200, 65, "mod osc");
 		groups[nGroups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
 		o->labelsize(_TEXT_SIZE);
 
-		{  Fl_Positioner* o = new Fl_Positioner(620, y+5, 55, 40,"tune");
+		{  Fl_Positioner* o = new Fl_Positioner(620, y+5, 55, 50,"tune");
 		o->xbounds(0,128);
 		o->ybounds(1,0);
 		o->box(FL_BORDER_BOX);
@@ -3077,7 +3149,45 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)choiceCallback);
 		  auswahl[i][o->argument()]=o;
 		} 
-		{ Fl_Light_Button* o = new Fl_Light_Button(768, y+12, 33, 15, "mod.");
+		{ Fl_Dial* o = new Fl_Dial(768, y+7, 20, 20, "start phase");
+			o->labelsize(_TEXT_SIZE);
+			o->argument(153); 
+			o->minimum(0);
+			o->maximum(360);
+			o->callback((Fl_Callback*)parmCallback);
+			Knob[i][o->argument()] = o;
+		}
+		{ Fl_Light_Button* o = new Fl_Light_Button(790, y+12, 10, 15); // Phase reset enable
+			o->box(FL_BORDER_BOX);
+			o->selection_color((Fl_Color)89);
+			o->labelsize(_TEXT_SIZE);
+			o->argument(154);
+			o->callback((Fl_Callback*)parmCallback);
+			Knob[i][o->argument()] = o;
+		}
+		{ Fl_Value_Input* o = new Fl_Value_Input(680, y+30, 50, 15, "Hz"); // frequency display for modulation oscillator
+		  o->box(FL_ROUNDED_BOX);
+		  o->labelsize(_TEXT_SIZE);
+		  o->align(FL_ALIGN_RIGHT);
+		  o->maximum(10000);
+		  o->step(0.0001);
+		  o->textsize(_TEXT_SIZE);
+		  o->callback((Fl_Callback*)tuneCallback);
+		  o->argument(90);
+		  miniInput[i][10]=o;
+		}
+		{ Fl_Value_Input* o = new Fl_Value_Input(680, y+48, 50, 15, "BPM"); // BPM display for modulation oscillator
+		  o->box(FL_ROUNDED_BOX);
+		  o->labelsize(_TEXT_SIZE);
+		  o->align(FL_ALIGN_RIGHT);
+		  o->maximum(10000);
+		  o->step(0.0001);
+		  o->textsize(_TEXT_SIZE);
+		  o->callback((Fl_Callback*)BPMtuneCallback);
+		  o->argument(90);
+		  miniInput[i][11]=o;
+		}
+		{ Fl_Light_Button* o = new Fl_Light_Button(760, y+40, 40, 15, "mod.");
 		  o->box(FL_BORDER_BOX);
 		  o->labelsize(_TEXT_SIZE);
 		  o->tooltip("Multiply modulation oscillator by modulation wheel");
@@ -3086,28 +3196,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)parmCallback);
 		  Knob[i][o->argument()] = o;
 		}
-		{ Fl_Value_Input* o = new Fl_Value_Input(680, y+30, 38, 15, "Hz"); // frequency display for modulation oscillator
-		  o->box(FL_ROUNDED_BOX);
-		  o->labelsize(_TEXT_SIZE);
-		  o->align(FL_ALIGN_RIGHT);
-		  o->maximum(10000);
-		  o->step(0.001);
-		  o->textsize(_TEXT_SIZE);
-		  o->callback((Fl_Callback*)tuneCallback);
-		  o->argument(90);
-		  miniInput[i][10]=o;
-		}
-		{ Fl_Value_Input* o = new Fl_Value_Input(740, y+30, 38, 15, "BPM"); // BPM display for modulation oscillator
-		  o->box(FL_ROUNDED_BOX);
-		  o->labelsize(_TEXT_SIZE);
-		  o->align(FL_ALIGN_RIGHT);
-		  o->maximum(10000);
-		  o->step(0.001);
-		  o->textsize(_TEXT_SIZE);
-		  o->callback((Fl_Callback*)BPMtuneCallback);
-		  o->argument(90);
-		  miniInput[i][11]=o;
-		}
+
 		o->end();
 	  }
 	  o->end();

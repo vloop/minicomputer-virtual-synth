@@ -91,16 +91,16 @@ string Memory::getMultiName(unsigned int multinum)
  * @param voice number
  * @param sound number
  */
-int Memory::setChoice(unsigned int voice, unsigned int i)
+int Memory::setChoice(unsigned int voice, unsigned int sound)
 {
-	if (voice<_MULTITEMP && i<_SOUNDS) // check if its in the range
+	if (voice<_MULTITEMP && sound<_SOUNDS)
 	{
-		choice[voice] = i;
+		choice[voice] = sound;
 		return(0);
 	}
 	else // oha, should not happen
 	{
-		fprintf(stderr, "setChoice: illegal voice %d or sound %d\n", voice, i);
+		fprintf(stderr, "setChoice: illegal voice %d or sound %d\n", voice, sound);
 		return(-1);
 	}
 }
@@ -450,6 +450,31 @@ void Memory::importSound(string filename, unsigned int current)
 	importPatch(filename, &sounds[current]);
 	// now the new sound is in RAM but need to be saved to the main file
 	saveSounds();
+}
+void Memory::clearMulti(unsigned int m)
+{
+	if (m>=_MULTIS) return;
+	setMultiName(m, "");
+	int p;
+	for (p=0;p<_MULTITEMP;++p) // init the sound ids of all 8 voices
+	{
+		multis[m].sound[p]=p;
+		multis[m].settings[p][0]=1.0; // 101 Id vol
+		multis[m].settings[p][1]=1.0; // 106 Mix vol
+		multis[m].settings[p][2]=0.5; // 107 Pan
+		multis[m].settings[p][3]=0; // 108 Aux 1
+		multis[m].settings[p][4]=0; // 109 Aux 2
+		multis[m].settings[p][5]=p+1; // 125 Channel
+		multis[m].settings[p][6]=80; // 126 Velocity
+		multis[m].settings[p][7]=69; // 127 Test note A5
+		multis[m].settings[p][8]=0; // 128 Note min C0
+		multis[m].settings[p][9]=127; // 129 Note max G10
+		multis[m].settings[p][10]=0; // 130 Transpose
+	}
+	for (p=0;p<_MULTIPARMS;++p) // clear the global multi parameters
+	{
+		multis[m].parms[p]=0;
+	}
 }
 /**
  * the multitemperal setup, the choice of sounds and some settings
