@@ -172,6 +172,9 @@ float v[_MULTITEMP][4] __attribute__((aligned (16)));
 unsigned int lastnote[_MULTITEMP];
 unsigned int hold[_MULTITEMP];
 unsigned int heldnote[_MULTITEMP];
+// unsigned int kbnotes[_MULTITEMP][128]; // Keyboard assignment state
+unsigned int polySlave[_MULTITEMP]; // Poly link
+unsigned int polyMaster[_MULTITEMP]; // Poly link
 float glide[_MULTITEMP];
 int delayI[_MULTITEMP], delayJ[_MULTITEMP];
 float sub[_MULTITEMP];
@@ -1603,7 +1606,6 @@ void doControlChange(int voice, int n, int v){
 					hold[voice]=0;
 					if (heldnote[voice]){
 					// note is held if note_off occurs while hold is on
-					// There is no attempt at polyphonic keyboard handling
 						doNoteOff(voice, heldnote[voice], 0); // Do a note_off
 						heldnote[voice]=0;
 					}
@@ -1621,7 +1623,7 @@ void doMidi(int status, int n, int v){
 	fprintf(stderr,"doMidi: %u %u %u\n", status, n, v);
 #endif
 	for(voice=0; voice<_MULTITEMP; voice++){
-		if(channel[voice]==c){
+		if(channel[voice]==c && !polySlave[voice]){
 			switch(status & 0xF0){
 				case 0x90:{ // Note on
 					doNoteOn(voice, n, v);
@@ -1631,19 +1633,19 @@ void doMidi(int status, int n, int v){
 					doNoteOff(voice, n, v);
 					break;
 				}
-				case 0xC0:{ // Program change
+				case 0xC0:{ // Program change ?? TODO apply to slaves
 #ifdef _DEBUG
 					printf("doMidi: Program change channel %u voice %u program %u\n", c, voice, n);
 #endif
 					lo_send(t, "/Minicomputer/programChange", "ii", voice, n+(bank[voice]<<7));
 					break;
 				}
-				case 0xD0: // Channel pressure
+				case 0xD0: // Channel pressure ?? TODO apply to slaves
 				{
 					modulator[voice][15]=(float)n*0.007874f; // /127.f
 					break;
 				}
-				case 0xE0:{ // Pitch bend
+				case 0xE0:{ // Pitch bend ?? TODO apply to slaves
 					// 14 bits means 16384 values; 1/8192=0.00012207f
 					// modulator[voice][2]=((v<<7)+n)*0.00012207f; // 0..2
 					modulator[voice][2]=(((v<<7)+n)-8192)*0.00012207f; // -1..1
@@ -1652,7 +1654,7 @@ void doMidi(int status, int n, int v){
 #endif
 					break;
 				}
-				case 0xB0:{ // Control change
+				case 0xB0:{ // Control change ?? TODO apply to slaves
 					doControlChange(voice, n, v);
 					break;
 				}
@@ -1664,7 +1666,9 @@ void doMidi(int status, int n, int v){
 static inline void doNoteOff(int voice, int note, int velocity){
 	// Velocity currently ignored
 	if (voice <_MULTITEMP){
+//		kbnotes[voice][note]=0;
 		note+=transpose[voice];
+		while(note!=lastnote[voice] && polyMaster[voice]) voice++;
 		if(note==lastnote[voice]){ // Ignore release for old notes
 			if(hold[voice]){
 				heldnote[voice]=note;
@@ -1684,9 +1688,13 @@ static inline void doNoteOff(int voice, int note, int velocity){
 static inline void doNoteOn(int voice, int note, int velocity){
 	if (voice <_MULTITEMP){
 		if ((note>=note_min[voice]) && (note<=note_max[voice])){
+//			kbnotes[voice][note]=1;
 			note+=transpose[voice];
 			if(note>=0 && note<=127){
 				if (velocity>0){
+					while(lastnote[voice]!=note && EGstate[voice][0]!=4 && polyMaster[voice]){ // Note not finished, try poly
+						voice++;
+					}
 					heldnote[voice]=0;
 					lastnote[voice]=note;
 					glide[voice]+=midi2freq[note]-midif[voice]; // Span between previous and new note
@@ -1860,12 +1868,13 @@ static void *alsaMidiProcess(void *handle) {
 				fprint("Note On event %u \r",EGstate[c][0]);
 #endif
 				for(voice=0; voice<_MULTITEMP; voice++){
-					if(channel[voice]==c){
+					if(channel[voice]==c && !polySlave[voice]){
 #ifdef _DEBUG      
 						printf("alsaMidiProcess: note on voice %u channel %u %u..%u : %u %u\n",
 							voice, channel[voice], note_min[voice], note_max[voice], c, ev->data.note.note);
 #endif
 						doNoteOn(voice, ev->data.note.note, ev->data.note.velocity);
+						// if(poly[voice]) voice++; // Don't stack voices if poly set
 					}
 				}
 				break;
@@ -2266,7 +2275,7 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 			// Could be moved inside the cases for speed?
 			int voice;
 			for(voice=0; voice<_MULTITEMP; voice++){
-				if(channel[voice]==c){
+				if(channel[voice]==c && !polySlave[voice]){
 					switch ((argv[1]->i)&0xF0){
 						case 0x90:{ // Note on
 							doNoteOn(c, argv[2]->i, argv[3]->i);
@@ -2283,6 +2292,7 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 							break;
 						}
 						case 0xB0:{ // Control change
+							// TODO apply to slaves if any
 							switch(argv[2]->i){ // Controller number
 							  case 120:{ // All sound off
 								egOff(c);
@@ -2408,6 +2418,17 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 	 case 128:note_min[voice]=argv[2]->f;break;
 	 case 129:note_max[voice]=argv[2]->f;break;
 	 case 130:transpose[voice]=argv[2]->f;break;
+	 case 155:
+	 {
+		printf("link %u = %u", voice, argv[2]->f);
+		if(voice<_MULTITEMP-1){
+			polyMaster[voice]=argv[2]->f;
+			polySlave[voice+1]=argv[2]->f;
+		}else{
+			fprintf(stderr, "ERROR: voice %u cannot be a poly master!\n", voice);
+		}
+		break;
+	 }
 	}
 #ifdef _DEBUG
 	printf("foo_handler %i %i %f \n",voice,i,argv[2]->f);

@@ -808,14 +808,25 @@ static void midiparmCallback(Fl_Widget* o, void*) {
 	((Fl_Valuator*)o)->value(val);
 	if (transmit) lo_send(t, "/Minicomputer", "iif", voice, parm, val);
 #ifdef _DEBUG
-    printf("midiparmCallback %u %u (%li) : %g\n", voice, parm, ((Fl_Valuator*)o)->argument(), val);
+	printf("midiparmCallback %u %u (%li) : %g\n", voice, parm, ((Fl_Valuator*)o)->argument(), val);
 #endif
 	if(parm >= 127 && parm <=129){ // Notes (test, min, max)
-        char s[]="....";
-        noteName(val, s);
-        // printf("%u %s\n", voice, s);
-        noteInput[voice][parm-127]->value(s); // Display as note
+		char s[]="....";
+		noteName(val, s);
+		// printf("%u %s\n", voice, s);
+		noteInput[voice][parm-127]->value(s); // Display as note
 	}
+	setmulti_changed(); // All midi parameters belong to the multi
+}
+static void midibuttonCallback(Fl_Widget* o, void*) {
+	int voice = (((Fl_Button*)o)->argument()) >> 8;
+	int parm = (((Fl_Button*)o)->argument()) & 0xFF;
+	double val = ((Fl_Button*)o)->value();
+	if (transmit) lo_send(t, "/Minicomputer", "iif", voice, parm, val);
+	printf("midibuttonCallback %u %u (%li) : %g\n", voice, parm, ((Fl_Button*)o)->argument(), val);
+#ifdef _DEBUG
+	printf("midibuttonCallback %u %u (%li) : %g\n", voice, parm, ((Fl_Button*)o)->argument(), val);
+#endif
 	setmulti_changed(); // All midi parameters belong to the multi
 }
 static void checkrangeCallback(Fl_Widget* o, void*) {
@@ -1716,6 +1727,12 @@ static void loadmulti(unsigned int multi)
 			((Fl_Valuator*)Knob[i][MIDI_parm_num[j]])->value(Speicher.multis[multi].settings[i][j+start]);
 			midiparmCallback(Knob[i][MIDI_parm_num[j]],NULL);
 		}
+		// set the only midi switch, not available for last voice
+		if(i<_MULTITEMP-1){
+			int j=155;
+			((Fl_Button*)Knob[i][j])->value(Speicher.multis[multi].settings[i][11]);
+			midibuttonCallback(Knob[i][j],NULL);
+		}
 	}
 	for (int i=0;i<_MULTITEMP;++i)
 		clearsound_changed(i);
@@ -1807,6 +1824,8 @@ static void storemultiCallback(Fl_Widget* o, void* e)
 		Speicher.multis[currentMulti].settings[i][8]=((Fl_Valuator*)Knob[i][128])->value();
 		Speicher.multis[currentMulti].settings[i][9]=((Fl_Valuator*)Knob[i][129])->value();
 		Speicher.multis[currentMulti].settings[i][10]=((Fl_Valuator*)Knob[i][130])->value();
+		if(i<_MULTITEMP-1)
+			Speicher.multis[currentMulti].settings[i][11]=((Fl_Button*)Knob[i][155])->value();
 	}
 	for (i=0;i<_MULTIPARMS;++i){
 		Speicher.multis[currentMulti].parms[i]=((Fl_Valuator*)multiParmInput[i])->value();
@@ -2754,6 +2773,8 @@ Fenster* UserInterface::make_window(const char* title) {
 	needs_multi[128]=1; // Note min
 	needs_multi[129]=1; // Note max
 	needs_multi[130]=1; // Transpose
+	needs_multi[155]=1; // Poly link
+
 
 	// show parameter on fine tune only when relevant
 	for (int i=0;i<_PARACOUNT;++i) needs_finetune[i]=1;
@@ -2773,6 +2794,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	needs_finetune[128]=0; // Min note
 	needs_finetune[129]=0; // Max note
 	needs_finetune[130]=0; // Transpose
+	needs_finetune[155]=0; // Poly link
 	needs_finetune[2]=0; // Osc 1 Fixed frequency
 	needs_finetune[4]=0; // Osc 1 Boost
 	needs_finetune[117]=0; // Osc 1 Mult freq modulator 2
@@ -2829,6 +2851,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	is_button[139]=1; // Legato
 	is_button[143]=1; // Time modulator 2 mult.
 	is_button[145]=1; // oscillator 3 mult. mod wheel
+	is_button[155]=1; // Poly link
 
 	transmit=true;
 
@@ -3727,12 +3750,36 @@ Fenster* UserInterface::make_window(const char* title) {
 		  }
 		d->end();
 			}
+			// Poly link
+			if(voice<_MULTITEMP-1){ // Last voice cannot be linked to next
+				{ Fl_Light_Button* o = new Fl_Light_Button(46+60*voice, 276, 40, 14, "poly");
+					o->box(FL_ROUNDED_BOX);
+					o->selection_color((Fl_Color)89);
+					o->labelsize(_TEXT_SIZE);
+					o->argument(155+(voice<<8)); // Special encoding for voice
+					o->callback((Fl_Callback*)midibuttonCallback);
+					Knob[voice][155] = o; // NOT argument!!
+				}
+			}
 
 		} // End of for voice
 
+		// Global detune
+		{ Fl_Value_Input* o = new Fl_Value_Input(76, 300, 40, 14, "Master tune");
+			o->box(FL_ROUNDED_BOX);
+			o->labelsize(_TEXT_SIZE);
+			o->textsize(_TEXT_SIZE);
+			o->range(-0.5, 0.5);
+			o->align(FL_ALIGN_LEFT);
+			o->step(.01);
+			o->value(0);
+			o->callback((Fl_Callback*)multiParmInputCallback);
+			o->argument(12);
+			multiParmInput[12]=o;
+		}
 		// Note detune, common to all voices
 		{
-			int y=310;
+			int y=330;
 			Fl_Group* d = new Fl_Group(11, y, 471, 45, "Detune");
 			groups[nGroups++]=d;
 			d->box(FL_ROUNDED_FRAME);
@@ -3773,18 +3820,6 @@ Fenster* UserInterface::make_window(const char* title) {
 				x++;
 			}
 			d->end();
-		}
-		{ Fl_Value_Input* o = new Fl_Value_Input(76, 280, 40, 14, "Master tune");
-			o->box(FL_ROUNDED_BOX);
-			o->labelsize(_TEXT_SIZE);
-			o->textsize(_TEXT_SIZE);
-			o->range(-0.5, 0.5);
-			o->align(FL_ALIGN_LEFT);
-			o->step(.01);
-			o->value(0);
-			o->callback((Fl_Callback*)multiParmInputCallback);
-			o->argument(12);
-			multiParmInput[12]=o;
 		}
 
 		o->end(); 

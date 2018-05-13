@@ -24,7 +24,7 @@
 // not customizable options ----------------------------------
 #define _NAMESIZE 128
 // amount of parameters per patch
-#define _PARACOUNT 155
+#define _PARACOUNT 156
 #define _CHOICECOUNT 19
 #define _EGCOUNT 7
 
@@ -32,7 +32,7 @@
 #define _MULTITEMP 8
 
 // how many additional settings per sound in multi to store
-#define _MULTISETTINGS 11
+#define _MULTISETTINGS 12
 
 // how many additional settings common to all sounds in multi to store
 #define _MULTIPARMS 13
