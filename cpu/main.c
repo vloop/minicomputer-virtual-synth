@@ -138,7 +138,6 @@ float modulator_scale[_MODCOUNT] __attribute__((aligned (16)))={
 	1.0f, // 24 cc 16
 	1.0f, // 25 cc 17
 };
-float f_scale, f_offset;
 float midif[_MULTITEMP] __attribute__((aligned (16)));
 
 /*
@@ -351,8 +350,9 @@ static inline void egOff (const unsigned int voice)
  * calculate the envelope, done in audiorate to avoide zippernoise
  * @param the voice number
  * @param the number of envelope generator
+ * @param the master voice in poly mode
 */
-static inline float egCalc (const unsigned int voice, const unsigned int number)
+static inline float egCalc (const unsigned int voice, const unsigned int number, const unsigned int master)
 {
 	/* EG[x] x:
 	 * 0 = trigger (0 or 1)
@@ -361,7 +361,7 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 	 * 3 = sustain level
 	 * 4 = release rate
 	 * 5 = target
-	 * 6 = state (value between 0.0 and 1.0)
+	 * 6 = state (=level, value between 0.0 and 1.0)
 	 * EGstate - 1:Attack 2:Decay 3:Sustain 0:Release 4:Idle
 	 * OSC messages - 0:Idle 1:Attack 2:Decay 3:Sustain 4:Release
 	 */
@@ -371,7 +371,7 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 		if (i == 1){ // attack
 			if (EGFaktor[voice][number]<1.00f) EGFaktor[voice][number] += 0.002f;
 			
-			EG[voice][number][6] += EG[voice][number][1]*srDivisor*EGFaktor[voice][number];
+			EG[voice][number][6] += EG[master][number][1]*srDivisor*EGFaktor[voice][number];
 
 			if (EG[voice][number][6]>=1.0f)// Attack phase is finished
 			{
@@ -384,9 +384,9 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 			}
 		}
 		else if (i == 2){ // decay
-			if (EG[voice][number][6]>EG[voice][number][3]) // Sustain level not reached
+			if (EG[voice][number][6]>EG[master][number][3]) // Sustain level not reached
 			{
-				EG[voice][number][6] -= EG[voice][number][2]*srDivisor*EGFaktor[voice][number];
+				EG[voice][number][6] -= EG[master][number][2]*srDivisor*EGFaktor[voice][number];
 			}
 			else // Sustain level reached (may be 0)
 			{
@@ -423,7 +423,7 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 		else if ((i == 0) && (EG[voice][number][6]>0.0f))
 		{	// release
 			if (EGFaktor[voice][number]>0.025f) EGFaktor[voice][number] -= 0.002f;
-			EG[voice][number][6] -= EG[voice][number][4]*srDivisor*EGFaktor[voice][number];
+			EG[voice][number][6] -= EG[master][number][4]*srDivisor*EGFaktor[voice][number];
 
 			if (EG[voice][number][6]<0.0f) 
 			{	
@@ -444,9 +444,9 @@ static inline float egCalc (const unsigned int voice, const unsigned int number)
 		else if(i==3) // Sustain
 		{
 			// Apply sustain level change
-			EG[voice][number][6]=EG[voice][number][3];
+			EG[voice][number][6]=EG[master][number][3];
 			// Don't get stuck on zero sustain
-			if(EG[voice][number][3]==0.0f){
+			if(EG[master][number][3]==0.0f){
 				EGstate[voice][number]=4;
 #ifdef _UPDATE_GUI
 				lo_send(t, "/Minicomputer/EG", "iii", voice, number, 0);
@@ -484,6 +484,11 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 	float tf1, tf2, tf3, morph1, morph2, modmax, mf, final_mix, tdelay;
 	// float clib1, clib2; 
 	float osc1, osc2, pwm, pwmMod, delayMod, pan;
+	float f_scale, f_offset, bend;
+	float * param;
+	unsigned int * choi;
+	unsigned int masterVoice;
+
 
 #ifdef _CHECK_DENORM
 	// Clear FPU exceptions (denormal flag)
@@ -571,38 +576,46 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 	for (currentvoice=0;currentvoice<_MULTITEMP;++currentvoice) // for each voice
 	{
 
-		// compute pointers for this voice
-		float * param = parameter[currentvoice];
-		unsigned int * choi = choice[currentvoice];
-		float * current_phase = phase[currentvoice];
-
 		// Calc the modulators
 		float *mod = modulator [currentvoice];
+
+		// Do nothing, keep previous parameters if voice is slave
+		// This can never happen for voice 0!
+		if(!polySlave[currentvoice]){
+			masterVoice=currentvoice;
+			param = parameter[currentvoice];
+			choi = choice[currentvoice];
+			bend=pow(2,(mod[2]*param[142]*0.08333333333)); // /12.f
+			// Mod 5 is intended to help with frequency tracking
+			// It is note frenquency over range scaled to 0..1
+			// Mod 5 for notes 0..127 is base frequency 8.1758..12543.8556151
+			f_offset=midi2freq[note_min[currentvoice]];
+			if (midi2freq[note_max[currentvoice]]>f_offset){
+				f_scale=1/(midi2freq[note_max[currentvoice]]-f_offset);
+			}else{
+				f_scale=1.0f;
+			}
+		}
+		
+		// pointer for this voice
+		float * current_phase = phase[currentvoice];
+
 		// Modulation sources fall in different categories
 		// EG and midi controllers are between 0 and 1, pitch bend between -1 and +1
 		// Audio outputs (osc 3, filter, delay) are between -1 and 1
 		// Now we use modulation_bias and _scale so that all mods are 0..1 when needed
 
-		mod[8] =egCalc(currentvoice,1);
-		mod[9] =egCalc(currentvoice,2);
-		mod[10]=egCalc(currentvoice,3);
-		mod[11]=egCalc(currentvoice,4);
-		mod[12]=egCalc(currentvoice,5);
-		mod[13]=egCalc(currentvoice,6);
+		mod[8] =egCalc(currentvoice, 1, masterVoice);
+		mod[9] =egCalc(currentvoice, 2, masterVoice);
+		mod[10]=egCalc(currentvoice, 3, masterVoice);
+		mod[11]=egCalc(currentvoice, 4, masterVoice);
+		mod[12]=egCalc(currentvoice, 5, masterVoice);
+		mod[13]=egCalc(currentvoice, 6, masterVoice);
 
 		// Deglitch mod wheel
 		// see https://tomroelandts.com/articles/low-pass-single-pole-iir-filter
 		mod[16] += 0.0005f * srDivisor * (modwheel[currentvoice] - mod[16]);
 
-		float bend=pow(2,(mod[2]*param[142]/12.f));
-		// Mod 5 is intended to help with frequency tracking
-		// It is note frenquency over range scaled to 0..1
-		// Mod 5 for notes 0..127 is base frequency 8.1758..12543.8556151
-		f_offset=midi2freq[note_min[currentvoice]];
-		if (midi2freq[note_max[currentvoice]]>f_offset)
-			f_scale=1/(midi2freq[note_max[currentvoice]]-f_offset);
-		else
-			f_scale=1.0f;
 		float tracking=midif[currentvoice]*bend - glide[currentvoice];
 		mod[5]=f_scale*(tracking - f_offset);
 		// mod[5]=f_scale*(midif[currentvoice] - f_offset);
@@ -685,7 +698,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		// Should use T as parameter ?
 		// glide[currentvoice]*=param[116];
 		glide[currentvoice]*=glide_a*param[116]+glide_b;
-		glide[currentvoice]+=copysign(anti_denormal, glide[currentvoice]);
+		glide[currentvoice]+=copysign(anti_denormal, glide[currentvoice]); // Not needed with sse2 ??
 		tfo1_1 = param[1]; // Fixed frequency
 		tfo1_1 *=param[2]; // Fixed frequency enable, 0 or 1
 
@@ -1191,11 +1204,11 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		printf("tf1 %f = param[30] %f * morph2 %f + param[33] %f * morph1 %f\n", tf1, param[30], morph2, param[33], morph1);
 #endif
 				// Apply filter tracking
-				// float tracking=midif[currentvoice]*bend - glide[currentvoice];
 				float fpct= (tracking-440)/440;
 				tf1*=1+param[149]*fpct;
 				tf2*=1+param[150]*fpct;
 				tf3*=1+param[151]*fpct;
+				
 				tf1*=srate;
 				tf2*=srate;
 				tf3*=srate;
@@ -1301,7 +1314,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 	//---------------------------------- amplitude shaping
 			final_mix = 1.0f-mod[choi[13]]*param[100];
 			final_mix *= mod[7];
-			final_mix *= egCalc(currentvoice,0); // the final shaping envelope
+			final_mix *= egCalc(currentvoice, 0, masterVoice); // the final shaping envelope
 
 	// --------------------------------- delay unit
 			if( delayI[currentvoice] >= delayBufferSize )
@@ -1640,22 +1653,28 @@ void doMidi(int status, int n, int v){
 					lo_send(t, "/Minicomputer/programChange", "ii", voice, n+(bank[voice]<<7));
 					break;
 				}
-				case 0xD0: // Channel pressure ?? TODO apply to slaves
+				case 0xD0: // Channel pressure
 				{
 					modulator[voice][15]=(float)n*0.007874f; // /127.f
+					while(polyMaster[voice]) // last voice is never master, voice+1 exists
+						modulator[++voice][15]=(float)n*0.007874f; // /127.f
 					break;
 				}
-				case 0xE0:{ // Pitch bend ?? TODO apply to slaves
+				case 0xE0:{ // Pitch bend
 					// 14 bits means 16384 values; 1/8192=0.00012207f
 					// modulator[voice][2]=((v<<7)+n)*0.00012207f; // 0..2
 					modulator[voice][2]=(((v<<7)+n)-8192)*0.00012207f; // -1..1
+					while(polyMaster[voice]) // last voice is never master, voice+1 exists
+						modulator[++voice][2]=(((v<<7)+n)-8192)*0.00012207f; // -1..1
 #ifdef _DEBUG
 					printf("Pitch bend %u -> %u %f\n", c, voice, (((v<<7)+n)-8192)*0.0001221f);
 #endif
 					break;
 				}
-				case 0xB0:{ // Control change ?? TODO apply to slaves
+				case 0xB0:{ // Control change
 					doControlChange(voice, n, v);
+					while(polyMaster[voice]) // last voice is never master, voice+1 exists
+						doControlChange(++voice, n, v);
 					break;
 				}
 			}
@@ -1729,14 +1748,14 @@ static inline void doNoteOn(int voice, int note, int velocity){
 					// why is velocity inverted??
 					// Parameter 139 is legato, don't retrigger unless released (0) or idle (4)
 					if(EGstate[voice][0]==4 || EGstate[voice][0]==0 || parameter[voice][139]==0){
-						egStart(voice,0);// start the engines!
+						egStart(voice, 0);// start the engines!
 						// Maybe optionally restart repeatable envelopes too, i.e free-run boutton?
-						if (EGrepeat[voice][1] == 0) egStart(voice,1);
-						if (EGrepeat[voice][2] == 0) egStart(voice,2);
-						if (EGrepeat[voice][3] == 0) egStart(voice,3);
-						if (EGrepeat[voice][4] == 0) egStart(voice,4);
-						if (EGrepeat[voice][5] == 0) egStart(voice,5);
-						if (EGrepeat[voice][6] == 0) egStart(voice,6);
+						if (EGrepeat[voice][1] == 0) egStart(voice, 1);
+						if (EGrepeat[voice][2] == 0) egStart(voice, 2);
+						if (EGrepeat[voice][3] == 0) egStart(voice, 3);
+						if (EGrepeat[voice][4] == 0) egStart(voice, 4);
+						if (EGrepeat[voice][5] == 0) egStart(voice, 5);
+						if (EGrepeat[voice][6] == 0) egStart(voice, 6);
 	#ifdef _DEBUG
 					}else{
 						printf("Legato\n");
@@ -1827,8 +1846,10 @@ static void *alsaMidiProcess(void *handle) {
 				c,  ev->data.control.param, ev->data.control.value);
 			#endif
 				for(voice=0; voice<_MULTITEMP; voice++){
-					if(channel[voice]==c)
+					if(channel[voice]==c && !polySlave[voice])
 						doControlChange(voice, ev->data.control.param, ev->data.control.value);
+						while(polyMaster[voice]) // last voice is never master, voice+1 exists
+							doControlChange(++voice, ev->data.control.param, ev->data.control.value);
 				}
 				break;
 			}
@@ -1840,8 +1861,11 @@ static void *alsaMidiProcess(void *handle) {
 				c, ev->data.control.value);
 			#endif
 				for(voice=0; voice<_MULTITEMP; voice++){
-					if(channel[voice]==c)
+					if(channel[voice]==c && !polySlave[voice]){
 						modulator[voice][2]=ev->data.control.value*0.0001221f; // /8192.f; 0..2 ?? needs bias
+						while(polyMaster[voice]) // last voice is never master, voice+1 exists
+							modulator[++voice][2]=ev->data.control.value*0.0001221f; // /8192.f; 0..2 ?? needs bias
+					}
 				}
 			break;
 			}   
@@ -1882,7 +1906,7 @@ static void *alsaMidiProcess(void *handle) {
 			case SND_SEQ_EVENT_NOTEOFF: 
 			{
 				for(voice=0; voice<_MULTITEMP; voice++){
-					if(channel[voice]==ev->data.note.channel)
+					if(channel[voice]==ev->data.note.channel && !polySlave[voice])
 						doNoteOff(voice, ev->data.note.note, ev->data.note.velocity);
 				}
 				break;       
@@ -1893,7 +1917,7 @@ static void *alsaMidiProcess(void *handle) {
 				printf("alsaMidiProcess: program change channel %u program %u\n", c, n);
 #endif
 				for(voice=0; voice<_MULTITEMP; voice++){
-					if(channel[voice]==c){
+					if(channel[voice]==c && !polySlave[voice]){
 #ifdef _DEBUG
 						printf("alsaMidiProcess: program change channel %u voice %u program %u\n", c, voice, n);
 #endif
@@ -2278,14 +2302,14 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 				if(channel[voice]==c && !polySlave[voice]){
 					switch ((argv[1]->i)&0xF0){
 						case 0x90:{ // Note on
-							doNoteOn(c, argv[2]->i, argv[3]->i);
+							doNoteOn(voice, argv[2]->i, argv[3]->i);
 		#ifdef _DEBUG
 							printf("doNoteOn %u %u %u \n", argv[1]->i&0x0F, argv[2]->i, argv[3]->i);
 		#endif
 							break;
 						}
 						case 0x80:{ // Note off
-							doNoteOn(c, argv[2]->i, 0);
+							doNoteOn(voice, argv[2]->i, 0);
 		#ifdef _DEBUG
 							printf("doNoteOff %u %u \n", argv[1]->i&0x0F, argv[2]->i);
 		#endif
@@ -2295,15 +2319,30 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 							// TODO apply to slaves if any
 							switch(argv[2]->i){ // Controller number
 							  case 120:{ // All sound off
-								egOff(c);
-								doReset(c);
+								egOff(voice);
+								doReset(voice);
 								// Fall through all note off
 							  }
 							  case 123:{ // All note off
-								doNoteOn(c, lastnote[c], 0);
+								doNoteOn(voice, lastnote[voice], 0);
 								break;
 							  }
 							  // What about the other controllers?? TODO
+							}
+							while(polyMaster[voice]){ // last voice is never master, voice+1 exists
+								voice++;
+								switch(argv[2]->i){ // Controller number
+								  case 120:{ // All sound off
+									egOff(voice);
+									doReset(voice);
+									// Fall through all note off
+								  }
+								  case 123:{ // All note off
+									doNoteOn(voice, lastnote[voice], 0);
+									break;
+								  }
+								  // What about the other controllers?? TODO
+								}
 							}
 						}
 					}

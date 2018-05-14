@@ -90,6 +90,7 @@ bool transmit;
 
 int nGroups=0;
 Fl_Group *groups[158];
+Fl_Group *midiGroups[_MULTITEMP];
 
 patch compare_buffer;
 Fl_Toggle_Button *compareBtn;
@@ -827,6 +828,11 @@ static void midibuttonCallback(Fl_Widget* o, void*) {
 #ifdef _DEBUG
 	printf("midibuttonCallback %u %u (%li) : %g\n", voice, parm, ((Fl_Button*)o)->argument(), val);
 #endif
+	if(val){
+		midiGroups[voice+1]->deactivate();
+	}else{
+		midiGroups[voice+1]->activate();
+	}
 	setmulti_changed(); // All midi parameters belong to the multi
 }
 static void checkrangeCallback(Fl_Widget* o, void*) {
@@ -3628,6 +3634,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			sprintf(voice_label[voice], "Voice %u", voice+1); // ?? trailing \0
 			{ Fl_Group* d = new Fl_Group(11+60*voice, 30, 50, 240, voice_label[voice]);
 				groups[nGroups++]=d;
+				midiGroups[voice]=d;
 				d->box(FL_ROUNDED_FRAME);
 				d->color(FL_BACKGROUND2_COLOR);
 				d->labelsize(_TEXT_SIZE);
@@ -4010,7 +4017,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  const char version[] = _VERSION;
 		  const char *about="<html><body>"
 			  "<i><center>version %s</center></i><br>"
-			  "<p><br>a standalone industrial grade softwaresynthesizer for Linux<br>"
+			  "<p><br>a standalone industrial grade software synthesizer for Linux<br>"
 			  "<p><br>originally developed by Malte Steiner 2007-2009"
 			  "<p>contact:<br>"
 			  "<center>steiner@block4.com"
