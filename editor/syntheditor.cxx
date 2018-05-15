@@ -824,7 +824,6 @@ static void midibuttonCallback(Fl_Widget* o, void*) {
 	int parm = (((Fl_Button*)o)->argument()) & 0xFF;
 	double val = ((Fl_Button*)o)->value();
 	if (transmit) lo_send(t, "/Minicomputer", "iif", voice, parm, val);
-	printf("midibuttonCallback %u %u (%li) : %g\n", voice, parm, ((Fl_Button*)o)->argument(), val);
 #ifdef _DEBUG
 	printf("midibuttonCallback %u %u (%li) : %g\n", voice, parm, ((Fl_Button*)o)->argument(), val);
 #endif
@@ -1962,7 +1961,7 @@ void SoundTable::event_callback2()
 	}
 }
 
-void SoundTable::resize_cols(int W){
+void MiniTable::resize_cols(int W){
 	// base width: 968 = (96+25)*8
 	// printf("resize_cols: %f %d %d\n", scale, int(96*scale), int(25*scale));
 	if(W>=_INIT_WIDTH){

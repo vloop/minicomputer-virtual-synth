@@ -118,6 +118,7 @@ public:
   Fenster* make_window(const char *title);
   void changeMulti(int pgm);
   void changeSound(int voice, int pgm);
+  /*
   static Fl_Menu_Item menu_pitch[];
   static Fl_Menu_Item menu_pitch1[];
   Fl_Dial *f1cut1;
@@ -138,7 +139,7 @@ public:
   Fl_Dial *f3cut2;
   Fl_Dial *f3q2;
   Fl_Dial *f3vol2;
-  
+  */
   // static Fl_Menu_Item menu_morph[];
   // static Fl_Menu_Item menu_amod[]; // Moved to global for resize
   // static Fl_Menu_Item menu_fmod[]; // Moved to global for resize
@@ -155,34 +156,34 @@ private:
 
 };
 
-class SoundTable : public Fl_Table_Row
+class MiniTable : public Fl_Table_Row
 {
 protected:
 	int row_selected;
 	int col_selected;
 	int cell_copied;
 	bool cell_is_cut;
-	void draw_cell(TableContext context, // table cell drawing
-				int R=0, int C=0, int X=0, int Y=0, int W=0, int H=0);
-	static void event_callback(Fl_Widget*, void*);
-	void event_callback2();	// callback for table events
+//	static void event_callback(Fl_Widget*, void*);
+//	void event_callback2();	// callback for table events
 
 public:
-	SoundTable(int x, int y, int w, int h, const char *l=0) : Fl_Table_Row(x,y,w,h,l)
+	MiniTable(int x, int y, int w, int h, const char *l=0) : Fl_Table_Row(x,y,w,h,l)
 	{
 		row_selected=-1;
 		col_selected=-1;
 		cell_copied=-2;
 		cell_is_cut=false;
 		// context_menu = new Fl_Menu_Button(x, y, w, h,"Sound...");
-		callback(&event_callback, (void*)this);
+//		callback(&event_callback, (void*)this);
 	end();
 	}
-	~SoundTable() { }
+	~MiniTable() { }
 	void resize_cols(int W);
 	int get_selected_row(){return(row_selected);}
 	int get_selected_col(){return(col_selected);}
+	// Horizontally
 	// int get_selected_cell(){return(row_selected*cols()+col_selected);}
+	// Vertically
 	int get_selected_cell(){return(col_selected*rows()+row_selected);}
 	int get_copied_cell(){return(cell_copied);}
 	int get_copied_row(){return(cell_copied % rows());}
@@ -193,16 +194,7 @@ public:
 	bool get_cell_is_cut(){return(cell_is_cut);}
 };
 
-void soundcopymnuCallback(Fl_Widget*, void*);
-void soundcutmnuCallback(Fl_Widget*, void*);
-void soundpastemnuCallback(Fl_Widget*, void*);
-void soundinitmnuCallback(Fl_Widget*, void*);
-void soundclearmnuCallback(Fl_Widget*, void*);
-void soundrenamemnuCallback(Fl_Widget*, void*T);
-void soundimportmnuCallback(Fl_Widget*, void*);
-void soundexportmnuCallback(Fl_Widget*, void*);
-
-class MultiTable : public SoundTable
+class SoundTable : public MiniTable
 {
 protected:
 	void draw_cell(TableContext context, // table cell drawing
@@ -211,17 +203,39 @@ protected:
 	void event_callback2();	// callback for table events
 
 public:
-	MultiTable(int x, int y, int w, int h, const char *l=0) : SoundTable(x,y,w,h,l)
+	SoundTable(int x, int y, int w, int h, const char *l=0) : MiniTable(x,y,w,h,l)
 	{
-		row_selected=-1;
-		col_selected=-1;
-		cell_copied=-2;
+		callback(&event_callback, (void*)this);
+		end();
+	}
+	~SoundTable() { }
+};
+
+class MultiTable : public MiniTable
+{
+protected:
+	void draw_cell(TableContext context, // table cell drawing
+				int R=0, int C=0, int X=0, int Y=0, int W=0, int H=0);
+	static void event_callback(Fl_Widget*, void*);
+	void event_callback2();	// callback for table events
+
+public:
+	MultiTable(int x, int y, int w, int h, const char *l=0) : MiniTable(x,y,w,h,l)
+	{
 		callback(&event_callback, (void*)this);
 	end();
 	}
 	~MultiTable() { }
 };
 
+void soundcopymnuCallback(Fl_Widget*, void*);
+void soundcutmnuCallback(Fl_Widget*, void*);
+void soundpastemnuCallback(Fl_Widget*, void*);
+void soundinitmnuCallback(Fl_Widget*, void*);
+void soundclearmnuCallback(Fl_Widget*, void*);
+void soundrenamemnuCallback(Fl_Widget*, void*T);
+void soundimportmnuCallback(Fl_Widget*, void*);
+void soundexportmnuCallback(Fl_Widget*, void*);
 
 int EG_draw(unsigned int voice, unsigned int EGnum, unsigned int stage);
 void EG_draw_all();
