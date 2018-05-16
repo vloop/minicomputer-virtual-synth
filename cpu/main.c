@@ -2254,16 +2254,18 @@ static inline int multiparm_handler(const char *path, const char *types, lo_arg 
 			if (lastnote[voice]%12 == parmnum) midif[voice]=midi2freq[lastnote[voice]];
 		}
 	}else if (parmnum==12){ // Master tune
+// printf("multiparm_handler: master tune %f --> %f\n", parmval, 1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*parmval);
 		for(note=0; note<128; note++){
 			midi2freq[note] = midi2freq0[note]
 				* (1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*multiparm[note%12] )
-				* (1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*multiparm[parmnum] ); // 2^(1/12)=1,05946309436
+				* (1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*parmval ); // 2^(1/12)=1,05946309436
 		}
+		// Fix all currently playing notes so detune is immediately effective
 		for(voice=0; voice<_MULTITEMP; voice++){
 			midif[voice]=midi2freq[lastnote[voice]];
 		}
 	}else{
-		fprintf(stderr, "WARNING: multiparm_handler unhandled parameter number %i\n", parmnum);
+		fprintf(stderr, "WARNING: multiparm_handler - unhandled parameter number %i\n", parmnum);
 	}
 }
 
@@ -2459,7 +2461,7 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 	 case 130:transpose[voice]=argv[2]->f;break;
 	 case 155:
 	 {
-		printf("link %u = %u", voice, argv[2]->f);
+		// printf("link %u = %u", voice, argv[2]->f);
 		if(voice<_MULTITEMP-1){
 			polyMaster[voice]=argv[2]->f;
 			polySlave[voice+1]=argv[2]->f;

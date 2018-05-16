@@ -1074,7 +1074,8 @@ static void multiParmInputCallback(Fl_Widget* o, void*)
 		value=min(value, max(((Fl_Valuator*)o)->minimum(), ((Fl_Valuator*)o)->maximum()));
 		value=max(value, min(((Fl_Valuator*)o)->minimum(), ((Fl_Valuator*)o)->maximum()));
 		((Fl_Valuator*)o)->value(value);
-		if (transmit) lo_send(t, "/Minicomputer/multiParmInput", "if", argument, value);
+		// printf("multiParmInputCallback %u %f\n", argument, value);
+		if (transmit) lo_send(t, "/Minicomputer/multiparm", "if", argument, value);
 	}else{
 		fprintf(stderr, "ERROR: multiParmInputCallback - unexpected argument %i\n", argument);
 	}
@@ -1198,7 +1199,7 @@ static void do_exportsound(int soundnum)
 	strnrtrim(name, Speicher.getSoundName( soundnum).c_str(), _NAMESIZE);
 	snprintf(warn, 256, "export %s", name);
 	snprintf(path, 256, "./%s.txt", name);
-	Fl_File_Chooser *fc = new Fl_File_Chooser(path,"TEXT Files (*.txt)\t",Fl_File_Chooser::CREATE,warn);
+	Fl_File_Chooser *fc = new Fl_File_Chooser(path, "TEXT Files (*.txt)\t", Fl_File_Chooser::CREATE,warn);
 	fc->textsize(9);
 	fc->show();
 	while(fc->shown()) Fl::wait(); // block until choice is done
@@ -1220,6 +1221,35 @@ static void do_exportsound(int soundnum)
 		// Fl::unlock();
 	}
 }
+static void do_exportmulti(int multinum)
+{
+	char warn[256], path[256], name[_NAMESIZE];
+	strnrtrim(name, Speicher.getMultiName( multinum).c_str(), _NAMESIZE);
+	snprintf(warn, 256, "export %s", name);
+	snprintf(path, 256, "./%s.txt", name);
+	Fl_File_Chooser *fc = new Fl_File_Chooser(path, "TEXT Files (*.txt)\t", Fl_File_Chooser::CREATE,warn);
+	fc->textsize(9);
+	fc->show();
+	while(fc->shown()) Fl::wait(); // block until choice is done
+	if ((fc->value() != NULL))
+	{
+	#ifdef _DEBUG
+		printf("export to %s\n",fc->value());
+		fflush(stdout);
+	#endif
+		// Fl::lock();
+		// fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
+		// Fl::check();
+
+		Speicher.exportMulti(fc->value(), multinum);
+
+		// fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
+		// Fl::check();
+		// Fl::awake();
+		// Fl::unlock();
+	}
+}
+
 /** parmCallback when export button was pressed, shows a file dialog
  */
 static void soundexportbtnCallback(Fl_Widget* o, void*)
@@ -2114,6 +2144,47 @@ void multirenamemnuCallback(Fl_Widget*, void*T) {
 	}
 }
 
+void multiexportmnuCallback(Fl_Widget*, void*T) {
+	// int src=((MultiTable *)T)->get_selected_cell()/2;
+	int src=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
+	// printf("export %d\n", src);
+	do_exportmulti(src);
+}
+
+static void do_importmulti(int multinum)
+{
+	// printf("About to import into multi %d\n", multinum);
+	char warn[256];
+	sprintf (warn, "overwrite multi %u", multinum);
+	Fl_File_Chooser *fc = new Fl_File_Chooser(".","TEXT Files (*.txt)\t",Fl_File_Chooser::SINGLE,warn);
+	fc->textsize(9);
+	fc->show();
+	while(fc->shown()) Fl::wait(); // block until choice is done
+	if ((fc->value() != NULL))
+	{
+//		Fl::lock();
+//		fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
+//		Fl::check();
+		Speicher.importMulti(fc->value(), multinum);
+		// ok, now we have a new multi loaded
+		// but not applied?!
+		updatemultiNameInput(multinum, Speicher.getMultiName(multinum).c_str());
+//		fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
+//		Fl::check();
+//		Fl::awake();
+//		Fl::unlock();
+	}
+
+}
+
+void multiimportmnuCallback(Fl_Widget*, void*T) {
+	// int dest=((MultiTable *)T)->get_selected_cell()/2;
+	int dest=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
+	// printf("import to %d\n", dest);
+	do_importmulti(dest);
+	multiNameDisplay->value(Speicher.getMultiName(dest).c_str());
+}
+
 void MultiTable::draw_cell(TableContext context, 
 			  int R, int C, int X, int Y, int W, int H)
 {
@@ -2195,6 +2266,8 @@ void MultiTable::event_callback2()
 		{ "Paste",  0, multipastemnuCallback, (void*)this },
 		{ "Rename",  0, multirenamemnuCallback, (void*)this },
 		{ "Clear",   0, multiclearmnuCallback, (void*)this },
+		{ "Import",  0, multiimportmnuCallback, (void*)this },
+		{ "Export",  0, multiexportmnuCallback, (void*)this },
 		{ 0 }
 	};
 	switch(Fl::event()){

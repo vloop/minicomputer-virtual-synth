@@ -167,8 +167,6 @@ unsigned int Memory::getChoice(unsigned int voice)
 void Memory::saveSounds()
 {
 	char kommand[1200];
-	// new fileoutput as textfile with a certain coding which is
-	// documented in the docs
 	sprintf(kommand, "%s/minicomputerMemory.temp", folder);
 
 	ofstream File (kommand); // temporary file
@@ -182,20 +180,15 @@ void Memory::saveSounds()
 		// File<< "'"<<sounds[i].name<<"'"<<endl; // write the name
 		char temp_name[_NAMESIZE];
 		strnrtrim(temp_name, sounds[i].name, _NAMESIZE);
-		// printf("%lu \"%s\"\n", strlen(temp_name), temp_name);
-		File<< "'"<<temp_name<<"'"<<endl; // write the name of the multi
-
 	/*
 		// One-shot to discard leading numbers
 		int j,k;
-		char temp_name[_NAMESIZE];
-		strnrtrim(temp_name, sounds[i].name, _NAMESIZE);
 		// Skip up to 3 digits...
 		for(j=0; j<3; j++) if(!isdigit(temp_name[j])) break;
 		if(temp_name[j]==' ') j++; // ... and one space
 		for(k=0; k<_NAMESIZE-j; k++) temp_name[k]=temp_name[k+j];
-		File<< "'"<<temp_name<<"'"<<endl;// write the name
 	*/
+		File<< "'"<<temp_name<<"'"<<endl; // write the name of the multi
 		for (p=0;p<9;++p) // Write the 9 frequencies (Osc1..3 + filters 2x3)
 		{
 			for (j=0;j<2;++j) // ?? maybe x and y components
@@ -221,32 +214,35 @@ void Memory::saveSounds()
 	if(result) fprintf(stderr, "mv to .txt error, result: %u\n", result);
 }
 
-void Memory::loadInit()
+int Memory::loadInit()
 {
 	char initfile[1200];
-	sprintf(initfile,"%s/initsinglesound.txt", folder);
-	importPatch(initfile, &initSound);
+	sprintf(initfile, "%s/initsinglesound.txt", folder);
+	return(importPatch(initfile, &initSound));
 }
 /**
  * load the soundmemory (i.e. all preset definitions) from disk
  * supports the text format.
  * @see Memory::saveSounds()
  */
-void Memory::loadSounds()
+int Memory::loadSounds()
 {
 // new fileinput in textformat which is the way to go
 char path[1200];
 sprintf(path,"%s/minicomputerMemory.txt", folder);
 printf("loading %s\n", path);
-ifstream File (path);
-
+ifstream file (path);
+if(!file){
+	fprintf(stderr, "loadSounds: error opening file %s\n", path);
+	return(1);
+}
 string str,sParameter,sValue;
 float fValue;
 int iParameter,i2Parameter;
 int current=-1;
 unsigned int j;
-getline(File,str);
-while (File)
+getline(file,str);
+while (file)
 {
 	sParameter="";
 	sValue = "";
@@ -309,26 +305,10 @@ while (File)
 
 	}
 
-	getline(File, str);// get the next line of the file
-/*
-for (int i=0;i<512;++i)
-	{
-	File<< "["<<i<<"]" <<endl;
-	File<< "'"<<sounds[i].name<<"'"<<endl;
-	
-	for (p=0;p<9;++p)
-	{
-		for (j=0;j<2;++j)
-			File<< "<"<< p << ";" << j << ":" <<sounds[i].freq[p][j]<<">"<<endl;
-	}
-	for (p=0;p<17;++p)
-		File<< "{"<< p << ":"<<sounds[i].choice[p]<<"}"<<endl;
-	for (p=0;p<139;++p)
-		File<< "("<< p << ":"<<sounds[i].parameter[p]<<")"<<endl;
-	}
-*/
+	getline(file, str);// get the next line of the file
 }
-File.close();
+file.close();
+return(0);
 }
 
 /** export a single sound to a textfile
@@ -337,33 +317,33 @@ File.close();
  */
 void Memory::exportSound(string filename, unsigned int current)
 {
-printf("Exporting sound %u to file %s\n", current, filename.c_str());
-ofstream File (filename.c_str()); // temporary file
-int p,j;
-	File<<"# Minicomputer v"<<_VERSION<<" single sound file"<<endl;
+	printf("Exporting sound %u to file %s\n", current, filename.c_str());
+	ofstream File (filename.c_str());
+	int p,j;
+		File<<"# Minicomputer v"<<_VERSION<<" single sound file"<<endl;
 
-	//File<< "["<<i<<"]" <<endl; // write the soundnumber
-	File<< "'"<<sounds[current].name<<"'"<<endl; // write the name
-	
-	for (p=0;p<9;++p)
-	{
-		for (j=0;j<2;++j)
-			File<< "<"<< p << ";" << j << ":" <<sounds[current].freq[p][j]<<">"<<endl;
-	}
-	for (p=0;p<_CHOICECOUNT;++p)
-		File<< "{"<< p << ":"<<sounds[current].choice[p]<<"}"<<endl;
-	for (p=0;p<_PARACOUNT;++p) // write the remaining parameters
-		File<< "("<< p << ":"<<sounds[current].parameter[p]<<")"<<endl;
+		//File<< "["<<i<<"]" <<endl; // write the soundnumber
+		File<< "'"<<sounds[current].name<<"'"<<endl; // write the name
+		
+		for (p=0;p<9;++p)
+		{
+			for (j=0;j<2;++j)
+				File<< "<"<< p << ";" << j << ":" <<sounds[current].freq[p][j]<<">"<<endl;
+		}
+		for (p=0;p<_CHOICECOUNT;++p)
+			File<< "{"<< p << ":"<<sounds[current].choice[p]<<"}"<<endl;
+		for (p=0;p<_PARACOUNT;++p) // write the remaining parameters
+			File<< "("<< p << ":"<<sounds[current].parameter[p]<<")"<<endl;
 
-File.close();
+	File.close();
 }
 
-void Memory::importPatch(string filename, patch *p)
+int Memory::importPatch(string filename, patch *p)
 {
 	ifstream File (filename.c_str());
 	if(!File){
-		fprintf(stderr, "importPatch: cannot read from %s\n", filename.c_str());
-		return;
+		fprintf(stderr, "importPatch: cannot open file %s\n", filename.c_str());
+		return(1);
 	}
 	printf("importPatch: reading from %s\n", filename.c_str());
 	string str, sParameter, sValue;
@@ -434,6 +414,7 @@ void Memory::importPatch(string filename, patch *p)
 	}
 	File.close();
 	printf("importPatch: read complete.\n");
+	return(0);
 }
 /** import a single sound from a textfile
  * and write it to the given memory location
@@ -470,11 +451,59 @@ void Memory::clearMulti(unsigned int m)
 		multis[m].settings[p][8]=0; // 128 Note min C0
 		multis[m].settings[p][9]=127; // 129 Note max G10
 		multis[m].settings[p][10]=0; // 130 Transpose
+		multis[m].settings[p][11]=0; // 155 poly link
 	}
 	for (p=0;p<_MULTIPARMS;++p) // clear the global multi parameters
 	{
 		multis[m].parms[p]=0;
 	}
+}
+void Memory::clearEG(patch *dest, unsigned int n)
+{
+	if (n>6) return;
+	int egbase[]={102, 60, 65, 70, 75, 80, 85};
+	dest->parameter[egbase[n]]=0.5f; // EG attack
+	dest->parameter[egbase[n]+1]=0.5f; // EG decay
+	dest->parameter[egbase[n]+2]=1.0f; // EG sustain
+	dest->parameter[egbase[n]+3]=0.5f; // EG release
+}
+
+void Memory::clearPatch(patch *dest){
+	strncpy(dest->name, "", _NAMESIZE); // setSoundName(m, "");
+	int p, j;
+	for (p=0;p<9;++p)
+	{
+		for (j=0;j<2;++j)
+			dest->freq[p][j]=0;
+	}
+	dest->freq[0][0]=1.0f; // Osc 1 freq
+	dest->freq[2][0]=1000; // Filter 1 left freq
+	dest->freq[3][0]=4000; // Filter 1 right freq
+	for (p=0;p<_CHOICECOUNT;++p)
+		dest->choice[p]=0;
+	for (p=0;p<_PARACOUNT;++p) // write the remaining parameters
+		dest->parameter[p]=0;
+	dest->parameter[14]=1.0f; // Osc 1 vol
+	dest->parameter[31]=0.9f; // Filter 1 left Q
+	dest->parameter[32]=1.0f; // Filter 1 left vol
+	dest->parameter[34]=0.9f; // Filter 1 right Q
+	dest->parameter[35]=1.0f; // Filter 1 right vol
+	dest->parameter[41]=0.9f; // Filter 2 left Q
+	dest->parameter[44]=0.9f; // Filter 2 right Q
+	dest->parameter[51]=0.9f; // Filter 3 left Q
+	dest->parameter[54]=0.9f; // Filter 3 right Q
+	for (p=0; p<7; p++)
+		clearEG(dest, p);
+}
+void Memory::clearSound(unsigned int m)
+{
+	if (m>=_SOUNDS) return;
+	patch *dest=&sounds[m];
+	clearPatch(dest);
+}
+void Memory::clearInit()
+{
+	clearPatch(&initSound);
 }
 /**
  * the multitemperal setup, the choice of sounds and some settings
@@ -492,30 +521,25 @@ void Memory::saveMultis()
 
 	sprintf(kommand,"%s/minicomputerMulti.temp",folder);
 	ofstream File (kommand); // temporary file
-//	File<<"# Minicomputer multis file"<<endl;
 	File<<"# Minicomputer v"<<_VERSION<<" multis file"<<endl;
 
 	int p,j;
 	for (i=0;i<_MULTIS;++i) // write the whole 128 multis
 	{
 		File<< "["<<i<<"]" <<endl; // write the multi id number
-		// File<< "'"<<multis[i].name<<"'"<<endl; // write the name of the multi
 		char temp_name[_NAMESIZE];
 		strnrtrim(temp_name, multis[i].name, _NAMESIZE);
-		// printf("%lu \"%s\"\n", strlen(temp_name), temp_name);
-		File<< "'"<<temp_name<<"'"<<endl; // write the name of the multi
 		/*
 		// One-shot to discard leading numbers
 		int j,k;
-		char temp_name[_NAMESIZE];
 		strnrtrim(temp_name, multis[i].name, _NAMESIZE);
 		// Skip up to 3 digits...
 		for(j=0; j<3; j++) if(!isdigit(temp_name[j])) break;
 		if(temp_name[j]==' ') j++; // ... and one space
 		for(k=0; k<_NAMESIZE-j; k++) temp_name[k]=temp_name[k+j];
-		File<< "'"<<temp_name<<"'"<<endl; // write the name of the multi
 		*/
-		
+		File<< "'"<<temp_name<<"'"<<endl; // write the name of the multi
+
 		for (p=0;p<_MULTITEMP;++p) // store the sound ids of all 8 voices
 		{
 			File<< "("<< p << ":" <<multis[i].sound[p]<<")"<<endl;
@@ -543,6 +567,106 @@ void Memory::saveMultis()
 	if(result) fprintf(stderr, "mv new file to .txt failed, result: %u\n", result);
 }
 
+void Memory::exportMulti(string filename, unsigned int multi)
+{
+	printf("Exporting multi %u to file %s\n", multi, filename.c_str());
+	ofstream File (filename.c_str());
+	File<<"# Minicomputer v"<<_VERSION<<" single multi file"<<endl;
+	int p,j;
+	char temp_name[_NAMESIZE];
+	strnrtrim(temp_name, multis[multi].name, _NAMESIZE);
+	File<< "'"<<temp_name<<"'"<<endl; // write the name of the multi
+	for (p=0; p<_MULTITEMP; ++p) // store the sound ids and settings of all 8 voices
+	{
+		File<< "("<< p << ":" <<multis[multi].sound[p]<<")"<<endl;
+		for (j=0;j<_MULTISETTINGS;++j)
+			File<< "{"<< p << ";"<< j << ":" <<multis[multi].settings[p][j]<<"}"<<endl;
+	}
+	for (p=0;p<_MULTIPARMS;++p) // store the global multi parameters
+	{
+		File<< "<"<< p << ":" <<multis[multi].parms[p]<<">"<<endl;
+	}
+}
+void Memory::importMulti(string filename, unsigned int multi)
+{
+	if(multi>=_MULTIS){
+		fprintf(stderr, "ERROR: unexpected multi number %d\n", multi);
+		return;
+	}
+	printf("Importing multi %u from file %s\n", multi, filename.c_str());
+
+	string str;
+	int iParameter, i2Parameter;
+	float fValue;
+
+	ifstream File (filename.c_str());
+	getline(File,str); // get the first line from the file
+	unsigned int j;
+	while (File) // as long as there is anything in the file
+	{
+		// parse the entry (line) based on the first character
+		switch (str[0])
+		{
+			case '(': // setting per voice multi parameter
+			{
+				if (parseNumbers(str, iParameter, i2Parameter, fValue))
+				{
+					if(iParameter<_MULTITEMP)
+						multis[multi].sound[iParameter]=(int)fValue;
+					else
+						fprintf(stderr, "ERROR: loadMultis - unexpected parameter number %i", iParameter);
+				}
+			}
+			break;
+			case '<': // setting global multi parameter
+			{
+				if (parseNumbers(str, iParameter, i2Parameter, fValue))
+				{
+					if(iParameter<_MULTIPARMS)
+						multis[multi].parms[iParameter]=(int)fValue;
+					else
+						fprintf(stderr, "ERROR: loadMultis - unexpected parameter number %i", iParameter);
+				}
+			}
+			break;
+			case '\'': // setting the name
+			{
+				j = 1; // important, otherwise it would bail out at the first '	
+				while ((j<str.length()) && (str[j]!='\'') && (j<_NAMESIZE) )
+				{
+					multis[multi].name[j-1] = str[j];
+					++j;
+				}
+				multis[multi].name[j-1]=0;
+				/*
+				// printf("Multi # %u : \"%s\"\n", current, multis[current].name);
+				while (j<_NAMESIZE)
+				{
+					multis[current].name[j-1]=' ';
+					++j;
+				}
+				*/
+			}
+			break;
+			case '{': // setting additional parameter
+			{
+				if (parseNumbers(str, iParameter, i2Parameter, fValue))
+				{
+					multis[multi].settings[iParameter][i2Parameter]=fValue;
+				}
+			}
+			break;
+			case '#': // Comment
+				printf("loadMultis: %s\n", &str[1]);
+			break;
+		} // end of switch
+		getline(File,str);// get the next line
+	} // end of while (file)
+	File.close();// done
+
+	// now the new multi is in RAM but need to be saved to the main file
+	saveMultis();
+}
 void Memory::copyMulti(int src, int dest)
 {
 	multis[dest]=multis[src];
@@ -568,7 +692,7 @@ void Memory::copyMulti(int src, int dest)
  * @see Memory::loadSounds()
  * @see Memory::saveSounds()
  */
-void Memory::loadMultis()
+int Memory::loadMultis()
 {
 // *********************************** the new text format **********************
 string str,sValue,sParameter;
@@ -578,11 +702,16 @@ float fValue;
 char path[1200];
 sprintf(path,"%s/minicomputerMulti.txt",folder);
 
-ifstream File (path);
-getline(File,str); // get the first line from the file
+ifstream file (path);
+if(!file){
+	fprintf(stderr, "loadMultis: error opening file %s\n", path);
+	return(1);
+}
+
+getline(file,str); // get the first line from the file
 int current=0;
 unsigned int j;
-while (File) // as long as there is anything in the file
+while (file) // as long as there is anything in the file
 {
 	// reset some variables
 	sParameter="";
@@ -651,9 +780,10 @@ while (File) // as long as there is anything in the file
 			printf("loadMultis: %s\n", &str[1]);
 		break;
 	}// end of switch
-	getline(File,str);// get the next line
+	getline(file, str);// get the next line
 }// end of while (file)
-File.close();// done
+file.close();// done
+return(0);
 }
 
 /**

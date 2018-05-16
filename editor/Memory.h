@@ -67,16 +67,22 @@ public:
 	void copyPatch(const patch *src, patch *dest);
 	void copyMulti(int src, int dest);
 	void saveSounds();
-	void loadSounds();
-	void loadInit();
+	int loadSounds();
+	int loadInit();
 	void saveMultis();
-	void loadMultis();
+	int loadMultis();
 	void store(patch Sound);
 //	void overwrite(patch Sound);
 	void clearMulti(unsigned int m);
+	void clearSound(unsigned int m);
+	void clearPatch(patch *dest);
+	void clearInit();
+	void clearEG(patch *dest, unsigned int n);
 	void importSound(string filename, unsigned int current); // import a single sound
 	void exportSound(string filename, unsigned int current); // export a single sound
-	void importPatch(string filename, patch *p); // import single sound to patch
+	int importPatch(string filename, patch *p); // import single sound to patch
+	void importMulti(string filename, unsigned int current); // import a single multi
+	void exportMulti(string filename, unsigned int current); // export a single multi
 
 	patch initSound;
 	string getSoundName(unsigned int soundnum);

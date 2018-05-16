@@ -268,12 +268,25 @@ int main(int argc, char **argv) {
 
 // ------------------------ create gui --------------
 	char temp_name[_NAMESIZE];
+	int fileerrors=0;
 	strncpy(temp_name, "minicomputer ", _NAMESIZE);
 	strncpy(temp_name+13, oport, _NAMESIZE-13);
 	Fenster* w = Schaltbrett.make_window(temp_name);
-	Speicher.loadSounds();
-	Speicher.loadMultis();
-	Speicher.loadInit();
+	if(Speicher.loadSounds()){
+		fileerrors++;
+		printf("Cannot load sounds - clearing all sounds\n");
+		for(int j=0; j<_SOUNDS; j++) Speicher.clearSound(j);
+	}
+	if(Speicher.loadMultis()){
+		fileerrors++;
+		printf("Cannot load multis - clearing all multis\n");
+		for(int j=0; j<_MULTIS; j++) Speicher.clearMulti(j);
+	}
+	if(Speicher.loadInit()){
+		fileerrors++;
+		printf("Cannot load init - clearing init sound\n");
+		Speicher.clearInit();
+	}
 	// One-shot to cleanup empty sounds
 	/*
 	for(int j=0; j<_SOUNDS; j++){
@@ -392,6 +405,7 @@ int main(int argc, char **argv) {
   // printf("FLTK API version %u\n", Fl::api_version()); // not found
   // printf("FLTK API version %u\n", Fl::version()); // 0 ???
   Fl::lock(); // see http://www.fltk.org/doc-1.3/advanced.html
+  if(fileerrors) fl_alert("Found %u file error(s).\nLaunching installpresets.sh should fix the problem.", fileerrors);
   w->show(ac, av);
   int result = Fl::run();
   if (launched) lo_send(t, "/Minicomputer/quit", "i", 1);
