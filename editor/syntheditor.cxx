@@ -2144,7 +2144,7 @@ void multirenamemnuCallback(Fl_Widget*, void*T) {
 	}
 }
 
-void multiexportmnuCallback(Fl_Widget*, void*T) {
+void multiexportCallback(Fl_Widget*, void*T) {
 	// int src=((MultiTable *)T)->get_selected_cell()/2;
 	int src=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
 	// printf("export %d\n", src);
@@ -2177,7 +2177,7 @@ static void do_importmulti(int multinum)
 
 }
 
-void multiimportmnuCallback(Fl_Widget*, void*T) {
+void multiimportCallback(Fl_Widget*, void*T) {
 	// int dest=((MultiTable *)T)->get_selected_cell()/2;
 	int dest=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
 	// printf("import to %d\n", dest);
@@ -2266,8 +2266,8 @@ void MultiTable::event_callback2()
 		{ "Paste",  0, multipastemnuCallback, (void*)this },
 		{ "Rename",  0, multirenamemnuCallback, (void*)this },
 		{ "Clear",   0, multiclearmnuCallback, (void*)this },
-		{ "Import",  0, multiimportmnuCallback, (void*)this },
-		{ "Export",  0, multiexportmnuCallback, (void*)this },
+		{ "Import",  0, multiimportCallback, (void*)this },
+		{ "Export",  0, multiexportCallback, (void*)this },
 		{ 0 }
 	};
 	switch(Fl::event()){
@@ -4043,14 +4043,30 @@ Fenster* UserInterface::make_window(const char* title) {
 			saveMultisBtn=o;
 		}
 		{ Fl_Button* o = new Fl_Button(70, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "load multi");
-			o->tooltip("load currently selected multi");
+			o->tooltip("load (activate) currently selected multi");
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
 			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 			o->callback((Fl_Callback*)loadmultibtn2Callback);
 			loadMultiBtn2=o;
 		}
-		{ Fl_Output* o = new Fl_Output(135, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 180, _LOGO_HEIGHT2);
+		{ Fl_Button* o = new Fl_Button(135, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "import multi");
+			o->tooltip("Import multi from file to selected location");
+			o->box(FL_BORDER_BOX);
+			o->labelsize(_TEXT_SIZE);
+			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+			o->callback((Fl_Callback*)multiimportCallback, (void*) multiTable);
+			loadMultiBtn2=o;
+		}
+		{ Fl_Button* o = new Fl_Button(200, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "export multi");
+			o->tooltip("Export multi from selected location to file");
+			o->box(FL_BORDER_BOX);
+			o->labelsize(_TEXT_SIZE);
+			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
+			o->callback((Fl_Callback*)multiexportCallback, (void*) multiTable);
+			loadMultiBtn2=o;
+		}
+		{ Fl_Output* o = new Fl_Output(265, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 180, _LOGO_HEIGHT2);
 			o->box(FL_BORDER_BOX);
 			o->textsize(_TEXT_SIZE);
 			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
