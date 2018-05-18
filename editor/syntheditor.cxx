@@ -19,6 +19,10 @@
 #include "syntheditor.h"
 #include "Memory.h"
 
+int Fl_Knob::_defaultbgcolor=_BGCOLOR;
+short Fl_Knob::_defaultdragtype=Fl_Knob::VERTICAL;
+int Fl_Knob::_defaultmargin=3;
+
 // #define _DEBUG
 // TODO: try to move globs to class variables
 // Problem: some UI items need to be accessible from window resize function
@@ -1704,7 +1708,7 @@ static void soundLoadBtn1Callback(Fl_Widget* o, void* )
 // Load button on sounds tab - based on table selection
 static void soundLoadBtn2Callback(Fl_Widget* o, void* )
 {
-	int src=soundTable->get_selected_row()+soundTable->rows()*((soundTable->get_selected_col())/2);
+	int src=soundTable->selected_row()+soundTable->rows()*((soundTable->selected_col())/2);
 	sound_recall(o->argument(), src);
 }
 
@@ -1793,8 +1797,8 @@ static void loadmulti(unsigned int multi)
 }
 static void loadmultibtn2Callback(Fl_Widget*, void*)
 {
-	// int multinum=multiTable->get_selected_cell()/2;
-	int multinum=multiTable->get_selected_row()+multiTable->rows()*((multiTable->get_selected_col())/2);
+	// int multinum=multiTable->selected_cell()/2;
+	int multinum=multiTable->selected_row()+multiTable->rows()*((multiTable->selected_col())/2);
 	loadmulti(multinum);
 }
 /**
@@ -1894,7 +1898,7 @@ void SoundTable::draw_cell(TableContext context,
 		fl_push_clip(X, Y, W, H);
 		{
 		// BG COLOR
-		if (C==col_selected && R==row_selected){
+		if (C==_selected_col && R==_selected_row){
 			fl_color((C&1) ? FL_RED: _BGCOLOR);
 		}else if (Speicher.getSoundName(m).length()==0){
 			fl_color((C&1) ? FL_BLACK: _BGCOLOR);
@@ -1964,8 +1968,8 @@ void SoundTable::event_callback2()
 	switch(Fl::event()){
 		case FL_PUSH:
 			if(R>=0 && C>=0 && (C&1)==1){
-				row_selected=R;
-				col_selected=C;
+				_selected_row=R;
+				_selected_col=C;
 				soundNameDisplay->value(Speicher.getSoundName(m).c_str());
 				if ( Fl::event_button() == FL_RIGHT_MOUSE ) {
 	// printf("Right mouse button pushed\n");
@@ -2002,29 +2006,29 @@ void MiniTable::resize_cols(int W){
 }
 
 void soundcopymnuCallback(Fl_Widget*, void*T) {
-	int cell=((SoundTable *)T)->get_selected_cell();
+	int cell=((SoundTable *)T)->selected_cell();
 //	printf("copy sound from cell %d\n", cell);
-	((SoundTable *)T)->set_copied_cell(cell);
+	((SoundTable *)T)->copied_cell(cell);
 	((SoundTable *)T)->clear_cell_is_cut();
 }
 void soundcutmnuCallback(Fl_Widget*, void*T) {
-	int cell=((SoundTable *)T)->get_selected_cell();
+	int cell=((SoundTable *)T)->selected_cell();
 //	printf("cut sound from cell %d\n", cell);
-	((SoundTable *)T)->set_copied_cell(cell);
+	((SoundTable *)T)->copied_cell(cell);
 	((SoundTable *)T)->set_cell_is_cut();
 }
 void soundpastemnuCallback(Fl_Widget*, void*T) {
-	// int src=((SoundTable *)T)->get_copied_cell()/2;
+	// int src=((SoundTable *)T)->copied_cell()/2;
 	int src=((SoundTable *)T)->get_copied_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_copied_col())/2);
 	if(src<0 || src>=_SOUNDS) return;
-	// int dest=((SoundTable *)T)->get_selected_cell()/2;
-	int dest=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
+	// int dest=((SoundTable *)T)->selected_cell()/2;
+	int dest=((SoundTable *)T)->selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->selected_col())/2);
 	if(dest<0 || dest>=_SOUNDS) return;
 	printf("paste sound %d to %d\n", src, dest);
 	Speicher.copySound(src, dest);
 	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
 	updatesoundNameInput(dest, Speicher.getSoundName(dest).c_str());
-	if(((SoundTable *)T)->get_cell_is_cut()){
+	if(((SoundTable *)T)->cell_is_cut()){
 		printf("cut sound %d\n", src);
 		((SoundTable *)T)->clear_cell_is_cut();
 		Speicher.copyPatch(&Speicher.initSound, &Speicher.sounds[src]);
@@ -2032,8 +2036,8 @@ void soundpastemnuCallback(Fl_Widget*, void*T) {
 	}
 }
 void soundrenamemnuCallback(Fl_Widget*, void*T) {
-	// int dest=((SoundTable *)T)->get_selected_cell()/2;
-	int dest=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
+	// int dest=((SoundTable *)T)->selected_cell()/2;
+	int dest=((SoundTable *)T)->selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->selected_col())/2);
 	if(dest<0 || dest>=_SOUNDS) return;
 	char old_name[_NAMESIZE];
 	strnrtrim(old_name, Speicher.getSoundName(dest).c_str(), _NAMESIZE);
@@ -2047,16 +2051,16 @@ void soundrenamemnuCallback(Fl_Widget*, void*T) {
 	}
 }
 void soundinitmnuCallback(Fl_Widget*, void*T) {
-	// int dest=((SoundTable *)T)->get_selected_cell()/2;
-	int dest=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
+	// int dest=((SoundTable *)T)->selected_cell()/2;
+	int dest=((SoundTable *)T)->selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->selected_col())/2);
 	printf("init %d\n", dest);
 	Speicher.copyPatch(&Speicher.initSound, &Speicher.sounds[dest]);
 	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
 	updatesoundNameInput(dest, Speicher.getSoundName(dest).c_str());
 }
 void soundclearmnuCallback(Fl_Widget*, void*T) {
-	// int dest=((SoundTable *)T)->get_selected_cell()/2;
-	int dest=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
+	// int dest=((SoundTable *)T)->selected_cell()/2;
+	int dest=((SoundTable *)T)->selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->selected_col())/2);
 	printf("clear %d\n", dest);
 	Speicher.copyPatch(&Speicher.initSound, &Speicher.sounds[dest]);
 	Speicher.setSoundName(dest, "");
@@ -2064,15 +2068,15 @@ void soundclearmnuCallback(Fl_Widget*, void*T) {
 	updatesoundNameInput(dest, Speicher.getSoundName(dest).c_str());
 }
 void soundimportmnuCallback(Fl_Widget*, void*T) {
-	// int dest=((SoundTable *)T)->get_selected_cell()/2;
-	int dest=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
+	// int dest=((SoundTable *)T)->selected_cell()/2;
+	int dest=((SoundTable *)T)->selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->selected_col())/2);
 	// printf("import to %d\n", dest);
 	do_importsound(dest);
 	soundNameDisplay->value(Speicher.getSoundName(dest).c_str());
 }
 void soundexportmnuCallback(Fl_Widget*, void*T) {
-	// int src=((SoundTable *)T)->get_selected_cell()/2;
-	int src=((SoundTable *)T)->get_selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->get_selected_col())/2);
+	// int src=((SoundTable *)T)->selected_cell()/2;
+	int src=((SoundTable *)T)->selected_row()+((SoundTable *)T)->rows()*((((SoundTable *)T)->selected_col())/2);
 	// printf("export %d\n", src);
 	do_exportsound(src);
 }
@@ -2092,45 +2096,45 @@ void updatemultiNameInput(unsigned int dest, const char* new_name){
 	}
 }
 void multicopymnuCallback(Fl_Widget*, void*T) {
-	int cell=((MultiTable *)T)->get_selected_cell();
+	int cell=((MultiTable *)T)->selected_cell();
 	 printf("copy multi from cell %d\n", cell);
-	((MultiTable *)T)->set_copied_cell(cell);
+	((MultiTable *)T)->copied_cell(cell);
 	((MultiTable *)T)->clear_cell_is_cut();
 }
 void multicutmnuCallback(Fl_Widget*, void*T) {
-	int cell=((MultiTable *)T)->get_selected_cell();
+	int cell=((MultiTable *)T)->selected_cell();
 	 printf("cut multi from cell %d\n", cell);
-	((MultiTable *)T)->set_copied_cell(cell);
+	((MultiTable *)T)->copied_cell(cell);
 	((MultiTable *)T)->set_cell_is_cut();
 }
 void multiclearmnuCallback(Fl_Widget*, void*T) {
-	int dest=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
+	int dest=((MultiTable *)T)->selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->selected_col())/2);
 	if(dest<0 || dest>=_MULTIS) return;
 	 printf("clear multi number %d\n", dest);
 	Speicher.clearMulti(dest);
 }
 void multipastemnuCallback(Fl_Widget*, void*T) {
-	// int src=((MultiTable *)T)->get_copied_cell()/2;
-	// int cellNo=((MultiTable *)T)->get_copied_cell();
+	// int src=((MultiTable *)T)->copied_cell()/2;
+	// int cellNo=((MultiTable *)T)->copied_cell();
 	// int src=(cellNo % ((MultiTable *)T)->rows())+((MultiTable *)T)->rows()*((cellNo / ((MultiTable *)T)->rows())/2);
 	int src=((MultiTable *)T)->get_copied_row()+((MultiTable *)T)->rows()*(((MultiTable *)T)->get_copied_col()/2);
 	if(src<0 || src>=_MULTIS) return;
-	// int dest=((MultiTable *)T)->get_selected_cell()/2;
-	int dest=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
+	// int dest=((MultiTable *)T)->selected_cell()/2;
+	int dest=((MultiTable *)T)->selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->selected_col())/2);
 	if(dest<0 || dest>=_MULTIS) return;
 	 printf("paste multi %d to %d\n", src, dest);
 	Speicher.copyMulti(src, dest);
 	multiNameDisplay->value(Speicher.getMultiName(dest).c_str());
 	updatemultiNameInput(dest, Speicher.getMultiName(dest).c_str());
-	if(((MultiTable *)T)->get_cell_is_cut()){
+	if(((MultiTable *)T)->cell_is_cut()){
 		printf("cut multi %d\n", src);
 		((MultiTable *)T)->clear_cell_is_cut();
 		Speicher.clearMulti(src);
 	}
 }
 void multirenamemnuCallback(Fl_Widget*, void*T) {
-	// int dest=((MultiTable *)T)->get_selected_cell()/2;
-	int dest=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
+	// int dest=((MultiTable *)T)->selected_cell()/2;
+	int dest=((MultiTable *)T)->selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->selected_col())/2);
 	if(dest<0 || dest>=_MULTIS) return;
 	 printf("rename %d\n", dest);
 	char old_name[_NAMESIZE];
@@ -2145,8 +2149,8 @@ void multirenamemnuCallback(Fl_Widget*, void*T) {
 }
 
 void multiexportCallback(Fl_Widget*, void*T) {
-	// int src=((MultiTable *)T)->get_selected_cell()/2;
-	int src=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
+	// int src=((MultiTable *)T)->selected_cell()/2;
+	int src=((MultiTable *)T)->selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->selected_col())/2);
 	// printf("export %d\n", src);
 	do_exportmulti(src);
 }
@@ -2178,8 +2182,8 @@ static void do_importmulti(int multinum)
 }
 
 void multiimportCallback(Fl_Widget*, void*T) {
-	// int dest=((MultiTable *)T)->get_selected_cell()/2;
-	int dest=((MultiTable *)T)->get_selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->get_selected_col())/2);
+	// int dest=((MultiTable *)T)->selected_cell()/2;
+	int dest=((MultiTable *)T)->selected_row()+((MultiTable *)T)->rows()*((((MultiTable *)T)->selected_col())/2);
 	// printf("import to %d\n", dest);
 	do_importmulti(dest);
 	multiNameDisplay->value(Speicher.getMultiName(dest).c_str());
@@ -2205,7 +2209,7 @@ void MultiTable::draw_cell(TableContext context,
 		fl_push_clip(X, Y, W, H);
 		{
 		// BG COLOR
-		if (C==col_selected && R==row_selected){
+		if (C==_selected_col && R==_selected_row){
 			fl_color((C&1) ? FL_RED: _BGCOLOR);
 		}else if (Speicher.getMultiName(m).length()==0){
 			fl_color((C&1) ? FL_BLACK: _BGCOLOR);
@@ -2276,8 +2280,8 @@ void MultiTable::event_callback2()
 			// Fortunately we need only odd rows
 			// Otherwise event_y might do the trick
 			if(R>=0 && C>0 && (C&1)==1){
-				row_selected=R;
-				col_selected=C;
+				_selected_row=R;
+				_selected_col=C;
 				multiNameDisplay->value(Speicher.getMultiName(m).c_str());
 				if ( Fl::event_button() == FL_RIGHT_MOUSE ) {
 					const Fl_Menu_Item *m = menu_rclick->popup(Fl::event_x(), Fl::event_y(), 0, 0, 0);
@@ -2455,7 +2459,7 @@ Fl_Menu_Item menu_wave[] = { // UserInterface::
 
 /*
 Fl_SteinerKnob::Fl_SteinerKnob(int x, int y, int w, int h, const char *label)
-: Fl_Dial(x, y, w, h, label) {
+: Fl_Knob(x, y, w, h, label) {
 	
 }
 int Fl_SteinerKnob::handle(int event) {
@@ -2495,7 +2499,7 @@ int Fl_SteinerKnob::handle(int event) {
 			return 0;
 		}
 	}
-	  return Fl_Dial::handle(event);
+	  return Fl_Knob::handle(event);
 }
 */
 // ---------------------------------------------------------------
@@ -2519,7 +2523,7 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 		o->color(FL_FOREGROUND_COLOR);
 		o->labelsize(_TEXT_SIZE);
 		// Attack
-		{ Fl_Dial* o = new Fl_Dial(x+10, y+6, 25, 25, "A");
+		{ Fl_Knob* o = new Fl_Knob(x+10, y+6, 25, 25, "A");
 		  o->labelsize(_TEXT_SIZE); 
 		  o->argument(EG_base);  
 		  o->minimum(EG_rate_min);
@@ -2528,7 +2532,7 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 		  Knob[voice][o->argument()] = o;
 		}
 		// Decay
-		{ Fl_Dial* o = new Fl_Dial(x+40, y+6, 25, 25, "D");
+		{ Fl_Knob* o = new Fl_Knob(x+40, y+6, 25, 25, "D");
 		  o->labelsize(_TEXT_SIZE);
 		  o->argument(EG_base+1);
 		  o->minimum(EG_rate_min);
@@ -2537,7 +2541,7 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 		  Knob[voice][o->argument()] = o;
 		}
 		// Sustain
-		{ Fl_Dial* o = new Fl_Dial(x+70, y+6, 25, 25, "S");
+		{ Fl_Knob* o = new Fl_Knob(x+70, y+6, 25, 25, "S");
 		  o->labelsize(_TEXT_SIZE);
 		  o->argument(EG_base+2);
 		 // o->minimum(0);
@@ -2546,7 +2550,7 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 		  Knob[voice][o->argument()] = o;
 		}
 		// Release
-		{ Fl_Dial* o = new Fl_Dial(x+100, y+6, 25, 25, "R");
+		{ Fl_Knob* o = new Fl_Knob(x+100, y+6, 25, 25, "R");
 		  o->labelsize(_TEXT_SIZE);
 		  o->argument(EG_base+3);
 		  o->minimum(EG_rate_min);
@@ -2579,7 +2583,7 @@ void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int
 	o->yvalue(200);
 	o->callback((Fl_Callback*)parmCallback);
 	Knob[voice][o->argument()] = o;
-	/* Fl_Dial* o = f1cut1 = new Fl_SteinerKnob(344, 51, 34, 34, "cut");
+	/* Fl_Knob* o = f1cut1 = new Fl_SteinerKnob(344, 51, 34, 34, "cut");
 	  o->labelsize(_TEXT_SIZE);
 	  o->argument(30);
 	  o->maximum(10000);
@@ -2587,7 +2591,7 @@ void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int
 	  o->callback((Fl_Callback*)parmCallback);
 	*/
 	}
-	{ Fl_Dial* o = new Fl_Dial(x+75, y+2, 25, 25, "q");
+	{ Fl_Knob* o = new Fl_Knob(x+75, y+2, 25, 25, "q");
 	  o->labelsize(_TEXT_SIZE);
 	  o->argument(filter_base+1);
 	  o->minimum(0.9);
@@ -2596,7 +2600,7 @@ void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int
 	  o->callback((Fl_Callback*)parmCallback);
 	  Knob[voice][o->argument()] = o;
 	}
-	{ Fl_Dial* o = new Fl_Dial(x+85, y+39, 20, 20, "vol");
+	{ Fl_Knob* o = new Fl_Knob(x+85, y+39, 20, 20, "vol");
 	  o->labelsize(_TEXT_SIZE);
 	  o->argument(filter_base+2);
 	  o->callback((Fl_Callback*)parmCallback);
@@ -2627,7 +2631,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 	  }
 	  */
 	  int w=63;
-	  { Fl_Dial* o= new Fl_Dial(x, y+30, w, 60, "frequency");
+	  { Fl_Knob* o= new Fl_Knob(x, y+30, w, 60, "frequency");
 		o->labelsize(_TEXT_SIZE);
 		o->maximum(1000); 
 		o->argument(osc_base);
@@ -2700,7 +2704,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_fmod);
 		auswahl[voice][o->argument()]=o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(x+233, y+3, 25, 25, "amount");
+	  { Fl_Knob* o = new Fl_Knob(x+233, y+3, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+4);  
 		o->minimum(-1000);
@@ -2727,7 +2731,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_fmod);
 		auswahl[voice][o->argument()]=o;
 	}
-	{ Fl_Dial* o = new Fl_Dial(x+232, y+40, 25, 25, "amount");
+	{ Fl_Knob* o = new Fl_Knob(x+232, y+40, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+6); 
 		o->minimum(-1000);
@@ -2754,7 +2758,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_amod);
 		auswahl[voice][o->argument()]=o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(x+245, y+77, 25, 25, "amount");
+	  { Fl_Knob* o = new Fl_Knob(x+245, y+77, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+8); 
 		o->minimum(-1);
@@ -2781,7 +2785,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_amod);
 		auswahl[voice][o->argument()]=o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(x+245, y+111, 25, 25, "amount");
+	  { Fl_Knob* o = new Fl_Knob(x+245, y+111, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+9);  
 		o->minimum(-1);
@@ -2789,7 +2793,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[voice][o->argument()] = o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(x+77, y+144, 20, 20, "start phase");
+	  { Fl_Knob* o = new Fl_Knob(x+77, y+144, 20, 20, "start phase");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+118); 
 		o->minimum(0);
@@ -2816,13 +2820,13 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		j->callback((Fl_Callback*)choiceCallback);
 		j->menu(menu_wave);
 	  }
-	  { Fl_Dial* o = new Fl_Dial(x+245, y+144, 20, 20, "fm out vol");
+	  { Fl_Knob* o = new Fl_Knob(x+245, y+144, 20, 20, "fm out vol");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+12);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[voice][o->argument()] = o;
 	  }
-	  /*{ Fl_Dial* o = new Fl_SteinerKnob(20, 121, 34, 34, "tune");
+	  /*{ Fl_Knob* o = new Fl_SteinerKnob(20, 121, 34, 34, "tune");
 		o->labelsize(_TEXT_SIZE);
 		o->minimum(0.5);
 		o->maximum(16);
@@ -2833,6 +2837,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 }
     
 Fenster* UserInterface::make_window(const char* title) {    
+printf("_BGCOLOR: %u\n",_BGCOLOR);
  // Fl_Double_Window* w;
  // {
 	currentVoice=0;
@@ -3009,7 +3014,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)parmCallback);
 			Knob[i][o->argument()] = o;
 		}
-		{ Fl_Dial* o = new Fl_Dial(x+77, 417, 20, 20, "base width");
+		{ Fl_Knob* o = new Fl_Knob(x+77, 417, 20, 20, "base width");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(146); 
 			o->minimum(0.01);
@@ -3028,7 +3033,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			j->callback((Fl_Callback*)choiceCallback);
 			j->menu(menu_fmod);
 		}
-		{ Fl_Dial* o = new Fl_Dial(x+245, 417, 20, 20, "amount");
+		{ Fl_Knob* o = new Fl_Knob(x+245, 417, 20, 20, "amount");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(147);
 			o->minimum(-1);
@@ -3037,7 +3042,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			Knob[i][o->argument()] = o;
 		}
 
-		/*Fl_Dial* o = new Fl_SteinerKnob(20, 345, 34, 34, "tune");
+		/*Fl_Knob* o = new Fl_SteinerKnob(20, 345, 34, 34, "tune");
 		o->labelsize(_TEXT_SIZE);
 		o->minimum(0.5);
 		o->maximum(16);   
@@ -3062,7 +3067,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		make_filter(i, 33, 5, 456, 31);
 		o->end();
 	  }
-		{ Fl_Dial* o = new Fl_Dial(559, 40, 20, 20, "tracking");
+		{ Fl_Knob* o = new Fl_Knob(559, 40, 20, 20, "tracking");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(150);
 			o->minimum(-1);
@@ -3093,7 +3098,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		}*/
 		o->end();
 	  }
-		{ Fl_Dial* o = new Fl_Dial(559, 144, 20, 20, "tracking");
+		{ Fl_Knob* o = new Fl_Knob(559, 144, 20, 20, "tracking");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(151);
 			o->minimum(-1);
@@ -3111,7 +3116,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		make_filter(i, 53, 9, 456, 241);
 		o->end();
 	  } 
-		{ Fl_Dial* o = new Fl_Dial(559, 250, 20, 20, "tracking");
+		{ Fl_Knob* o = new Fl_Knob(559, 250, 20, 20, "tracking");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(152);
 			o->minimum(-1);
@@ -3120,14 +3125,20 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)parmCallback);
 			Knob[i][o->argument()] = o;
 		}
-	  { Fl_Dial* o = new Fl_Dial(420, 360, 60, 57, "morph");
-		o->type(1);
+//	  { Fl_Knob* o = new Fl_Knob(420, 360, 60, 57, "morph");
+	  { Fl_Knob* o = new Fl_Knob(420, 360, 60, 57, "morph");
+		// o->color(37); // 37
+		// o->selection_color(7); // 7
+		// o->bgcolor(83);
+		o->type(Fl_Knob::DOTLIN);
+		o->scaleticks(0);
 		o->labelsize(_TEXT_SIZE);
 		o->maximum(0.5f);
 		o->argument(56);
-		o->callback((Fl_Callback*)parmCallback);Knob[i][o->argument()] = o;
+		o->callback((Fl_Callback*)parmCallback);
+		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(326, 392, 25, 25, "amount");
+	  { Fl_Knob* o = new Fl_Knob(326, 392, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->minimum(-2);
 		o->maximum(2);
@@ -3144,7 +3155,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(551, 392, 25, 25, "amount");
+	  { Fl_Knob* o = new Fl_Knob(551, 392, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(48);
 		o->minimum(-2);
@@ -3234,7 +3245,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->selection_color(0);
 		o->callback((Fl_Callback*)parmCallback);
 		 Knob[i][o->argument()] = o;
-	  /*Fl_Dial* o = new Fl_SteinerKnob(627, 392, 34, 34, "frequency");
+	  /*Fl_Knob* o = new Fl_SteinerKnob(627, 392, 34, 34, "frequency");
 		  o->labelsize(_TEXT_SIZE);o->argument(90);
 		  o->callback((Fl_Callback*)parmCallback);
 		  o->maximum(500); */
@@ -3250,7 +3261,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)choiceCallback);
 		  auswahl[i][o->argument()]=o;
 		} 
-		{ Fl_Dial* o = new Fl_Dial(768, y+7, 20, 20, "start phase");
+		{ Fl_Knob* o = new Fl_Knob(768, y+7, 20, 20, "start phase");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(153); 
 			o->minimum(0);
@@ -3317,33 +3328,33 @@ Fenster* UserInterface::make_window(const char* title) {
 	}
 	*/
 	// amplitude envelope
-	{ Fl_Dial* o = new Fl_Dial(844, 83, 25, 25, "A");
+	{ Fl_Knob* o = new Fl_Knob(844, 83, 25, 25, "A");
 		o->labelsize(_TEXT_SIZE);o->argument(102); 
 		o->minimum(EG_rate_min);
 		o->maximum(EG_rate_max);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(874, 83, 25, 25, "D");
+	  { Fl_Knob* o = new Fl_Knob(874, 83, 25, 25, "D");
 		o->labelsize(_TEXT_SIZE);o->argument(103); 
 		o->minimum(EG_rate_min);
 		o->maximum(EG_rate_max);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(904, 83, 25, 25, "S");
+	  { Fl_Knob* o = new Fl_Knob(904, 83, 25, 25, "S");
 		o->labelsize(_TEXT_SIZE);o->argument(104);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(934, 83, 25, 25, "R");
+	  { Fl_Knob* o = new Fl_Knob(934, 83, 25, 25, "R");
 		o->labelsize(_TEXT_SIZE);o->argument(105); 
 		o->minimum(EG_rate_min);
 		o->maximum(EG_rate_max);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(934, 29, 25, 25, "amount");
+	  { Fl_Knob* o = new Fl_Knob(934, 29, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(100);
 		o->callback((Fl_Callback*)parmCallback);
@@ -3368,7 +3379,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)parmCallback);
 		  Knob[i][o->argument()] = o;
 		}
-	  { Fl_Dial* o = new Fl_Dial(844, 120, 25, 25, "id vol");
+	  { Fl_Knob* o = new Fl_Knob(844, 120, 25, 25, "id vol");
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(101);
 		o->minimum(0);
@@ -3378,7 +3389,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(874, 120, 25, 25, "aux 1");
+	  { Fl_Knob* o = new Fl_Knob(874, 120, 25, 25, "aux 1");
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(108);
 		o->minimum(0);
@@ -3388,7 +3399,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(904, 120, 25, 25, "aux 2");
+	  { Fl_Knob* o = new Fl_Knob(904, 120, 25, 25, "aux 2");
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(109);
 		o->minimum(0);
@@ -3398,7 +3409,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(934, 120, 25, 25, "mix vol");
+	  { Fl_Knob* o = new Fl_Knob(934, 120, 25, 25, "mix vol");
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(106);
 		o->minimum(0);
@@ -3431,7 +3442,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		j->callback((Fl_Callback*)choiceCallback);
 		j->menu(menu_amod);
 	  }
-	  { Fl_Dial* o = new Fl_Dial(934, 185, 25, 25, "amount");
+	  { Fl_Knob* o = new Fl_Knob(934, 185, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(122);
 		o->minimum(-1);
@@ -3461,7 +3472,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(934, 260, 25, 25, "amount");
+	  { Fl_Knob* o = new Fl_Knob(934, 260, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(110);
 		o->callback((Fl_Callback*)parmCallback);
@@ -3486,13 +3497,13 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(934, 305, 25, 25, "amount");
+	  { Fl_Knob* o = new Fl_Knob(934, 305, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(144);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Dial* o = new Fl_Dial(844, 340, 25, 25, "delay time");
+	  { Fl_Knob* o = new Fl_Knob(844, 340, 25, 25, "delay time");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(111);
 		o->callback((Fl_Callback*)parmCallback);
@@ -3509,7 +3520,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->argument(111);
 		  miniInput[i][12]=o;
 		}
-	  { Fl_Dial* o = new Fl_Dial(934, 340, 25, 25, "feedback");
+	  { Fl_Knob* o = new Fl_Knob(934, 340, 25, 25, "feedback");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(112);
 		o->callback((Fl_Callback*)parmCallback);
@@ -3614,60 +3625,60 @@ Fenster* UserInterface::make_window(const char* title) {
 	  }
 	  d->end();
 	}
-	{ Fl_Dial* o = new Fl_Dial(295, 151, 25, 25, "osc1 vol");
+	{ Fl_Knob* o = new Fl_Knob(295, 151, 25, 25, "osc1 vol");
 		o->labelsize(_TEXT_SIZE);
 		// o->align(FL_ALIGN_TOP);
 		o->argument(14);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Dial* o = new Fl_Dial(295, 191, 25, 25, "sub vol");
+	{ Fl_Knob* o = new Fl_Knob(295, 191, 25, 25, "sub vol");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(141);
 		// o->align(FL_ALIGN_TOP);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Dial* o = new Fl_Dial(295, 252, 25, 25, "osc2 vol");
+	{ Fl_Knob* o = new Fl_Knob(295, 252, 25, 25, "osc2 vol");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(29);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Dial* o = new Fl_Dial(295, 292, 25, 25, "ring vol");
+	{ Fl_Knob* o = new Fl_Knob(295, 292, 25, 25, "ring vol");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(138);
 		// o->align(FL_ALIGN_TOP);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Dial* o = new Fl_Dial(295, 332, 25, 25, "pwm vol");
+	{ Fl_Knob* o = new Fl_Knob(295, 332, 25, 25, "pwm vol");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(148);
 		// o->align(FL_ALIGN_TOP);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Dial* o = new Fl_Dial(844, 221, 25, 25, "to delay");
+	{ Fl_Knob* o = new Fl_Knob(844, 221, 25, 25, "to delay");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(114);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Dial* o = new Fl_Dial(934, 221, 25, 25, "from delay");
+	{ Fl_Knob* o = new Fl_Knob(934, 221, 25, 25, "from delay");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(113);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
 
-	{ Fl_Dial* o = new Fl_Dial(52, 221, 25, 25, "glide");
+	{ Fl_Knob* o = new Fl_Knob(52, 221, 25, 25, "glide");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(116);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Dial* o = new Fl_Dial(92, 221, 25, 25, "bender");
+	{ Fl_Knob* o = new Fl_Knob(92, 221, 25, 25, "bender");
 		o->tooltip("Pitch bend range (semitones)");
 		o->minimum(0);
 		o->maximum(12);

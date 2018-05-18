@@ -58,6 +58,8 @@
 #include <FL/Fl_Table_Row.H>
 #include <FL/fl_ask.H>
 #include <FL/Fl_Output.H>
+
+#include "Fl_Knob.H"
 #include "../common.h"
 extern lo_address t;
 extern Memory Speicher;
@@ -65,16 +67,19 @@ extern Memory Speicher;
 #define _BGCOLOR_R 155
 #define _BGCOLOR_G 92
 #define _BGCOLOR_B 186
+// -> _BGCOLOR 2606545408
 // Original _BGCOLOR #246 RGBI
 #define _BGCOLOR (_BGCOLOR_R<<24)+(_BGCOLOR_G<<16)+(_BGCOLOR_B<<8)
 #define _BTNLBLCOLOR1 186
 #define _BTNLBLCOLOR2 1
+
 #define _LOGO_WIDTH 191
 #define _LOGO_HEIGHT 99
 #define _LOGO_WIDTH1 77
 #define _LOGO_HEIGHT1 81
 #define _LOGO_WIDTH2 191
 #define _LOGO_HEIGHT2 12
+
 #define _INIT_WIDTH 995
 #define _INIT_HEIGHT 515
 #define _TABLE_COLUMNS 16
@@ -159,39 +164,39 @@ private:
 class MiniTable : public Fl_Table_Row
 {
 protected:
-	int row_selected;
-	int col_selected;
-	int cell_copied;
-	bool cell_is_cut;
+	int _selected_row;
+	int _selected_col;
+	int _copied_cell;
+	bool _cell_is_cut;
 //	static void event_callback(Fl_Widget*, void*);
 //	void event_callback2();	// callback for table events
 
 public:
 	MiniTable(int x, int y, int w, int h, const char *l=0) : Fl_Table_Row(x,y,w,h,l)
 	{
-		row_selected=-1;
-		col_selected=-1;
-		cell_copied=-2;
-		cell_is_cut=false;
+		_selected_row=-1;
+		_selected_col=-1;
+		_copied_cell=-2;
+		_cell_is_cut=false;
 		// context_menu = new Fl_Menu_Button(x, y, w, h,"Sound...");
 //		callback(&event_callback, (void*)this);
 	end();
 	}
 	~MiniTable() { }
 	void resize_cols(int W);
-	int get_selected_row(){return(row_selected);}
-	int get_selected_col(){return(col_selected);}
+	int selected_row(){return(_selected_row);}
+	int selected_col(){return(_selected_col);}
 	// Horizontally
-	// int get_selected_cell(){return(row_selected*cols()+col_selected);}
+	// int selected_cell(){return(_selected_row*cols()+_selected_col);}
 	// Vertically
-	int get_selected_cell(){return(col_selected*rows()+row_selected);}
-	int get_copied_cell(){return(cell_copied);}
-	int get_copied_row(){return(cell_copied % rows());}
-	int get_copied_col(){return(cell_copied / rows());}
-	void set_copied_cell(int c){cell_copied=c;}
-	void set_cell_is_cut(){cell_is_cut=true;}
-	void clear_cell_is_cut(){cell_is_cut=false;}
-	bool get_cell_is_cut(){return(cell_is_cut);}
+	int selected_cell(){return(_selected_col*rows()+_selected_row);}
+	int copied_cell(){return(_copied_cell);}
+	int get_copied_row(){return(_copied_cell % rows());}
+	int get_copied_col(){return(_copied_cell / rows());}
+	void copied_cell(int c){_copied_cell=c;}
+	void set_cell_is_cut(){_cell_is_cut=true;}
+	void clear_cell_is_cut(){_cell_is_cut=false;}
+	bool cell_is_cut(){return(_cell_is_cut);}
 };
 
 class SoundTable : public MiniTable

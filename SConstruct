@@ -35,6 +35,12 @@ if ARGUMENTS.get('pentium-m', 0):
 	#guienv.Append(CPPFLAGS = ['-march=pentium-m','-mtune=pentium-m'])
 conf = Configure(env)
 
+if not conf.CheckCXX():
+    print('!! Your compiler and/or environment is not correctly configured.')
+    Exit(1)
+if not conf.CheckFunc('printf'):
+    print('!! Your compiler and/or environment is not correctly configured.')
+    Exit(1)
 if not conf.CheckLibWithHeader('jack', 'jack/jack.h','c'):
 	print 'Did not find jack, exiting!'
 	Exit(1)
@@ -78,7 +84,7 @@ env.Program('minicomputerCPU','cpu/main.c');
 print""
 print"-                     building the editor:"
 
-guienv.Program('minicomputer',['editor/main.cpp','editor/Memory.cpp','editor/syntheditor.cxx']);
+guienv.Program('minicomputer',['editor/main.cpp','editor/Memory.cpp','editor/syntheditor.cxx','editor/Fl_Knob.cxx']);
 
 env.Alias(target="install", source=env.Install(dir="/usr/local/bin", source="minicomputer"));
 env.Alias(target="install", source=env.Install(dir="/usr/local/bin", source="minicomputerCPU"));
