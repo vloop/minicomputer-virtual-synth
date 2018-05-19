@@ -86,8 +86,8 @@ void Fl_Knob::draw() {
 		fl_pie(ox+m,oy+m,side-2*m,side-2*m,290,390);
 
 		// Outline
-		fl_color(FL_BLACK);
-		fl_arc(ox+m,oy+m,side-2*m+1,side-2*m+1,0,360);
+		fl_color(FL_BLACK); // fl_color((Fl::focus() == this)?FL_RED:FL_BLACK);
+		fl_arc(ox+m,oy+m,side-2*m,side-2*m,0,360);
 		// Top
 		fl_color(col);
 		fl_pie(ox+2*m-2,oy+2*m-2,side-4*m+4,side-4*m+4,0,360);
@@ -109,6 +109,12 @@ void Fl_Knob::draw() {
 	fl_pie(ox+2*m-2,oy+2*m-2,side-4*m+4,side-4*m+4,127,133);
 	fl_pie(ox+2*m-2,oy+2*m-2,side-4*m+4,side-4*m+4,307,313);
 	draw_cursor(ox,oy,side);
+	// Focus
+	if (Fl::focus() == this){
+		fl_line_style(FL_DOT, 1, 0);
+		fl_arc(ox+m+2,oy+m+2,side-2*m-4,side-2*m-4,0,360);
+		fl_line_style(0);
+	}
 	fl_pop_clip();
 }
 
@@ -118,21 +124,100 @@ int Fl_Knob::handle(int  event) {
 	int mx = Fl::event_x_root();
 	int my = Fl::event_y_root();
 	static int ix, iy, drag;
+	double val, minval, maxval, step;
 
 	ox = x() + 10; oy = y() + 10;
 	ww = w() - 20;
 	hh = h()-20;
 	switch (event) 
 	{
+		// case FL_KEYBOARD: // Not working unless focused ?
+		case FL_KEYUP: // It seems every knob is getting that until handled ?
+			if (Fl::focus() == this) {
+				// printf("key %u on %lu\n", Fl::event_key (), this->argument());
+				val=this->value();
+				minval=this->minimum();
+				maxval=this->maximum();
+				step=this->step();
+				if (minval>maxval){
+					minval=maxval;
+					maxval=this->minimum();
+				}
+				if (step<=0.0f) step=(maxval-minval)/100.0f;
+				// printf("min %f max %f step %f\n", minval, maxval, step);
+				switch(Fl::event_key ()){
+					case FL_Home:
+						this->value(this->minimum());
+						break;
+					case FL_End:
+						this->value(this->maximum());
+						break;
+					case FL_KP+'+':
+						val+=step;
+						if (val>maxval) val=maxval;
+						this->value(val);
+						break;
+					case FL_KP+'-':
+						val-=step;
+						if (val<minval) val=minval;
+						this->value(val);
+						break;
+					case FL_KP+'.':
+						val=0;
+						if (val>maxval) val=maxval;
+						if (val<minval) val=minval;
+						this->value(val);
+						break;
+					case FL_Page_Up:
+						val+=step*10;
+						if (val>maxval) val=maxval;
+						this->value(val);
+						break;
+					case FL_Page_Down:
+						val-=step*10;
+						if (val<minval) val=minval;
+						this->value(val);
+						break;
+					default:
+						return 0;
+				}
+				this->callback()((Fl_Widget*)this, 0);
+			}else{
+				return 0;
+				// printf("key %u on %lu (not focused)\n", Fl::event_key (), this->argument());
+			}
+			return 1;
+		case FL_FOCUS:
+			// printf("Focus %lu!\n", this->argument());
+			Fl::focus(this);
+			this->callback()((Fl_Widget*)this, 0);
+			if (visible()) damage(FL_DAMAGE_ALL);
+			return 1;
+		case FL_UNFOCUS:
+			// printf("Unfocus %lu!\n", this->argument());
+			this->callback()((Fl_Widget*)this, 0);
+			if (visible()) damage(FL_DAMAGE_ALL);
+			return 1;
+		case FL_ACTIVATE: // Not needed?
+			// printf("Activate %lu!\n", this->argument());
+			if (visible()) damage(FL_DAMAGE_ALL);
+			return 1;
 		case FL_PUSH:
+			if (Fl::visible_focus() && handle(FL_FOCUS)){
+				Fl::focus(this);
+				this->callback()((Fl_Widget*)this, 0);
+				// printf("Push focus %lu!\n", this->argument());
+			}else{
+				// printf("Push no focus %lu!\n", this->argument());
+			}
 			ix = mx;
 			iy = my;
 			drag = Fl::event_button();
 			handle_push();
-			// Should we not return 1 ??
+			// Originally fall through ??
+			return 1;
 		case FL_DRAG:
 			{
-				double val;
 				switch (_dragtype)
 				{
 					case Fl_Knob::HORIZONTAL:
