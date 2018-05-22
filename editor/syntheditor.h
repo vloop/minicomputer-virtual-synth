@@ -161,6 +161,48 @@ private:
 
 };
 
+class MiniPositioner : public Fl_Positioner
+{
+protected:
+/*
+	static void event_callback(Fl_Widget*, void*);
+	void event_callback2();	// callback for table events
+*/
+private:
+	void draw(int X, int Y, int W, int H);
+	void draw();
+
+	int handle(int event);
+public:
+	MiniPositioner(int x, int y, int w, int h, const char *l=0) : Fl_Positioner(x,y,w,h,l)
+	{
+//		callback(&event_callback, (void*)this);
+//		end(); // ??
+	}
+	~MiniPositioner() { }
+};
+
+class MiniValue_Input : public Fl_Value_Input
+{
+protected:
+/*
+	static void event_callback(Fl_Widget*, void*);
+	void event_callback2();	// callback for table events
+*/
+private:
+//	void draw(int X, int Y, int W, int H);
+//	void draw();
+
+	int handle(int event);
+public:
+	MiniValue_Input(int x, int y, int w, int h, const char *l=0) : Fl_Value_Input(x,y,w,h,l)
+	{
+//		callback(&event_callback, (void*)this);
+//		end(); // ??
+	}
+	~MiniValue_Input() { }
+};
+
 class MiniTable : public Fl_Table_Row
 {
 protected:

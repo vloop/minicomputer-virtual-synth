@@ -19,9 +19,12 @@
 #include "syntheditor.h"
 #include "Memory.h"
 
-int Fl_Knob::_defaultbgcolor=_BGCOLOR;
 short Fl_Knob::_defaultdragtype=Fl_Knob::VERTICAL;
 int Fl_Knob::_defaultmargin=3;
+int Fl_Knob::_defaultbevel=3;
+int Fl_Knob::_defaultbgcolor=_BGCOLOR;
+int Fl_Knob::_defaultcolor=0xB0B0B000;
+int Fl_Knob::_defaultselectioncolor=0xD0D0D000;
 
 // #define _DEBUG
 // TODO: try to move globs to class variables
@@ -67,6 +70,7 @@ Fl_Toggle_Button *auditionBtn;
 Fl_Button *panicBtn;
 Fl_Button *clearStateBtn[_MULTITEMP];
 Fl_Value_Input* parmInput;
+bool parmInputFocused=false;
 Fl_Box* sounding[_MULTITEMP];
 
 Fl_Group *multiGroup;
@@ -286,9 +290,11 @@ static void choiceSet(Fl_Widget* o, void*)
 
 static void choiceCallback(Fl_Widget* o, void*)
 {
-#ifdef _DEBUG
+// #ifdef _DEBUG
 	printf("choiceCallback voice %u, parameter %li, value %u\n", currentVoice, ((Fl_Choice*)o)->argument(), ((Fl_Choice*)o)->value());
-#endif
+// #endif
+	parmInputFocused=false;
+	parmInput->hide();
 	if (transmit) lo_send(t, "/Minicomputer/choice", "iii", currentVoice, ((Fl_Choice*)o)->argument(), ((Fl_Choice*)o)->value());
 	setsound_changed(); // All choices relate to the sound, none to the multi
 }
@@ -575,11 +581,11 @@ static void parmSet(Fl_Widget* o, void*) {
 				}
 				case 3: // Osc 1 tune
 				{
-					float f = ((Fl_Positioner*)o)->xvalue() + ((Fl_Positioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Positioner*)o)->argument(),f);
+					float f = ((MiniPositioner*)o)->xvalue() + ((MiniPositioner*)o)->yvalue();
+					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
 					miniInput[currentVoice][1]->value( f);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
 			#endif
 				break;
 				}
@@ -594,11 +600,11 @@ static void parmSet(Fl_Widget* o, void*) {
 				}
 				case 18: // Osc 2 tune
 				{ 
-					float f = ((Fl_Positioner*)o)->xvalue() + ((Fl_Positioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Positioner*)o)->argument(),f);
+					float f = ((MiniPositioner*)o)->xvalue() + ((MiniPositioner*)o)->yvalue();
+					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
 					miniInput[currentVoice][3]->value(f);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
 			#endif
 				break;
 				}
@@ -651,34 +657,34 @@ static void parmSet(Fl_Widget* o, void*) {
 				}
 
 				//************************************ filter cuts *****************************
-				case 30:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Positioner*)o)->argument(),f);
+				case 30:{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
+					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
 			#endif
 					miniInput[currentVoice][4]->value(f);
 					break;
 				}
-				case 33:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Positioner*)o)->argument(),f);
+				case 33:{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
+					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
 			#endif		
 					miniInput[currentVoice][5]->value(f);
 					break;
 				}
-				case 40:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Positioner*)o)->argument(),f);
+				case 40:{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
+					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
 			#endif
 					miniInput[currentVoice][6]->value(f);
 					break;
 				}
-				case 43:{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Positioner*)o)->argument(),f);
+				case 43:{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
+					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
 			#endif
 					miniInput[currentVoice][7]->value(f);
 					break;
@@ -690,8 +696,8 @@ static void parmSet(Fl_Widget* o, void*) {
 
 					//if (!isFine)
 					//{
-						f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-						Argument=((Fl_Positioner*)o)->argument();
+						f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
+						Argument=((MiniPositioner*)o)->argument();
 					//}
 					//else 
 					//{
@@ -708,19 +714,19 @@ static void parmSet(Fl_Widget* o, void*) {
 					break;
 				}
 				case 53: // Filter 3 b cut
-				{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Positioner*)o)->argument(),f);
+				{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
+					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
 			#endif
 					miniInput[currentVoice][9]->value(f);
 					break;
 				}
 				case 90: // OSC 3 tune
-				{	float f=((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Positioner*)o)->argument(),f);
+				{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
+					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((Fl_Positioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
 			#endif
 					miniInput[currentVoice][10]->value(f);
 					miniInput[currentVoice][11]->value(round(f*6000)/100); // BPM
@@ -728,7 +734,7 @@ static void parmSet(Fl_Widget* o, void*) {
 				}
 				case 111: // Delay time
 				{	float f=((Fl_Valuator*)o)->value();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Positioner*)o)->argument(),f);
+					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
 			#ifdef _DEBUG
 					printf("parmSet %li : %g\n", ((Fl_Valuator*)o)->argument(), f);
 			#endif
@@ -773,15 +779,16 @@ static void parmCallback(Fl_Widget* o, void*) {
 		}
 
 		// show parameter on fine tune only when relevant (not a frequency...)
-		if(needs_finetune[currentParameter] && (Fl::focus() == o)){
-			if(needs_finetune[currentParameter]==2){ // Fl_Positioner
-				// printf("x %f y %f\n", ((Fl_Positioner*)o)->xvalue(), ((Fl_Positioner*)o)->yvalue());
-				// printf("min x %f y %f\n", ((Fl_Positioner*)o)->xminimum(), ((Fl_Positioner*)o)->yminimum());
-				// printf("max x %f y %f\n", ((Fl_Positioner*)o)->xmaximum(), ((Fl_Positioner*)o)->ymaximum());
+		// printf("current %u %lu parminput %u %lu focus %u %lu\n", o, o->argument(), parmInput, parmInput->argument(), Fl::focus(), Fl::focus()->argument());
+		if(needs_finetune[currentParameter] && (Fl::focus() == o)){// (needs_finetune[currentParameter] == 2))){
+			if(needs_finetune[currentParameter] == 2){ // MiniPositioner
+				// printf("x %f y %f\n", ((MiniPositioner*)o)->xvalue(), ((MiniPositioner*)o)->yvalue());
+				// printf("min x %f y %f\n", ((MiniPositioner*)o)->xminimum(), ((MiniPositioner*)o)->yminimum());
+				// printf("max x %f y %f\n", ((MiniPositioner*)o)->xmaximum(), ((MiniPositioner*)o)->ymaximum());
 				// Assume y is reversed (min>max) ??
-				parmInput->value(((Fl_Positioner*)o)->xvalue()+((Fl_Positioner*)o)->yvalue());
-				parmInput->minimum(((Fl_Positioner*)o)->xminimum()+((Fl_Positioner*)o)->ymaximum());
-				parmInput->maximum(((Fl_Positioner*)o)->xmaximum()+((Fl_Positioner*)o)->yminimum());
+				parmInput->value(((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue());
+				parmInput->minimum(((MiniPositioner*)o)->xminimum()+((MiniPositioner*)o)->ymaximum());
+				parmInput->maximum(((MiniPositioner*)o)->xmaximum()+((MiniPositioner*)o)->yminimum());
 				// printf("min %f max %f\n", parmInput->minimum(), parmInput->maximum());
 			}else{
 				parmInput->value(((Fl_Valuator*)o)->value());
@@ -794,7 +801,10 @@ static void parmCallback(Fl_Widget* o, void*) {
 			Fl::add_timeout(0.5, parmInput_flash, 0);
 			parmInput->show();
 		}else{
-			parmInput->hide();
+			// if (Fl::focus() != parmInput)
+			if (Fl::focus() && (Fl_Widget*)Fl::focus()->argument() != parmInput) // Don't ask why
+			// if(!parmInputFocused || !needs_finetune[currentParameter])
+				parmInput->hide();
 		}
 
 		parmSet(o, NULL); // Do the actual handling
@@ -894,14 +904,14 @@ static void copyparmCallback(Fl_Widget* o, void*) {
  * @param Fl_Widget the calling widget
  * @param defined by FLTK but not used
  */
-static void finetuneCallback(Fl_Widget* o, void*)
+static void parminputCallback(Fl_Widget* o, void*)
 {
 	if (currentParameter<_PARACOUNT) // range check
 	{
 		if(needs_finetune[currentParameter]){
 			// Fl::lock();
 #ifdef _DEBUG
-			printf("finetuneCallback voice %u parameter %u", currentVoice, currentParameter);
+			printf("parminputCallback voice %u parameter %u", currentVoice, currentParameter);
 #endif
 			double val=((Fl_Valuator* )o)->value();
 			double val_min = ((Fl_Valuator* )o)->minimum();
@@ -915,16 +925,16 @@ static void finetuneCallback(Fl_Widget* o, void*)
 #endif
 			if(val<=val_max && val>=val_min){
 				((Fl_Value_Input* )o)->textcolor(FL_BLACK);
-				// cannot cast Fl_Positioner to Fl_Valuator, needs ad hoc handling
-				if(needs_finetune[currentParameter]==2){ // Fl_Positioner
+				if(needs_finetune[currentParameter]==2){ // MiniPositioner
 					float x, y, ymax;
-					// y is reversed (min>max)
-					ymax=((Fl_Positioner* )Knob[currentVoice][currentParameter])->yminimum();
+					// y is reversed (min>max) ?? Should handle non reversed too
+					// How should we handle ymaximum() != 0 ?
+					ymax=((MiniPositioner* )Knob[currentVoice][currentParameter])->yminimum();
 					x = (int)(val/ymax)*ymax;
 					y = val-x;
 					// printf("x %f y %f ymax %f\n", x, y, ymax);
-					((Fl_Positioner* )Knob[currentVoice][currentParameter])->xvalue(x);
-					((Fl_Positioner* )Knob[currentVoice][currentParameter])->yvalue(y);
+					((MiniPositioner* )Knob[currentVoice][currentParameter])->xvalue(x);
+					((MiniPositioner* )Knob[currentVoice][currentParameter])->yvalue(y);
 				}else{ // Any regular valuator
 					((Fl_Valuator* )Knob[currentVoice][currentParameter])->value(val);
 				}
@@ -934,13 +944,14 @@ static void finetuneCallback(Fl_Widget* o, void*)
 			}
 			// Fl::awake();
 			// Fl::unlock();
-#ifdef _DEBUG
 		}else{
-			printf("finetuneCallback - ignoring %i\n", currentParameter);
+#ifdef _DEBUG
+			printf("parminputCallback - ignoring %i\n", currentParameter);
 #endif
+			parmInput->hide();
 		}
 	}else{
-		fprintf(stderr, "finetuneCallback - Error: unexpected current parameter %i\n", currentParameter);
+		fprintf(stderr, "parminputCallback - Error: unexpected current parameter %i\n", currentParameter);
 	}
 }
 /*
@@ -949,8 +960,8 @@ static void lfoCallback(Fl_Widget* o, void*)
 	int Faktor = (int)((Fl_Valuator* )o)->value();
 	float Rem = ((Fl_Valuator* )o)->value()-Faktor;
 	int Argument = ((Fl_Valuator* )o)->argument();
-	((Fl_Positioner* )Knob[currentVoice][Argument])->xvalue(Faktor);
-	((Fl_Positioner* )Knob[currentVoice][Argument])->yvalue(Rem);
+	((MiniPositioner* )Knob[currentVoice][Argument])->xvalue(Faktor);
+	((MiniPositioner* )Knob[currentVoice][Argument])->yvalue(Rem);
 	parmCallback(Knob[currentVoice][Argument],NULL);
 }
 */
@@ -969,8 +980,8 @@ static void cutoffCallback(Fl_Widget* o, void*)
 		int Faktor = ((int)(f/500)*500);
 		float Rem = f-Faktor;
 		int Argument = ((Fl_Valuator* )o)->argument();
-		((Fl_Positioner* )Knob[currentVoice][Argument])->xvalue(Faktor);
-		((Fl_Positioner* )Knob[currentVoice][Argument])->yvalue(Rem);
+		((MiniPositioner* )Knob[currentVoice][Argument])->xvalue(Faktor);
+		((MiniPositioner* )Knob[currentVoice][Argument])->yvalue(Rem);
 		parmCallback(Knob[currentVoice][Argument],NULL);
 	}else{
 		((Fl_Value_Input* )o)->textcolor(FL_RED);
@@ -993,8 +1004,8 @@ static void tuneCallback(Fl_Widget* o, void*)
 		int Faktor = (int)f;
 		float Rem = f-Faktor;
 		int Argument = ((Fl_Valuator* )o)->argument();
-		((Fl_Positioner* )Knob[currentVoice][Argument])->xvalue(Faktor);
-		((Fl_Positioner* )Knob[currentVoice][Argument])->yvalue(Rem);
+		((MiniPositioner* )Knob[currentVoice][Argument])->xvalue(Faktor);
+		((MiniPositioner* )Knob[currentVoice][Argument])->yvalue(Rem);
 		parmCallback(Knob[currentVoice][Argument],NULL);
 	}else{
 		((Fl_Value_Input* )o)->textcolor(FL_RED);
@@ -1031,8 +1042,8 @@ static void BPMtuneCallback(Fl_Widget* o, void*)
 		int Faktor = (int)f;
 		float Rem = f-Faktor;
 		int Argument = ((Fl_Valuator* )o)->argument();
-		((Fl_Positioner* )Knob[currentVoice][Argument])->xvalue(Faktor);
-		((Fl_Positioner* )Knob[currentVoice][Argument])->yvalue(Rem);
+		((MiniPositioner* )Knob[currentVoice][Argument])->xvalue(Faktor);
+		((MiniPositioner* )Knob[currentVoice][Argument])->yvalue(Rem);
 		parmCallback(Knob[currentVoice][Argument], NULL);
 	}else{
 		((Fl_Value_Input* )o)->textcolor(FL_RED);
@@ -1391,57 +1402,57 @@ static void storesound(unsigned int srcsound, patch *destpatch)
 				{
 				case 3:
 					{
-					destpatch->freq[0][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-					destpatch->freq[0][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+					destpatch->freq[0][0]=((MiniPositioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[0][1]=((MiniPositioner*)Knob[srcsound][i])->yvalue();
 				break;
 				}
 				case 18:
 						{
-					destpatch->freq[1][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-					destpatch->freq[1][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+					destpatch->freq[1][0]=((MiniPositioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[1][1]=((MiniPositioner*)Knob[srcsound][i])->yvalue();
 				break;
 				}
 				//************************************ filter cuts *****************************
 				case 30:
 						{
-					destpatch->freq[2][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-					destpatch->freq[2][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+					destpatch->freq[2][0]=((MiniPositioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[2][1]=((MiniPositioner*)Knob[srcsound][i])->yvalue();
 				break;
 				}
 				case 33:
 						{
-					destpatch->freq[3][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-					destpatch->freq[3][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+					destpatch->freq[3][0]=((MiniPositioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[3][1]=((MiniPositioner*)Knob[srcsound][i])->yvalue();
 				break;
 				}
 				case 40:
 						{
-					destpatch->freq[4][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-					destpatch->freq[4][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+					destpatch->freq[4][0]=((MiniPositioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[4][1]=((MiniPositioner*)Knob[srcsound][i])->yvalue();
 				break;
 				}
 				case 43:
 						{
-					destpatch->freq[5][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-					destpatch->freq[5][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+					destpatch->freq[5][0]=((MiniPositioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[5][1]=((MiniPositioner*)Knob[srcsound][i])->yvalue();
 				break;
 				}
 				case 50:
 						{
-					destpatch->freq[6][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-					destpatch->freq[6][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+					destpatch->freq[6][0]=((MiniPositioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[6][1]=((MiniPositioner*)Knob[srcsound][i])->yvalue();
 				break;
 				}
 				case 53:
 						{
-					destpatch->freq[7][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-					destpatch->freq[7][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+					destpatch->freq[7][0]=((MiniPositioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[7][1]=((MiniPositioner*)Knob[srcsound][i])->yvalue();
 				break;
 				}
 				case 90:
 				{
-					destpatch->freq[8][0]=((Fl_Positioner*)Knob[srcsound][i])->xvalue();
-					destpatch->freq[8][1]=((Fl_Positioner*)Knob[srcsound][i])->yvalue();
+					destpatch->freq[8][0]=((MiniPositioner*)Knob[srcsound][i])->xvalue();
+					destpatch->freq[8][1]=((MiniPositioner*)Knob[srcsound][i])->yvalue();
 				break;
 				}
 				} // end of switch
@@ -1543,57 +1554,57 @@ static void sound_recall0(unsigned int destvoice, patch *srcpatch)
 				{
 				case 3:
 						{
-					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[0][0]);
-					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[0][1]);
+					((MiniPositioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[0][0]);
+					((MiniPositioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[0][1]);
 					break;
 				}
 				case 18:
 						{
-					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[1][0]);
-					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[1][1]);
+					((MiniPositioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[1][0]);
+					((MiniPositioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[1][1]);
 					break;
 				}
 				//************************************ filter cuts *****************************
 				case 30:
 						{
-					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[2][0]);
-					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[2][1]);
+					((MiniPositioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[2][0]);
+					((MiniPositioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[2][1]);
 				break;
 				}
 				case 33:
 						{
-					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[3][0]);
-					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[3][1]);
+					((MiniPositioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[3][0]);
+					((MiniPositioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[3][1]);
 				break;
 				}
 				case 40:
 						{
-					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[4][0]);
-					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[4][1]);
+					((MiniPositioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[4][0]);
+					((MiniPositioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[4][1]);
 				break;
 				}
 				case 43:
 						{
-					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[5][0]);
-					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[5][1]);
+					((MiniPositioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[5][0]);
+					((MiniPositioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[5][1]);
 				break;
 				}
 				case 50:
 						{
-					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[6][0]);
-					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[6][1]);
+					((MiniPositioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[6][0]);
+					((MiniPositioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[6][1]);
 				break;
 				}
 				case 53:
 				{
-					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[7][0]);
-					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[7][1]);
+					((MiniPositioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[7][0]);
+					((MiniPositioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[7][1]);
 				break;
 				}
 				case 90:
 				{
-					((Fl_Positioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[8][0]);
-					((Fl_Positioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[8][1]);
+					((MiniPositioner*)Knob[destvoice][i])->xvalue(srcpatch->freq[8][0]);
+					((MiniPositioner*)Knob[destvoice][i])->yvalue(srcpatch->freq[8][1]);
 				break;
 				}
 				default:
@@ -1876,6 +1887,197 @@ static void storemultiCallback(Fl_Widget* o, void* e)
 //	Fl::check();
 //	Fl::awake();
 //	Fl::unlock();
+}
+
+void MiniPositioner::draw(int X, int Y, int W, int H){
+//	printf("MiniPositioner::Draw!\n");
+	Fl_Positioner::draw(X, Y, W, H);
+	if (Fl::focus() == this){
+//		printf("MiniPositioner::Focus!\n");
+		// fl_line_style(FL_DOT, 1, 0);
+		fl_color(FL_WHITE); //83 // selection_color());
+		fl_xyline(X+1, Y+1, X+W-1);
+		fl_xyline(X+1, Y+H-1, X+W-1);
+		fl_yxline(X+1, Y+1, Y+H-1);
+		fl_yxline(X+W-1, Y+1, Y+H-1);
+		fl_line_style(0);
+	}
+}
+void MiniPositioner::draw() {
+	draw(x(), y(), w(), h());
+	draw_label();
+}
+
+int MiniPositioner::handle(int event){
+//	printf("MiniPositioner::Handle!\n");
+	double xval, xminval, xmaxval, xstep;
+	double yval, yminval, ymaxval, ystep;
+	xval=this->xvalue();
+	xminval=this->xminimum();
+	xmaxval=this->xmaximum();
+	if (xminval>xmaxval){
+		xminval=xmaxval;
+		xmaxval=this->xminimum();
+	}
+	yval=this->yvalue();
+	yminval=this->yminimum();
+	ymaxval=this->ymaximum();
+	if (yminval>ymaxval){
+		yminval=ymaxval;
+		ymaxval=this->yminimum();
+	}
+	ystep=(ymaxval-yminval)/100.0f;
+	xstep=(ymaxval-yminval); // (xmaxval-xminval)/100.0f;
+	// printf("key %u on %lu\n", Fl::event_key (), this->argument());
+	// printf("xmin %f xmax %f xstep %f\n", xminval, xmaxval, xstep);
+	// printf("ymin %f ymax %f ystep %f\n", yminval, ymaxval, ystep);
+	switch (event) 
+	{
+		// case FL_KEYUP: // It seems every knob is getting that until handled ?
+		case FL_KEYBOARD: // It seems every knob is getting that until handled ?
+			if (Fl::focus() == this) {
+				switch(Fl::event_key ()){
+					case FL_Home:
+						this->xvalue(xminval);
+						this->yvalue(yminval);
+						break;
+					case FL_End:
+						this->xvalue(xmaxval);
+						this->yvalue(ymaxval);
+						break;
+					case FL_KP+'+':
+					case FL_Right:
+						xval+=xstep;
+						if (xval>xmaxval) xval=xmaxval;
+						this->xvalue(xval);
+						break;
+					case FL_KP+'-':
+					case FL_Left:
+						xval-=xstep;
+						if (xval<xminval) xval=xminval;
+						this->xvalue(xval);
+						break;
+					case FL_KP+'.':
+						xval=0;
+						if (xval>xmaxval) xval=xmaxval;
+						if (xval<xminval) xval=xminval;
+						this->xvalue(xval);
+						yval=0;
+						if (yval>ymaxval) yval=ymaxval;
+						if (yval<yminval) yval=yminval;
+						this->yvalue(yval);
+						break;
+					case FL_Page_Up:
+						xval+=xstep*5;
+						if (xval>xmaxval) xval=xmaxval;
+						this->xvalue(xval);
+						break;
+					case FL_Page_Down:
+						xval-=xstep*5;
+						if (xval<xminval) xval=xminval;
+						this->xvalue(xval);
+						break;
+					case FL_Up:
+						yval+=ystep;
+						if (yval>ymaxval) yval=ymaxval;
+						this->yvalue(yval);
+						break;
+					case FL_Down:
+						yval-=ystep;
+						if (yval<yminval) yval=yminval;
+						this->yvalue(yval);
+						break;
+					default:
+						return Fl_Positioner::handle(event);
+				}
+				this->callback()((Fl_Widget*)this, 0);
+				return 1;
+			}
+			break;
+		case FL_FOCUS:
+//			printf("MiniPositioner::Focus %lu!\n", this->argument());
+			Fl::focus(this);
+			this->callback()((Fl_Widget*)this, 0);
+			if (visible()) damage(FL_DAMAGE_ALL);
+			return 1;
+		case FL_UNFOCUS:
+			// printf("MiniPositioner::Unfocus %lu!\n", this->argument());
+			this->callback()((Fl_Widget*)this, 0);
+			if (visible()) damage(FL_DAMAGE_ALL);
+			return 1;
+		case FL_PUSH:
+			if(Fl::event_clicks()){ // Double click or more
+				// printf("MiniPositioner::double click %lu!\n", this->argument());
+				this->xvalue(xminval);
+				this->yvalue(yminval);
+				this->callback()((Fl_Widget*)this, 0);
+				return 1; // Don't call base class handler !!
+			}
+			if (Fl::visible_focus()) handle(FL_FOCUS);
+			return Fl_Positioner::handle(event);
+		case FL_RELEASE:
+				return 1; // Don't call base class handler !!
+				// It would prevent double click from working
+		case FL_MOUSEWHEEL:
+			// printf("FL_MOUSEWHEEL %d\n",Fl::event_dy());
+			yval-=ystep*Fl::event_dy();
+			if (yval>ymaxval){
+				yval=yminval;
+				xval+=xstep;
+				if (xval>xmaxval){
+					xval=xmaxval;
+					yval=ymaxval;
+				}
+			}
+			if (yval<yminval){
+				yval=ymaxval;
+				xval-=xstep;
+				if (xval<xminval){
+					xval=xminval;
+					yval=yminval;
+				}
+			}
+			this->yvalue(yval);
+			this->xvalue(xval);
+			this->callback()((Fl_Widget*)this, 0);
+			return 1;
+	}
+	return Fl_Positioner::handle(event);
+}
+
+int MiniValue_Input::handle(int event){
+	// printf("MiniValue_Input::Handle!\n");
+	// parmInput->show(); // May have been hidden by current parameter unfocus ??
+			parmInputFocused=true;
+	switch (event) 
+	{
+/*
+		case FL_FOCUS:
+			parmInputFocused=true;
+			// parmInput->show(); // May have been hidden by current parameter unfocus
+			break;
+			*/
+			// printf("MiniValue_Input::Focus %lu!\n", this->argument());
+			
+			// Fl::focus(this);
+			
+//			this->callback()((Fl_Widget*)this, 0);
+//			if (visible()) damage(FL_DAMAGE_ALL);
+
+			// return 1;
+
+		case FL_UNFOCUS:
+			// printf("MiniValue_Input::Unfocus %lu!\n", this->argument());
+			parmInputFocused=false;
+			parmInput->hide();
+			break;
+			/*
+			this->callback()((Fl_Widget*)this, 0);
+			if (visible()) damage(FL_DAMAGE_ALL);
+			return 1;
+			*/
+	}
+	return Fl_Value_Input::handle(event);
 }
 
 void SoundTable::draw_cell(TableContext context, 
@@ -2572,7 +2774,7 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 }
 
 void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int x, int y){
-	{Fl_Positioner* o = new Fl_Positioner(x, y, 70, 79, "cut");
+	{MiniPositioner* o = new MiniPositioner(x, y, 70, 79, "cut");
 	o->xbounds(0,9000);
 	o->ybounds(500,0);
 	o->selection_color(0);
@@ -2638,7 +2840,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[voice][o->argument()] = o;
 	}
-	{ Fl_Positioner* o = new Fl_Positioner(x, y+10, w, 100, "tune");
+	{ MiniPositioner* o = new MiniPositioner(x, y+10, w, 100, "tune");
 		o->xbounds(0,16);
 		o->ybounds(1,0);
 		o->box(FL_BORDER_BOX);
@@ -3235,7 +3437,7 @@ printf("_BGCOLOR: %u\n",_BGCOLOR);
 		o->color(FL_FOREGROUND_COLOR);
 		o->labelsize(_TEXT_SIZE);
 
-		{  Fl_Positioner* o = new Fl_Positioner(620, y+5, 55, 50,"tune");
+		{  MiniPositioner* o = new MiniPositioner(620, y+5, 55, 50,"tune");
 		o->xbounds(0,128);
 		o->ybounds(1,0);
 		o->box(FL_BORDER_BOX);
@@ -4267,14 +4469,14 @@ printf("_BGCOLOR: %u\n",_BGCOLOR);
 	}*/
 
 	// parameter tuning
-	{ Fl_Value_Input* o = new Fl_Value_Input(900, 390, 80, 20);
+	{ Fl_Value_Input* o = new MiniValue_Input(900, 390, 80, 20);
 		o->box(FL_ROUNDED_BOX);
 		o->labelsize(12);
 		o->textsize(12);
 		// o->menubutton()->textsize(_TEXT_SIZE);
 		o->align(FL_ALIGN_LEFT);
 		o->step(0.0001);
-		o->callback((Fl_Callback*)finetuneCallback);
+		o->callback((Fl_Callback*)parminputCallback);
 		parmInput = o;
 	}
 
