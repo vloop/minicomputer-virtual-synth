@@ -90,12 +90,11 @@ void Fl_Knob::draw() {
 		}
 
 		// Outline
-		fl_color(FL_BLACK); // fl_color((Fl::focus() == this)?FL_RED:FL_BLACK);
+		fl_color(FL_BLACK);
 		fl_arc(ox+m,oy+m,side-2*m,side-2*m,0,360);
 		// Top
 		fl_color(col);
-		//fl_pie(ox+2*m-2,oy+2*m-2,side-4*m+4,side-4*m+4,0,360);
-		// fl_pie(ox+m+b,oy+m+b,side-2*(m+b),side-2*(m+b),0,360);
+		// fl_pie(ox+m+b,oy+m+b,side-2*(m+b),side-2*(m+b),0,360); // Centered
 		fl_pie(ox+m+b+1,oy+m+b+1,side-2*(m+b)-1,side-2*(m+b)-1,0,360);
 	}
 	else
@@ -209,11 +208,12 @@ int Fl_Knob::handle(int  event) {
 			// printf("Activate %lu!\n", this->argument());
 			if (visible()) damage(FL_DAMAGE_ALL);
 			return 1;
-			/*
-		case FL_ENTER:
-			printf("FL_ENTER\n");
+		case FL_ENTER: // Needed for tooltip
+			// printf("FL_ENTER\n");
 			return 1;
-			*/
+		case FL_LEAVE: // Needed for tooltip
+			// printf("FL_LEAVE\n");
+			return 1;
 		case FL_MOUSEWHEEL:
 			// printf("FL_MOUSEWHEEL %d\n",Fl::event_dy());
 			val+=step*Fl::event_dy();

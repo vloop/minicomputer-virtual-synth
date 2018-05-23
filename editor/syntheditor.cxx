@@ -39,7 +39,7 @@ int needs_multi[_PARACOUNT];
 int is_button[_PARACOUNT];
 // Avoid copy_tooltip to spare memory management overhead
 // This cost us about 150Kb, nothing compared to delay buffers...
-char Knob_tooltip[_MULTITEMP][_PARACOUNT][_NAMESIZE];
+char knob_tooltip[_MULTITEMP][_PARACOUNT][_NAMESIZE];
 
 Fl_Choice* auswahl[_MULTITEMP][_CHOICECOUNT];
 Fl_Value_Input* miniInput[_MULTITEMP][_MINICOUNT];
@@ -70,7 +70,7 @@ Fl_Toggle_Button *auditionBtn;
 Fl_Button *panicBtn;
 Fl_Button *clearStateBtn[_MULTITEMP];
 Fl_Value_Input* parmInput;
-bool parmInputFocused=false;
+// bool parmInputFocused=false;
 Fl_Box* sounding[_MULTITEMP];
 
 Fl_Group *multiGroup;
@@ -290,11 +290,11 @@ static void choiceSet(Fl_Widget* o, void*)
 
 static void choiceCallback(Fl_Widget* o, void*)
 {
-// #ifdef _DEBUG
+#ifdef _DEBUG
 	printf("choiceCallback voice %u, parameter %li, value %u\n", currentVoice, ((Fl_Choice*)o)->argument(), ((Fl_Choice*)o)->value());
-// #endif
-	parmInputFocused=false;
-	parmInput->hide();
+#endif
+//	parmInputFocused=false;
+	parmInput->hide(); // Possibly redundant
 	if (transmit) lo_send(t, "/Minicomputer/choice", "iii", currentVoice, ((Fl_Choice*)o)->argument(), ((Fl_Choice*)o)->value());
 	setsound_changed(); // All choices relate to the sound, none to the multi
 }
@@ -505,13 +505,12 @@ static void parmInput_flash(void *userdata){
 static void parmSet(Fl_Widget* o, void*) {
 	if (o){
 		// Fl::lock();
-        // Beware not all controls are valuators!
 		currentParameter = o->argument();
 #ifdef _DEBUG
 		printf("parmSet parameter %u\n", currentParameter);
 #endif
+		float val;
 		if(is_button[currentParameter]){
-			float val;
 			if(currentParameter==2){ // Fixed frequency button Osc 1
 				if (((Fl_Light_Button *)o)->value())
 				{
@@ -554,57 +553,62 @@ static void parmSet(Fl_Widget* o, void*) {
 				Knob[currentVoice][29]->redraw();
 				Knob[currentVoice][138]->redraw();
 				Knob[currentVoice][141]->redraw();
+				Knob[currentVoice][148]->redraw();
 			}
 			if(currentParameter==4 || currentParameter==19){ // Boost buttons, transmit 1 or 100
-				val=((Fl_Light_Button*)o)->value()?100.0f:1.0f;
+				val=((Fl_Valuator*)o)->value()?100.0f:1.0f;
 			}else { // Regular buttons, transmit plain value as float
-				val=((Fl_Light_Button*)o)->value()?1.0f:0.0f;
+				val=((Fl_Valuator*)o)->value()?1.0f:0.0f;
 			}
-			if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, ((Fl_Light_Button*)o)->argument(), val);
+			if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, currentParameter, val);
 #ifdef _DEBUG
-			printf("parmSet button %li : %f\n", ((Fl_Light_Button*)o)->argument(), val);
+			printf("parmSet button %li : %f\n", currentParameter, val);
 #endif
 		}else{ // Not a button
-            char Knob_tooltip_template[]="%f"; // May override below
-            float Knob_tooltip_value=0.0f;
-            Knob_tooltip_value=((Fl_Valuator*)o)->value(); // May override below
+			char knob_tooltip_template[]="%f"; // May override below
+			float knob_tooltip_value;
+			// Beware not all controls are valuators !
+			if(needs_finetune[currentParameter]==2){ // Positioner
+				val=((Fl_Positioner*)o)->xvalue() + ((Fl_Positioner*)o)->yvalue();
+			}else{
+				val=((Fl_Valuator*)o)->value();
+			}
+			knob_tooltip_value=val; // May override below
 			switch (currentParameter)
 			{
 				case 1: // Osc 1 fixed frequency dial
 				{
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
-					miniInput[currentVoice][0]->value( ((Fl_Valuator* )Knob[currentVoice][1])->value() );
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
+					miniInput[currentVoice][0]->value(val);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+					printf("parmSet %li : %g\n", o->argument(), val);
 			#endif
 					break;
 				}
 				case 3: // Osc 1 tune
 				{
-					float f = ((MiniPositioner*)o)->xvalue() + ((MiniPositioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
-					miniInput[currentVoice][1]->value( f);
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
+					miniInput[currentVoice][1]->value(val);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", o->argument(), val);
 			#endif
 				break;
 				}
 				case 16: // Osc 2 fixed frequency dial
 				{
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
-					miniInput[currentVoice][2]->value( ((Fl_Valuator*)o)->value() );
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
+					miniInput[currentVoice][2]->value(val);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+					printf("parmSet %li : %g\n", o->argument(), val);
 			#endif
 					break;
 				}
 				case 18: // Osc 2 tune
 				{ 
-					float f = ((MiniPositioner*)o)->xvalue() + ((MiniPositioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
-					miniInput[currentVoice][3]->value(f);
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
+					miniInput[currentVoice][3]->value(val);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", o->argument(), val);
 			#endif
 				break;
 				}
@@ -634,126 +638,112 @@ static void parmSet(Fl_Widget* o, void*) {
 				case 103:
 				case 105:
 				{
-					float tr=(((Fl_Valuator*)o)->value()); // 0.5..0.01
+					float tr=val; // 0.5..0.01
 					tr*= tr*tr/2.f; // 0.125..0.000001
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Valuator*)o)->argument(),tr);
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), tr);
 			#ifdef _DEBUG
-					printf("parmSet eg %li : %g\n", ((Fl_Valuator*)o)->argument(), tr);
+					printf("parmSet eg %li : %g\n", o->argument(), tr);
 			#endif
 					break;
 				}
 				case 116: // Glide
 				{
-					float tr=(((Fl_Valuator*)o)->value());// 0..1
+					float tr=val; // 0..1
 					// .9999 is slow .99995 is slower, must stay <1
 					tr= 1-pow(10, -tr*5);
 					if(tr>=1) tr = 0.99995f;
 					if(tr<0) tr = 0.f;
-					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, ((Fl_Valuator*)o)->argument(), tr);
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), tr);
 			#ifdef _DEBUG
-					printf("parmSet glide %li : %f --> %f \n", ((Fl_Valuator*)o)->argument(), ((Fl_Valuator*)o)->value(), tr);
+					printf("parmSet glide %li : %f --> %f \n", o->argument(), ((Fl_Valuator*)o)->value(), tr);
 			#endif
 					break;
 				}
 
 				//************************************ filter cuts *****************************
-				case 30:{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
+				case 30:{	
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", o->argument(), val);
 			#endif
-					miniInput[currentVoice][4]->value(f);
+					miniInput[currentVoice][4]->value(val);
 					break;
 				}
-				case 33:{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
+				case 33:{	
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", o->argument(), val);
 			#endif		
-					miniInput[currentVoice][5]->value(f);
+					miniInput[currentVoice][5]->value(val);
 					break;
 				}
-				case 40:{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
+				case 40:{	
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", o->argument(), val);
 			#endif
-					miniInput[currentVoice][6]->value(f);
+					miniInput[currentVoice][6]->value(val);
 					break;
 				}
-				case 43:{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
+				case 43:{	
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", o->argument(), val);
 			#endif
-					miniInput[currentVoice][7]->value(f);
+					miniInput[currentVoice][7]->value(val);
 					break;
 				}
 				case 50: // Filter 3 a cut
 				{
-					float f=0;
-					int Argument=0;
-
-					//if (!isFine)
-					//{
-						f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
-						Argument=((MiniPositioner*)o)->argument();
-					//}
-					//else 
-					//{
-					//	f=(((Fl_Valuator*)o)->value());
-					//	isFine = false;
-					//	Argument=((Fl_Valuator*)o)->argument();
-					//}*/
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,Argument,f);
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
 			#ifdef _DEBUG
-					printf("parmSet %i : %g\n", Argument,f);
+					printf("parmSet %i : %g\n", o->argument(), val);
 					fflush(stdout);
 			#endif
-					miniInput[currentVoice][8]->value(f);
+					miniInput[currentVoice][8]->value(val);
 					break;
 				}
 				case 53: // Filter 3 b cut
-				{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
+				{	
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", o->argument(), val);
 			#endif
-					miniInput[currentVoice][9]->value(f);
+					miniInput[currentVoice][9]->value(val);
 					break;
 				}
 				case 90: // OSC 3 tune
-				{	float f=((MiniPositioner*)o)->xvalue()+((MiniPositioner*)o)->yvalue();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
+				{	
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((MiniPositioner*)o)->argument(),f);
+					printf("parmSet %li : %g\n", o->argument(), val);
 			#endif
-					miniInput[currentVoice][10]->value(f);
-					miniInput[currentVoice][11]->value(round(f*6000)/100); // BPM
+					miniInput[currentVoice][10]->value(val);
+					miniInput[currentVoice][11]->value(round(val*6000)/100); // BPM
 					break;
 				}
 				case 111: // Delay time
-				{	float f=((Fl_Valuator*)o)->value();
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((MiniPositioner*)o)->argument(),f);
+				{	float bpm=0.0f;
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
 			#ifdef _DEBUG
-					printf("parmSet %li : %g\n", ((Fl_Valuator*)o)->argument(), f);
+					printf("parmSet %li : %g\n", o->argument(), val);
 			#endif
-					if (f!=0) f=round(6000/f)/100;
-					miniInput[currentVoice][12]->value(f); // BPM
+					if (val!=0.0f) bpm=round(6000/val)/100;
+					miniInput[currentVoice][12]->value(bpm); // BPM
 					break;
 				}
 				default:
 				{
-					if (transmit) lo_send(t, "/Minicomputer", "iif",currentVoice,((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
 			#ifdef _DEBUG
-					printf("parmSet default %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+					printf("parmSet default %li : %g\n", o->argument(), val);
 			#endif
 					break;
 				}
 			} // end of switch
-            snprintf(Knob_tooltip[currentVoice][((Fl_Valuator*)o)->argument()], _NAMESIZE, Knob_tooltip_template, Knob_tooltip_value);
-            o->tooltip(Knob_tooltip[currentVoice][((Fl_Valuator*)o)->argument()]);
-			// printf("parmSet tooltip %li : %g\n", ((Fl_Valuator*)o)->argument(),((Fl_Valuator*)o)->value());
+            snprintf(knob_tooltip[currentVoice][o->argument()], _NAMESIZE, knob_tooltip_template, knob_tooltip_value);
+            o->tooltip(knob_tooltip[currentVoice][o->argument()]);
+			// printf("parmSet tooltip %li : %g\n", o->argument(),((Fl_Valuator*)o)->value());
 		} // end of if is_button
 #ifdef _DEBUG
 		fflush(stdout);
@@ -795,7 +785,7 @@ static void parmCallback(Fl_Widget* o, void*) {
 				parmInput->minimum(((Fl_Valuator*)o)->minimum());
 				parmInput->maximum(((Fl_Valuator*)o)->maximum());
 			}
-			snprintf(currentParameterName, 32, "%31s", ((Fl_Valuator*)o)->label());
+			snprintf(currentParameterName, 32, "%31s", o->label());
 			parmInput->label(currentParameterName);
 			parmInput->labelcolor(FL_YELLOW);
 			Fl::add_timeout(0.5, parmInput_flash, 0);
@@ -803,11 +793,12 @@ static void parmCallback(Fl_Widget* o, void*) {
 		}else{
 			// if (Fl::focus() != parmInput)
 			if (Fl::focus() && (Fl_Widget*)Fl::focus()->argument() != parmInput) // Don't ask why
-			// if(!parmInputFocused || !needs_finetune[currentParameter])
+			// if(!parmInputFocused && !needs_finetune[currentParameter])
 				parmInput->hide();
 		}
 
 		parmSet(o, NULL); // Do the actual handling
+		parmInput->tooltip(o->tooltip()); // Does this really help the user?
 
 //		Fl::awake();
 //		Fl::unlock();
@@ -954,17 +945,7 @@ static void parminputCallback(Fl_Widget* o, void*)
 		fprintf(stderr, "parminputCallback - Error: unexpected current parameter %i\n", currentParameter);
 	}
 }
-/*
-static void lfoCallback(Fl_Widget* o, void*)
-{
-	int Faktor = (int)((Fl_Valuator* )o)->value();
-	float Rem = ((Fl_Valuator* )o)->value()-Faktor;
-	int Argument = ((Fl_Valuator* )o)->argument();
-	((MiniPositioner* )Knob[currentVoice][Argument])->xvalue(Faktor);
-	((MiniPositioner* )Knob[currentVoice][Argument])->yvalue(Rem);
-	parmCallback(Knob[currentVoice][Argument],NULL);
-}
-*/
+
 /** parmCallback when a cutoff has changed
  * the following two parmCallbacks are specialized
  * for the Positioner widget which is 2 dimensional
@@ -1900,7 +1881,7 @@ void MiniPositioner::draw(int X, int Y, int W, int H){
 		fl_xyline(X+1, Y+H-1, X+W-1);
 		fl_yxline(X+1, Y+1, Y+H-1);
 		fl_yxline(X+W-1, Y+1, Y+H-1);
-		fl_line_style(0);
+		// fl_line_style(0);
 	}
 }
 void MiniPositioner::draw() {
@@ -2016,8 +1997,14 @@ int MiniPositioner::handle(int event){
 			if (Fl::visible_focus()) handle(FL_FOCUS);
 			return Fl_Positioner::handle(event);
 		case FL_RELEASE:
-				return 1; // Don't call base class handler !!
-				// It would prevent double click from working
+			return 1; // Don't call base class handler !!
+			// It would prevent double click from working
+		case FL_ENTER: // Needed for tooltip
+			// printf("FL_ENTER\n");
+			return 1;
+		case FL_LEAVE: // Needed for tooltip
+			// printf("FL_LEAVE\n");
+			return 1;
 		case FL_MOUSEWHEEL:
 			// printf("FL_MOUSEWHEEL %d\n",Fl::event_dy());
 			yval-=ystep*Fl::event_dy();
@@ -2048,12 +2035,12 @@ int MiniPositioner::handle(int event){
 int MiniValue_Input::handle(int event){
 	// printf("MiniValue_Input::Handle!\n");
 	// parmInput->show(); // May have been hidden by current parameter unfocus ??
-			parmInputFocused=true;
+//			parmInputFocused=true;
 	switch (event) 
 	{
 /*
 		case FL_FOCUS:
-			parmInputFocused=true;
+//			parmInputFocused=true;
 			// parmInput->show(); // May have been hidden by current parameter unfocus
 			break;
 			*/
@@ -2068,7 +2055,7 @@ int MiniValue_Input::handle(int event){
 
 		case FL_UNFOCUS:
 			// printf("MiniValue_Input::Unfocus %lu!\n", this->argument());
-			parmInputFocused=false;
+//			parmInputFocused=false;
 			parmInput->hide();
 			break;
 			/*
@@ -2834,6 +2821,8 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 	  */
 	int w=63;
 	{ Fl_Knob* o= new Fl_Knob(x, y+30, w, 60, "frequency");
+	// { Fl_Dial* o= new Fl_Dial(x, y+30, w, 60, "frequency");
+		// o->tooltip("trouloulou"); // Works for Fl_Dial
 		o->labelsize(_TEXT_SIZE);
 		o->maximum(1000); 
 		o->argument(osc_base);
@@ -3039,7 +3028,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 }
     
 Fenster* UserInterface::make_window(const char* title) {    
-printf("_BGCOLOR: %u\n",_BGCOLOR);
+// printf("_BGCOLOR: %u\n",_BGCOLOR);
  // Fl_Double_Window* w;
  // {
 	currentVoice=0;
@@ -3438,6 +3427,8 @@ printf("_BGCOLOR: %u\n",_BGCOLOR);
 		o->labelsize(_TEXT_SIZE);
 
 		{  MiniPositioner* o = new MiniPositioner(620, y+5, 55, 50,"tune");
+		// {  Fl_Positioner* o = new Fl_Positioner(620, y+5, 55, 50,"tune");
+		// o->tooltip("Tralala"); // Never displayed for Fl_Positioner ??
 		o->xbounds(0,128);
 		o->ybounds(1,0);
 		o->box(FL_BORDER_BOX);
@@ -3446,7 +3437,7 @@ printf("_BGCOLOR: %u\n",_BGCOLOR);
 		o->argument(90);
 		o->selection_color(0);
 		o->callback((Fl_Callback*)parmCallback);
-		 Knob[i][o->argument()] = o;
+		Knob[i][o->argument()] = o;
 	  /*Fl_Knob* o = new Fl_SteinerKnob(627, 392, 34, 34, "frequency");
 		  o->labelsize(_TEXT_SIZE);o->argument(90);
 		  o->callback((Fl_Callback*)parmCallback);
