@@ -311,6 +311,23 @@ file.close();
 return(0);
 }
 
+void Memory::writeSound(ofstream& file, unsigned int current)
+{
+	int p,j;
+
+	//File<< "["<<i<<"]" <<endl; // write the soundnumber
+	file<< "'"<<sounds[current].name<<"'"<<endl; // write the name
+	
+	for (p=0;p<9;++p)
+	{
+		for (j=0;j<2;++j)
+			file<< "<"<< p << ";" << j << ":" <<sounds[current].freq[p][j]<<">"<<endl;
+	}
+	for (p=0;p<_CHOICECOUNT;++p)
+		file<< "{"<< p << ":"<<sounds[current].choice[p]<<"}"<<endl;
+	for (p=0;p<_PARACOUNT;++p) // write the remaining parameters
+		file<< "("<< p << ":"<<sounds[current].parameter[p]<<")"<<endl;
+}
 /** export a single sound to a textfile
  * @param the filename
  * @param the sound memory location which is exported
@@ -318,39 +335,21 @@ return(0);
 void Memory::exportSound(string filename, unsigned int current)
 {
 	printf("Exporting sound %u to file %s\n", current, filename.c_str());
-	ofstream File (filename.c_str());
-	int p,j;
-		File<<"# Minicomputer v"<<_VERSION<<" single sound file"<<endl;
-
-		//File<< "["<<i<<"]" <<endl; // write the soundnumber
-		File<< "'"<<sounds[current].name<<"'"<<endl; // write the name
-		
-		for (p=0;p<9;++p)
-		{
-			for (j=0;j<2;++j)
-				File<< "<"<< p << ";" << j << ":" <<sounds[current].freq[p][j]<<">"<<endl;
-		}
-		for (p=0;p<_CHOICECOUNT;++p)
-			File<< "{"<< p << ":"<<sounds[current].choice[p]<<"}"<<endl;
-		for (p=0;p<_PARACOUNT;++p) // write the remaining parameters
-			File<< "("<< p << ":"<<sounds[current].parameter[p]<<")"<<endl;
-
-	File.close();
+	ofstream file (filename.c_str());
+	file<<"# Minicomputer v"<<_VERSION<<" single sound file"<<endl;
+	writeSound(file, current);
+	file.close();
 }
 
-int Memory::importPatch(string filename, patch *p)
+int Memory::readPatch(ifstream& File, patch *p)
 {
-	ifstream File (filename.c_str());
-	if(!File){
-		fprintf(stderr, "importPatch: cannot open file %s\n", filename.c_str());
-		return(1);
-	}
-	printf("importPatch: reading from %s\n", filename.c_str());
 	string str, sParameter, sValue;
 	float fValue;
 	int iParameter, i2Parameter;
 	unsigned int j;
+	int pos=File.tellg();
 	getline(File,str);
+	bool gotname=false;
 	while (File)
 	{
 		sParameter="";
@@ -400,18 +399,35 @@ int Memory::importPatch(string filename, patch *p)
 					}
 				}
 	*/
+				// Another name means another sound ??
+				// if(gotname)
+				gotname=true;
 				printf("importPatch: reading %s\n", p->name);
 			}
 			break;
+			case '[': // Next patch
+				File.seekg(pos ,std::ios_base::beg);
+				return 0;
 			case '#': // Comment
 				printf("importPatch: %s\n", &str[1]);
 			break;
 			default:
 				fprintf(stderr, "importPatch: unexpected leading character %c (%d)\n", str[0], str[0]);
 		}
-
+		pos=File.tellg();
 		getline(File,str); // get the next line of the file
 	}
+	return 0;
+}
+int Memory::importPatch(string filename, patch *p)
+{
+	ifstream File (filename.c_str());
+	if(!File){
+		fprintf(stderr, "importPatch: cannot open file %s\n", filename.c_str());
+		return(1);
+	}
+	printf("importPatch: reading from %s\n", filename.c_str());
+	readPatch(File, p);
 	File.close();
 	printf("importPatch: read complete.\n");
 	return(0);
@@ -586,8 +602,17 @@ void Memory::exportMulti(string filename, unsigned int multi)
 	{
 		File<< "<"<< p << ":" <<multis[multi].parms[p]<<">"<<endl;
 	}
+	for (p=0;p<_MULTITEMP;++p) // embed the sounds parameters
+	{
+		int s=multis[multi].sound[p];
+		printf("exportMulti: embedding sound %u %3u %s\n", p, s, sounds[s].name);
+		File<< "["<< s <<"]"<<endl;
+		writeSound(File, s);
+	}
+	File.close();
+	printf("Export complete\n");
 }
-void Memory::importMulti(string filename, unsigned int multi)
+void Memory::importMulti(string filename, unsigned int multi, bool with_sounds)
 {
 	if(multi>=_MULTIS){
 		fprintf(stderr, "ERROR: unexpected multi number %d\n", multi);
@@ -612,9 +637,9 @@ void Memory::importMulti(string filename, unsigned int multi)
 				if (parseNumbers(str, iParameter, i2Parameter, fValue))
 				{
 					if(iParameter<_MULTITEMP)
-						multis[multi].sound[iParameter]=(int)fValue;
+						multis[multi].sound[iParameter]=fValue;
 					else
-						fprintf(stderr, "ERROR: loadMultis - unexpected parameter number %i", iParameter);
+						fprintf(stderr, "ERROR: loadMultis - unexpected parameter number %i\n", iParameter);
 				}
 			}
 			break;
@@ -623,9 +648,9 @@ void Memory::importMulti(string filename, unsigned int multi)
 				if (parseNumbers(str, iParameter, i2Parameter, fValue))
 				{
 					if(iParameter<_MULTIPARMS)
-						multis[multi].parms[iParameter]=(int)fValue;
+						multis[multi].parms[iParameter]=fValue;
 					else
-						fprintf(stderr, "ERROR: loadMultis - unexpected parameter number %i", iParameter);
+						fprintf(stderr, "ERROR: loadMultis - unexpected global parameter number %i\n", iParameter);
 				}
 			}
 			break;
@@ -656,17 +681,32 @@ void Memory::importMulti(string filename, unsigned int multi)
 				}
 			}
 			break;
+			case '[': // setting embedded sound parameters
+			{
+				if (parseNumbers(str, iParameter, i2Parameter, fValue))
+				{
+					if(with_sounds){
+						printf("importMulti: loading embedded sound %u\n", iParameter);
+						readPatch(File, &sounds[iParameter]);
+					}else{
+						printf("importMulti: ignoring embedded sound(s)\n");
+						// Ugly way to exhaust file
+						while (File) getline(File,str);
+					}
+				}
+			}
+			break;
 			case '#': // Comment
 				printf("loadMultis: %s\n", &str[1]);
 			break;
+			default:
+				fprintf(stderr, "importMulti: unexpected leading character %c (%d)\n", str[0], str[0]);
 		} // end of switch
-		getline(File,str);// get the next line
+		if(File) getline(File,str);// get the next line
 	} // end of while (file)
 	File.close();// done
-
-	// now the new multi is in RAM but need to be saved to the main file
-	saveMultis();
 }
+
 void Memory::copyMulti(int src, int dest)
 {
 	multis[dest]=multis[src];
@@ -724,7 +764,7 @@ while (file) // as long as there is anything in the file
 			if (parseNumbers(str, iParameter, i2Parameter, fValue))
 			{
 				if(iParameter<_MULTITEMP)
-					multis[current].sound[iParameter]=(int)fValue;
+					multis[current].sound[iParameter]=fValue;
 				else
 					fprintf(stderr, "ERROR: loadMultis - unexpected parameter number %i", iParameter);
 			}
@@ -735,9 +775,9 @@ while (file) // as long as there is anything in the file
 			if (parseNumbers(str, iParameter, i2Parameter, fValue))
 			{
 				if(iParameter<_MULTIPARMS)
-					multis[current].parms[iParameter]=(int)fValue;
+					multis[current].parms[iParameter]=fValue;
 				else
-					fprintf(stderr, "ERROR: loadMultis - unexpected parameter number %i", iParameter);
+					fprintf(stderr, "ERROR: loadMultis - unexpected global parameter number %i", iParameter);
 			}
 		}
 		break;
@@ -779,6 +819,8 @@ while (file) // as long as there is anything in the file
 		case '#': // Comment
 			printf("loadMultis: %s\n", &str[1]);
 		break;
+		default:
+			fprintf(stderr, "ERROR: loadMultis - unexpected token '%c'", str[0]);
 	}// end of switch
 	getline(file, str);// get the next line
 }// end of while (file)

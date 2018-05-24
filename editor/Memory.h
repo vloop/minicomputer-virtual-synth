@@ -79,9 +79,11 @@ public:
 	void clearInit();
 	void clearEG(patch *dest, unsigned int n);
 	void importSound(string filename, unsigned int current); // import a single sound
+	void writeSound(ofstream& file, unsigned int current); // Append sound to opened file
 	void exportSound(string filename, unsigned int current); // export a single sound
+	int readPatch(ifstream& File, patch *p);
 	int importPatch(string filename, patch *p); // import single sound to patch
-	void importMulti(string filename, unsigned int current); // import a single multi
+	void importMulti(string filename, unsigned int current, bool with_sounds); // import a single multi
 	void exportMulti(string filename, unsigned int current); // export a single multi
 
 	patch initSound;

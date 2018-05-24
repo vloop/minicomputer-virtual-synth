@@ -76,7 +76,8 @@ Fl_Box* sounding[_MULTITEMP];
 Fl_Group *multiGroup;
 Fl_Int_Input *multiNoInput;
 Fl_Input* multiNameInput;
-Fl_Button *loadMultiBtn, *loadMultiBtn2, *storeMultiBtn, *decMultiBtn, *incMultiBtn;
+Fl_Button *loadMultiBtn, *loadMultiBtn2, *storeMultiBtn, *importMultiBtn, *exportMultiBtn;
+Fl_Button *decMultiBtn, *incMultiBtn;
 Fl_Roller* multiRoller;
 bool multi_changed;
 Fl_Menu_Button *multiMenu;
@@ -2188,6 +2189,7 @@ static void do_importmulti(int multinum)
 {
 	// printf("About to import into multi %d\n", multinum);
 	char warn[256];
+	bool with_sounds=false;
 	sprintf (warn, "overwrite multi %u", multinum);
 	Fl_File_Chooser *fc = new Fl_File_Chooser(".","TEXT Files (*.txt)\t",Fl_File_Chooser::SINGLE,warn);
 	fc->textsize(9);
@@ -2198,10 +2200,15 @@ static void do_importmulti(int multinum)
 //		Fl::lock();
 //		fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
 //		Fl::check();
-		Speicher.importMulti(fc->value(), multinum);
+		with_sounds=fl_choice("Do you want to import embedded sounds, overwriting existing sounds?", "Yes", "No", 0)==0;
+		Speicher.importMulti(fc->value(), multinum, with_sounds);
 		// ok, now we have a new multi loaded
 		// but not applied?!
 		updatemultiNameInput(multinum, Speicher.getMultiName(multinum).c_str());
+		if(fl_choice("Use the imported multi as current?", "Yes", "No", 0)==0) loadmulti(multinum);
+		// now the new multi is in RAM but need to be saved to the main file
+		// saveMultis();
+
 //		fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 //		Fl::check();
 //		Fl::awake();
@@ -4103,7 +4110,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->labelsize(_TEXT_SIZE);
 			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 			o->callback((Fl_Callback*)multiimportCallback, (void*) multiTable);
-			loadMultiBtn2=o;
+			importMultiBtn=o;
 		}
 		{ Fl_Button* o = new Fl_Button(200, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "export multi");
 			o->tooltip("Export multi from selected location to file");
@@ -4111,7 +4118,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->labelsize(_TEXT_SIZE);
 			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 			o->callback((Fl_Callback*)multiexportCallback, (void*) multiTable);
-			loadMultiBtn2=o;
+			exportMultiBtn=o;
 		}
 		{ Fl_Output* o = new Fl_Output(265, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 180, _LOGO_HEIGHT2);
 			o->box(FL_BORDER_BOX);
@@ -4445,6 +4452,8 @@ void Fenster::resize (int x, int y, int w, int h)
 		panicBtn->labelsize(new_text_size);
 		loadMultiBtn->labelsize(new_text_size);
 		loadMultiBtn2->labelsize(new_text_size);
+		importMultiBtn->labelsize(new_text_size);
+		exportMultiBtn->labelsize(new_text_size);
 		storeMultiBtn->labelsize(new_text_size);
 		saveMultisBtn->labelsize(new_text_size);
 		saveSoundsBtn->labelsize(new_text_size);
