@@ -84,7 +84,7 @@ env.Program('minicomputerCPU','cpu/main.c');
 print""
 print"-                     building the editor:"
 
-guienv.Program('minicomputer',['editor/main.cpp','editor/Memory.cpp','editor/syntheditor.cxx','editor/Fl_Knob.cxx']);
+guienv.Program('minicomputer',['editor/main.cpp','editor/Memory.cpp','editor/syntheditor.cxx','editor/MiniKnob.cxx','editor/MiniPositioner.cxx']);
 
 env.Alias(target="install", source=env.Install(dir="/usr/local/bin", source="minicomputer"));
 env.Alias(target="install", source=env.Install(dir="/usr/local/bin", source="minicomputerCPU"));

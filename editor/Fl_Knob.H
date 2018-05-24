@@ -40,12 +40,9 @@ public:
   void scaleticks(const int tck);
   void bgcolor(const int c);
   void dragtype(const short c);
-//  static void defaultbgcolor(const int c);
-//  static void defaultdragtype(const short c);
   int margin();
   void margin(const int m);
   int bevel();
   void bevel(const int b);
-//  static void defaultmargin(const short c);
 };
 #endif

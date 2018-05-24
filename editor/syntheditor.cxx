@@ -19,12 +19,12 @@
 #include "syntheditor.h"
 #include "Memory.h"
 
-short Fl_Knob::_defaultdragtype=Fl_Knob::VERTICAL;
-int Fl_Knob::_defaultmargin=3;
-int Fl_Knob::_defaultbevel=3;
-int Fl_Knob::_defaultbgcolor=_BGCOLOR;
-int Fl_Knob::_defaultcolor=0xB0B0B000;
-int Fl_Knob::_defaultselectioncolor=0xD0D0D000;
+short MiniKnob::_defaultdragtype=MiniKnob::VERTICAL;
+int MiniKnob::_defaultmargin=3;
+int MiniKnob::_defaultbevel=3;
+int MiniKnob::_defaultbgcolor=_BGCOLOR;
+int MiniKnob::_defaultcolor=0xB0B0B000;
+int MiniKnob::_defaultselectioncolor=0xD0D0D000;
 
 // #define _DEBUG
 // TODO: try to move globs to class variables
@@ -434,6 +434,8 @@ static void tabCallback(Fl_Widget* o, void* )
 		return;
 	}
 
+    if (currenttab==9) Fl::focus(soundTable);
+    if (currenttab==10) Fl::focus(multiTable);
 	if (currenttab==9 || currenttab==10) // The "Sounds" and "Multis" tabs
 	{
 		panicBtn->hide();
@@ -1870,168 +1872,6 @@ static void storemultiCallback(Fl_Widget* o, void* e)
 //	Fl::unlock();
 }
 
-void MiniPositioner::draw(int X, int Y, int W, int H){
-//	printf("MiniPositioner::Draw!\n");
-	Fl_Positioner::draw(X, Y, W, H);
-	if (Fl::focus() == this){
-//		printf("MiniPositioner::Focus!\n");
-		// fl_line_style(FL_DOT, 1, 0);
-		fl_color(FL_WHITE); //83 // selection_color());
-		fl_xyline(X+1, Y+1, X+W-1);
-		fl_xyline(X+1, Y+H-1, X+W-1);
-		fl_yxline(X+1, Y+1, Y+H-1);
-		fl_yxline(X+W-1, Y+1, Y+H-1);
-		// fl_line_style(0);
-	}
-}
-void MiniPositioner::draw() {
-	draw(x(), y(), w(), h());
-	draw_label();
-}
-
-int MiniPositioner::handle(int event){
-//	printf("MiniPositioner::Handle!\n");
-	double xval, xminval, xmaxval, xstep;
-	double yval, yminval, ymaxval, ystep;
-	xval=this->xvalue();
-	xminval=this->xminimum();
-	xmaxval=this->xmaximum();
-	if (xminval>xmaxval){
-		xminval=xmaxval;
-		xmaxval=this->xminimum();
-	}
-	yval=this->yvalue();
-	yminval=this->yminimum();
-	ymaxval=this->ymaximum();
-	if (yminval>ymaxval){
-		yminval=ymaxval;
-		ymaxval=this->yminimum();
-	}
-	ystep=(ymaxval-yminval)/100.0f;
-	xstep=(ymaxval-yminval); // (xmaxval-xminval)/100.0f;
-	// printf("key %u on %lu\n", Fl::event_key (), this->argument());
-	// printf("xmin %f xmax %f xstep %f\n", xminval, xmaxval, xstep);
-	// printf("ymin %f ymax %f ystep %f\n", yminval, ymaxval, ystep);
-	switch (event) 
-	{
-		// case FL_KEYUP: // It seems every knob is getting that until handled ?
-		case FL_KEYBOARD: // It seems every knob is getting that until handled ?
-			if (Fl::focus() == this) {
-				switch(Fl::event_key ()){
-					case FL_Home:
-						this->xvalue(xminval);
-						this->yvalue(yminval);
-						break;
-					case FL_End:
-						this->xvalue(xmaxval);
-						this->yvalue(ymaxval);
-						break;
-					case FL_KP+'+':
-					case FL_Right:
-						xval+=xstep;
-						if (xval>xmaxval) xval=xmaxval;
-						this->xvalue(xval);
-						break;
-					case FL_KP+'-':
-					case FL_Left:
-						xval-=xstep;
-						if (xval<xminval) xval=xminval;
-						this->xvalue(xval);
-						break;
-					case FL_KP+'.':
-						xval=0;
-						if (xval>xmaxval) xval=xmaxval;
-						if (xval<xminval) xval=xminval;
-						this->xvalue(xval);
-						yval=0;
-						if (yval>ymaxval) yval=ymaxval;
-						if (yval<yminval) yval=yminval;
-						this->yvalue(yval);
-						break;
-					case FL_Page_Up:
-						xval+=xstep*5;
-						if (xval>xmaxval) xval=xmaxval;
-						this->xvalue(xval);
-						break;
-					case FL_Page_Down:
-						xval-=xstep*5;
-						if (xval<xminval) xval=xminval;
-						this->xvalue(xval);
-						break;
-					case FL_Up:
-						yval+=ystep;
-						if (yval>ymaxval) yval=ymaxval;
-						this->yvalue(yval);
-						break;
-					case FL_Down:
-						yval-=ystep;
-						if (yval<yminval) yval=yminval;
-						this->yvalue(yval);
-						break;
-					default:
-						return Fl_Positioner::handle(event);
-				}
-				this->callback()((Fl_Widget*)this, 0);
-				return 1;
-			}
-			break;
-		case FL_FOCUS:
-//			printf("MiniPositioner::Focus %lu!\n", this->argument());
-			Fl::focus(this);
-			this->callback()((Fl_Widget*)this, 0);
-			if (visible()) damage(FL_DAMAGE_ALL);
-			return 1;
-		case FL_UNFOCUS:
-			// printf("MiniPositioner::Unfocus %lu!\n", this->argument());
-			this->callback()((Fl_Widget*)this, 0);
-			if (visible()) damage(FL_DAMAGE_ALL);
-			return 1;
-		case FL_PUSH:
-			if(Fl::event_clicks()){ // Double click or more
-				// printf("MiniPositioner::double click %lu!\n", this->argument());
-				this->xvalue(xminval);
-				this->yvalue(yminval);
-				this->callback()((Fl_Widget*)this, 0);
-				return 1; // Don't call base class handler !!
-			}
-			if (Fl::visible_focus()) handle(FL_FOCUS);
-			return Fl_Positioner::handle(event);
-		case FL_RELEASE:
-			return 1; // Don't call base class handler !!
-			// It would prevent double click from working
-		case FL_ENTER: // Needed for tooltip
-			// printf("FL_ENTER\n");
-			return 1;
-		case FL_LEAVE: // Needed for tooltip
-			// printf("FL_LEAVE\n");
-			return 1;
-		case FL_MOUSEWHEEL:
-			// printf("FL_MOUSEWHEEL %d\n",Fl::event_dy());
-			yval-=ystep*Fl::event_dy();
-			if (yval>ymaxval){
-				yval=yminval;
-				xval+=xstep;
-				if (xval>xmaxval){
-					xval=xmaxval;
-					yval=ymaxval;
-				}
-			}
-			if (yval<yminval){
-				yval=ymaxval;
-				xval-=xstep;
-				if (xval<xminval){
-					xval=xminval;
-					yval=yminval;
-				}
-			}
-			this->yvalue(yval);
-			this->xvalue(xval);
-			this->callback()((Fl_Widget*)this, 0);
-			return 1;
-	}
-	return Fl_Positioner::handle(event);
-}
-
 int MiniValue_Input::handle(int event){
 	// printf("MiniValue_Input::Handle!\n");
 	// parmInput->show(); // May have been hidden by current parameter unfocus ??
@@ -2395,6 +2235,9 @@ void MultiTable::draw_cell(TableContext context,
 	case CONTEXT_CELL:
 	{
 		// fl_font(FL_HELVETICA, 12);
+		// Keyboard nav and mouse selection highlighting
+		// fl_draw_box(FL_THIN_UP_BOX, X, Y, W, H, is_selected(R, C) ? FL_YELLOW : FL_WHITE);
+		// fl_push_clip(X+2, Y+2, W-4, H-4);
 		fl_push_clip(X, Y, W, H);
 		{
 		// BG COLOR
@@ -2648,7 +2491,7 @@ Fl_Menu_Item menu_wave[] = { // UserInterface::
 
 /*
 Fl_SteinerKnob::Fl_SteinerKnob(int x, int y, int w, int h, const char *label)
-: Fl_Knob(x, y, w, h, label) {
+: MiniKnob(x, y, w, h, label) {
 	
 }
 int Fl_SteinerKnob::handle(int event) {
@@ -2688,7 +2531,7 @@ int Fl_SteinerKnob::handle(int event) {
 			return 0;
 		}
 	}
-	  return Fl_Knob::handle(event);
+	  return MiniKnob::handle(event);
 }
 */
 // ---------------------------------------------------------------
@@ -2712,7 +2555,7 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 		o->color(FL_FOREGROUND_COLOR);
 		o->labelsize(_TEXT_SIZE);
 		// Attack
-		{ Fl_Knob* o = new Fl_Knob(x+10, y+6, 25, 25, "A");
+		{ MiniKnob* o = new MiniKnob(x+10, y+6, 25, 25, "A");
 		  o->labelsize(_TEXT_SIZE); 
 		  o->argument(EG_base);  
 		  o->minimum(EG_rate_min);
@@ -2721,7 +2564,7 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 		  Knob[voice][o->argument()] = o;
 		}
 		// Decay
-		{ Fl_Knob* o = new Fl_Knob(x+40, y+6, 25, 25, "D");
+		{ MiniKnob* o = new MiniKnob(x+40, y+6, 25, 25, "D");
 		  o->labelsize(_TEXT_SIZE);
 		  o->argument(EG_base+1);
 		  o->minimum(EG_rate_min);
@@ -2730,7 +2573,7 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 		  Knob[voice][o->argument()] = o;
 		}
 		// Sustain
-		{ Fl_Knob* o = new Fl_Knob(x+70, y+6, 25, 25, "S");
+		{ MiniKnob* o = new MiniKnob(x+70, y+6, 25, 25, "S");
 		  o->labelsize(_TEXT_SIZE);
 		  o->argument(EG_base+2);
 		 // o->minimum(0);
@@ -2739,7 +2582,7 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 		  Knob[voice][o->argument()] = o;
 		}
 		// Release
-		{ Fl_Knob* o = new Fl_Knob(x+100, y+6, 25, 25, "R");
+		{ MiniKnob* o = new MiniKnob(x+100, y+6, 25, 25, "R");
 		  o->labelsize(_TEXT_SIZE);
 		  o->argument(EG_base+3);
 		  o->minimum(EG_rate_min);
@@ -2772,7 +2615,7 @@ void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int
 	o->yvalue(200);
 	o->callback((Fl_Callback*)parmCallback);
 	Knob[voice][o->argument()] = o;
-	/* Fl_Knob* o = f1cut1 = new Fl_SteinerKnob(344, 51, 34, 34, "cut");
+	/* MiniKnob* o = f1cut1 = new Fl_SteinerKnob(344, 51, 34, 34, "cut");
 	  o->labelsize(_TEXT_SIZE);
 	  o->argument(30);
 	  o->maximum(10000);
@@ -2780,7 +2623,7 @@ void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int
 	  o->callback((Fl_Callback*)parmCallback);
 	*/
 	}
-	{ Fl_Knob* o = new Fl_Knob(x+75, y+2, 25, 25, "q");
+	{ MiniKnob* o = new MiniKnob(x+75, y+2, 25, 25, "q");
 	  o->labelsize(_TEXT_SIZE);
 	  o->argument(filter_base+1);
 	  o->minimum(0.9);
@@ -2789,7 +2632,7 @@ void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int
 	  o->callback((Fl_Callback*)parmCallback);
 	  Knob[voice][o->argument()] = o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(x+85, y+39, 20, 20, "vol");
+	{ MiniKnob* o = new MiniKnob(x+85, y+39, 20, 20, "vol");
 	  o->labelsize(_TEXT_SIZE);
 	  o->argument(filter_base+2);
 	  o->callback((Fl_Callback*)parmCallback);
@@ -2820,7 +2663,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 	  }
 	  */
 	int w=63;
-	{ Fl_Knob* o= new Fl_Knob(x, y+30, w, 60, "frequency");
+	{ MiniKnob* o= new MiniKnob(x, y+30, w, 60, "frequency");
 	// { Fl_Dial* o= new Fl_Dial(x, y+30, w, 60, "frequency");
 		// o->tooltip("trouloulou"); // Works for Fl_Dial
 		o->labelsize(_TEXT_SIZE);
@@ -2887,7 +2730,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_fmod);
 		auswahl[voice][o->argument()]=o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(x+233, y+3, 25, 25, "amount");
+	{ MiniKnob* o = new MiniKnob(x+233, y+3, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+4);  
 		o->minimum(-1000);
@@ -2922,7 +2765,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_fmod);
 		auswahl[voice][o->argument()]=o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(x+232, y+40, 25, 25, "amount");
+	{ MiniKnob* o = new MiniKnob(x+232, y+40, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+6); 
 		o->minimum(-1000);
@@ -2949,7 +2792,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_amod);
 		auswahl[voice][o->argument()]=o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(x+245, y+77, 25, 25, "amount");
+	{ MiniKnob* o = new MiniKnob(x+245, y+77, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+8); 
 		o->minimum(-1);
@@ -2976,7 +2819,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_amod);
 		auswahl[voice][o->argument()]=o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(x+245, y+111, 25, 25, "amount");
+	{ MiniKnob* o = new MiniKnob(x+245, y+111, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+9);  
 		o->minimum(-1);
@@ -2984,7 +2827,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[voice][o->argument()] = o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(x+77, y+144, 20, 20, "start phase");
+	{ MiniKnob* o = new MiniKnob(x+77, y+144, 20, 20, "start phase");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+118); 
 		o->minimum(0);
@@ -3011,13 +2854,13 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		j->callback((Fl_Callback*)choiceCallback);
 		j->menu(menu_wave);
 	}
-	  { Fl_Knob* o = new Fl_Knob(x+245, y+144, 20, 20, "fm out vol");
+	  { MiniKnob* o = new MiniKnob(x+245, y+144, 20, 20, "fm out vol");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+12);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[voice][o->argument()] = o;
 	}
-	/*{ Fl_Knob* o = new Fl_SteinerKnob(20, 121, 34, 34, "tune");
+	/*{ MiniKnob* o = new Fl_SteinerKnob(20, 121, 34, 34, "tune");
 		o->labelsize(_TEXT_SIZE);
 		o->minimum(0.5);
 		o->maximum(16);
@@ -3205,7 +3048,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)parmCallback);
 			Knob[i][o->argument()] = o;
 		}
-		{ Fl_Knob* o = new Fl_Knob(x+77, 417, 20, 20, "base width");
+		{ MiniKnob* o = new MiniKnob(x+77, 417, 20, 20, "base width");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(146); 
 			o->minimum(0.01);
@@ -3224,7 +3067,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			j->callback((Fl_Callback*)choiceCallback);
 			j->menu(menu_fmod);
 		}
-		{ Fl_Knob* o = new Fl_Knob(x+245, 417, 20, 20, "amount");
+		{ MiniKnob* o = new MiniKnob(x+245, 417, 20, 20, "amount");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(147);
 			o->minimum(-1);
@@ -3233,7 +3076,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			Knob[i][o->argument()] = o;
 		}
 
-		/*Fl_Knob* o = new Fl_SteinerKnob(20, 345, 34, 34, "tune");
+		/*MiniKnob* o = new Fl_SteinerKnob(20, 345, 34, 34, "tune");
 		o->labelsize(_TEXT_SIZE);
 		o->minimum(0.5);
 		o->maximum(16);   
@@ -3258,7 +3101,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		make_filter(i, 33, 5, 456, 31);
 		o->end();
 	  }
-		{ Fl_Knob* o = new Fl_Knob(559, 40, 20, 20, "tracking");
+		{ MiniKnob* o = new MiniKnob(559, 40, 20, 20, "tracking");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(150);
 			o->minimum(-1);
@@ -3289,7 +3132,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		}*/
 		o->end();
 	  }
-		{ Fl_Knob* o = new Fl_Knob(559, 144, 20, 20, "tracking");
+		{ MiniKnob* o = new MiniKnob(559, 144, 20, 20, "tracking");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(151);
 			o->minimum(-1);
@@ -3307,7 +3150,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		make_filter(i, 53, 9, 456, 241);
 		o->end();
 	  } 
-		{ Fl_Knob* o = new Fl_Knob(559, 250, 20, 20, "tracking");
+		{ MiniKnob* o = new MiniKnob(559, 250, 20, 20, "tracking");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(152);
 			o->minimum(-1);
@@ -3326,7 +3169,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Knob* o = new Fl_Knob(326, 392, 25, 25, "amount");
+	  { MiniKnob* o = new MiniKnob(326, 392, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->minimum(-2);
 		o->maximum(2);
@@ -3334,11 +3177,11 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Knob* o = new Fl_Knob(420, 360, 60, 57, "morph");
+	  { MiniKnob* o = new MiniKnob(420, 360, 60, 57, "morph");
 		// o->color(37); // 37
 		// o->selection_color(7); // 7
 		// o->bgcolor(83);
-		o->type(Fl_Knob::DOTLIN);
+		o->type(MiniKnob::DOTLIN);
 		o->scaleticks(0);
 		o->labelsize(_TEXT_SIZE);
 		o->maximum(0.5f);
@@ -3365,7 +3208,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Knob* o = new Fl_Knob(551, 392, 25, 25, "amount");
+	  { MiniKnob* o = new MiniKnob(551, 392, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(48);
 		o->minimum(-2);
@@ -3438,7 +3281,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->selection_color(0);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
-	  /*Fl_Knob* o = new Fl_SteinerKnob(627, 392, 34, 34, "frequency");
+	  /*MiniKnob* o = new Fl_SteinerKnob(627, 392, 34, 34, "frequency");
 		  o->labelsize(_TEXT_SIZE);o->argument(90);
 		  o->callback((Fl_Callback*)parmCallback);
 		  o->maximum(500); */
@@ -3454,7 +3297,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)choiceCallback);
 		  auswahl[i][o->argument()]=o;
 		} 
-		{ Fl_Knob* o = new Fl_Knob(768, y+7, 20, 20, "start phase");
+		{ MiniKnob* o = new MiniKnob(768, y+7, 20, 20, "start phase");
 			o->labelsize(_TEXT_SIZE);
 			o->argument(153); 
 			o->minimum(0);
@@ -3531,7 +3374,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		auswahl[i][o->argument()]=o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(934, 29, 25, 25, "amount");
+	{ MiniKnob* o = new MiniKnob(934, 29, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(100);
 		o->callback((Fl_Callback*)parmCallback);
@@ -3546,33 +3389,33 @@ Fenster* UserInterface::make_window(const char* title) {
 		  Knob[i][o->argument()] = o;
 	}
 	// amplitude envelope
-	{ Fl_Knob* o = new Fl_Knob(844, 83, 25, 25, "A");
+	{ MiniKnob* o = new MiniKnob(844, 83, 25, 25, "A");
 		o->labelsize(_TEXT_SIZE);o->argument(102); 
 		o->minimum(EG_rate_min);
 		o->maximum(EG_rate_max);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Knob* o = new Fl_Knob(874, 83, 25, 25, "D");
+	  { MiniKnob* o = new MiniKnob(874, 83, 25, 25, "D");
 		o->labelsize(_TEXT_SIZE);o->argument(103); 
 		o->minimum(EG_rate_min);
 		o->maximum(EG_rate_max);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Knob* o = new Fl_Knob(904, 83, 25, 25, "S");
+	  { MiniKnob* o = new MiniKnob(904, 83, 25, 25, "S");
 		o->labelsize(_TEXT_SIZE);o->argument(104);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Knob* o = new Fl_Knob(934, 83, 25, 25, "R");
+	  { MiniKnob* o = new MiniKnob(934, 83, 25, 25, "R");
 		o->labelsize(_TEXT_SIZE);o->argument(105); 
 		o->minimum(EG_rate_min);
 		o->maximum(EG_rate_max);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	{ Fl_Knob* o = new Fl_Knob(844, 120, 25, 25, "id vol");
+	{ MiniKnob* o = new MiniKnob(844, 120, 25, 25, "id vol");
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(101);
 		o->minimum(0);
@@ -3582,7 +3425,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	  { Fl_Knob* o = new Fl_Knob(874, 120, 25, 25, "aux 1");
+	  { MiniKnob* o = new MiniKnob(874, 120, 25, 25, "aux 1");
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(108);
 		o->minimum(0);
@@ -3592,7 +3435,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Knob* o = new Fl_Knob(904, 120, 25, 25, "aux 2");
+	  { MiniKnob* o = new MiniKnob(904, 120, 25, 25, "aux 2");
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(109);
 		o->minimum(0);
@@ -3602,7 +3445,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Knob* o = new Fl_Knob(934, 120, 25, 25, "mix vol");
+	  { MiniKnob* o = new MiniKnob(934, 120, 25, 25, "mix vol");
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(106);
 		o->minimum(0);
@@ -3635,7 +3478,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		j->callback((Fl_Callback*)choiceCallback);
 		j->menu(menu_amod);
 	  }
-	  { Fl_Knob* o = new Fl_Knob(934, 185, 25, 25, "amount");
+	  { MiniKnob* o = new MiniKnob(934, 185, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(122);
 		o->minimum(-1);
@@ -3665,7 +3508,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Knob* o = new Fl_Knob(934, 260, 25, 25, "amount");
+	  { MiniKnob* o = new MiniKnob(934, 260, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(110);
 		o->callback((Fl_Callback*)parmCallback);
@@ -3690,13 +3533,13 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		auswahl[i][o->argument()]=o;
 	  }
-	  { Fl_Knob* o = new Fl_Knob(934, 305, 25, 25, "amount");
+	  { MiniKnob* o = new MiniKnob(934, 305, 25, 25, "amount");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(144);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	  }
-	  { Fl_Knob* o = new Fl_Knob(844, 340, 25, 25, "delay time");
+	  { MiniKnob* o = new MiniKnob(844, 340, 25, 25, "delay time");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(111);
 		o->callback((Fl_Callback*)parmCallback);
@@ -3713,7 +3556,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->argument(111);
 		  miniInput[i][12]=o;
 		}
-	  { Fl_Knob* o = new Fl_Knob(934, 340, 25, 25, "feedback");
+	  { MiniKnob* o = new MiniKnob(934, 340, 25, 25, "feedback");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(112);
 		o->callback((Fl_Callback*)parmCallback);
@@ -3818,60 +3661,60 @@ Fenster* UserInterface::make_window(const char* title) {
 	  }
 	  d->end();
 	}
-	{ Fl_Knob* o = new Fl_Knob(295, 151, 25, 25, "osc1 vol");
+	{ MiniKnob* o = new MiniKnob(295, 151, 25, 25, "osc1 vol");
 		o->labelsize(_TEXT_SIZE);
 		// o->align(FL_ALIGN_TOP);
 		o->argument(14);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(295, 191, 25, 25, "sub vol");
+	{ MiniKnob* o = new MiniKnob(295, 191, 25, 25, "sub vol");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(141);
 		// o->align(FL_ALIGN_TOP);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(295, 252, 25, 25, "osc2 vol");
+	{ MiniKnob* o = new MiniKnob(295, 252, 25, 25, "osc2 vol");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(29);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(295, 292, 25, 25, "ring vol");
+	{ MiniKnob* o = new MiniKnob(295, 292, 25, 25, "ring vol");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(138);
 		// o->align(FL_ALIGN_TOP);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(295, 332, 25, 25, "pwm vol");
+	{ MiniKnob* o = new MiniKnob(295, 332, 25, 25, "pwm vol");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(148);
 		// o->align(FL_ALIGN_TOP);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(844, 221, 25, 25, "to delay");
+	{ MiniKnob* o = new MiniKnob(844, 221, 25, 25, "to delay");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(114);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(934, 221, 25, 25, "from delay");
+	{ MiniKnob* o = new MiniKnob(934, 221, 25, 25, "from delay");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(113);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
 
-	{ Fl_Knob* o = new Fl_Knob(52, 221, 25, 25, "glide");
+	{ MiniKnob* o = new MiniKnob(52, 221, 25, 25, "glide");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(116);
 		o->callback((Fl_Callback*)parmCallback);
 		Knob[i][o->argument()] = o;
 	}
-	{ Fl_Knob* o = new Fl_Knob(92, 221, 25, 25, "bender");
+	{ MiniKnob* o = new MiniKnob(92, 221, 25, 25, "bender");
 		o->tooltip("Pitch bend range (semitones)");
 		o->minimum(0);
 		o->maximum(12);

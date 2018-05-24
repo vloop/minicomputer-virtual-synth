@@ -1,6 +1,6 @@
 /** Minicomputer
  * industrial grade digital synthesizer
- * editorsoftware
+ * editor software
  * Copyright 2007 Malte Steiner
  * This file is part of Minicomputer, which is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,6 @@
 #include <FL/Fl_Input_Choice.H>
 #include <FL/Fl_Counter.H>
 #include <FL/Fl_Help_View.H>
-#include <FL/Fl_Positioner.H>
 #include <FL/Enumerations.H>
 #include <FL/fl_draw.H>
 //#include <FL/Fl_Chart.H>
@@ -59,7 +58,9 @@
 #include <FL/fl_ask.H>
 #include <FL/Fl_Output.H>
 
-#include "Fl_Knob.H"
+#include "MiniKnob.H"
+#include "MiniPositioner.H"
+
 #include "../common.h"
 extern lo_address t;
 extern Memory Speicher;
@@ -161,27 +162,6 @@ private:
 
 };
 
-class MiniPositioner : public Fl_Positioner
-{
-protected:
-/*
-	static void event_callback(Fl_Widget*, void*);
-	void event_callback2();	// callback for table events
-*/
-private:
-	void draw(int X, int Y, int W, int H);
-	void draw();
-
-	int handle(int event);
-public:
-	MiniPositioner(int x, int y, int w, int h, const char *l=0) : Fl_Positioner(x,y,w,h,l)
-	{
-//		callback(&event_callback, (void*)this);
-//		end(); // ??
-	}
-	~MiniPositioner() { }
-};
-
 class MiniValue_Input : public Fl_Value_Input
 {
 protected:
@@ -198,7 +178,6 @@ public:
 	MiniValue_Input(int x, int y, int w, int h, const char *l=0) : Fl_Value_Input(x,y,w,h,l)
 	{
 //		callback(&event_callback, (void*)this);
-//		end(); // ??
 	}
 	~MiniValue_Input() { }
 };
@@ -210,27 +189,29 @@ protected:
 	int _selected_col;
 	int _copied_cell;
 	bool _cell_is_cut;
+	bool _odd_cols_only;
 //	static void event_callback(Fl_Widget*, void*);
 //	void event_callback2();	// callback for table events
 
 public:
 	MiniTable(int x, int y, int w, int h, const char *l=0) : Fl_Table_Row(x,y,w,h,l)
 	{
-		_selected_row=-1;
-		_selected_col=-1;
-		_copied_cell=-2;
+		_odd_cols_only=true;
+		_selected_row=0; // -1;
+		_selected_col=_odd_cols_only?1:0; // -1
+		_copied_cell=-1;
 		_cell_is_cut=false;
 		// context_menu = new Fl_Menu_Button(x, y, w, h,"Sound...");
 //		callback(&event_callback, (void*)this);
-	end();
+		end(); // Fl_Table derives from Fl_Group, so end() it
 	}
 	~MiniTable() { }
 	void resize_cols(int W);
 	int selected_row(){return(_selected_row);}
 	int selected_col(){return(_selected_col);}
-	// Horizontally
+	// Horizontal numbering
 	// int selected_cell(){return(_selected_row*cols()+_selected_col);}
-	// Vertically
+	// Vertical numbering
 	int selected_cell(){return(_selected_col*rows()+_selected_row);}
 	int copied_cell(){return(_copied_cell);}
 	int get_copied_row(){return(_copied_cell % rows());}
@@ -239,6 +220,110 @@ public:
 	void set_cell_is_cut(){_cell_is_cut=true;}
 	void clear_cell_is_cut(){_cell_is_cut=false;}
 	bool cell_is_cut(){return(_cell_is_cut);}
+	// Keyboard and mouse events
+	int handle(int e) {
+		int ret=1; // Optimistic, we'll handle it!
+//	if ( e == FL_KEYBOARD && Fl::event_key() == FL_Escape ) exit(0);
+		switch (e) {
+			case FL_KEYDOWN:
+				switch (Fl::event_key()) {
+					case FL_Down:
+						_selected_row++;
+						if(_selected_row>=rows()) _selected_row=rows()-1;
+						// redraw();
+						break;
+					case FL_Up:
+						_selected_row--;
+						if(_selected_row<0) _selected_row=0;
+						// redraw();
+						break;
+					case FL_Tab:
+						if (Fl::event_shift ()){
+							_selected_col--;
+							if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
+							if(_selected_col<0){
+								_selected_row--;
+								if(_selected_row<0) {
+									_selected_row=0;
+									_selected_col=0;
+									if(_odd_cols_only) _selected_col|=1;
+								}else{
+									_selected_col=cols()-1;
+									if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
+								}
+							}
+						}else{
+							_selected_col++;
+							if(_odd_cols_only) _selected_col|=1;
+							if(_selected_col>=cols()){
+								_selected_row++;
+								if(_selected_row>=rows()){
+									_selected_row=rows()-1;
+									_selected_col=cols()-1;
+									if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
+								}else{
+									_selected_col=0;
+									if(_odd_cols_only) _selected_col|=1;
+								}
+							}
+						}
+						break;
+					case FL_Right:
+						_selected_col++;
+						if(_odd_cols_only) _selected_col|=1;
+						if(_selected_col>=cols()) _selected_col=cols()-1;
+						// redraw();
+						break;
+					case FL_Left:
+						_selected_col--;
+						if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
+						if(_selected_col<0) _selected_col=_odd_cols_only?1:0;
+						// redraw();
+						break;
+					case FL_Home:
+						_selected_row=0;
+						_selected_col=_odd_cols_only?1:0;
+						// redraw();
+						break;
+					case FL_End:
+						_selected_row=rows()-1;
+						_selected_col=cols()-1;
+						if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
+						// redraw();
+						break;
+					default:
+						return Fl_Table_Row::handle(e);
+				}
+				int r1, r2, c1, c2;
+				visible_cells(r1, r2, c1, c2);
+				// printf("row %u %u..%u\n", _selected_row, r1, r2);
+				if(_selected_row<=r1) row_position (_selected_row);
+				// Fl_Table scrolls down on page before we get the event ??
+				// Still needed for FL_End
+				else if(_selected_row>=r2) row_position(_selected_row-r2+r1+1);
+				redraw();
+				ret = 1;
+				break;
+			case FL_KEYUP:
+			case FL_PUSH:
+			case FL_RELEASE:
+			case FL_DRAG:
+				// ret = 1;		// *don't* indicate we 'handled' these, just update ('handling' prevents e.g. tab nav)
+				// ret = 1; // Defeat default handling
+				// printf("MiniTable::handle\n");
+				ret = Fl_Table_Row::handle(e);
+				redraw();
+				break;
+			case FL_FOCUS:		// tells FLTK we're interested in keyboard events
+			case FL_UNFOCUS:
+				ret = 1;
+				break;
+			default:
+				ret = Fl_Table_Row::handle(e);
+		}
+	return(ret);
+	}
+
 };
 
 class SoundTable : public MiniTable
@@ -253,7 +338,7 @@ public:
 	SoundTable(int x, int y, int w, int h, const char *l=0) : MiniTable(x,y,w,h,l)
 	{
 		callback(&event_callback, (void*)this);
-		end();
+		end(); // Fl_Table derives from Fl_Group, so end() it
 	}
 	~SoundTable() { }
 };
@@ -270,7 +355,7 @@ public:
 	MultiTable(int x, int y, int w, int h, const char *l=0) : MiniTable(x,y,w,h,l)
 	{
 		callback(&event_callback, (void*)this);
-	end();
+		end(); // Fl_Table derives from Fl_Group, so end() it
 	}
 	~MultiTable() { }
 };
@@ -280,7 +365,7 @@ void soundcutmnuCallback(Fl_Widget*, void*);
 void soundpastemnuCallback(Fl_Widget*, void*);
 void soundinitmnuCallback(Fl_Widget*, void*);
 void soundclearmnuCallback(Fl_Widget*, void*);
-void soundrenamemnuCallback(Fl_Widget*, void*T);
+void soundrenamemnuCallback(Fl_Widget*, void*);
 void soundimportmnuCallback(Fl_Widget*, void*);
 void soundexportmnuCallback(Fl_Widget*, void*);
 
