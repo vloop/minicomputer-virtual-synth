@@ -360,6 +360,7 @@ public:
 	~MultiTable() { }
 };
 
+void sound_recall(int voice, unsigned int sound);
 void soundcopymnuCallback(Fl_Widget*, void*);
 void soundcutmnuCallback(Fl_Widget*, void*);
 void soundpastemnuCallback(Fl_Widget*, void*);

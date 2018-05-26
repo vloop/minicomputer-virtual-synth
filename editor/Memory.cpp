@@ -446,7 +446,7 @@ void Memory::importSound(string filename, unsigned int current)
 	printf("Importing sound %u from file %s\n", current, filename.c_str());
 	importPatch(filename, &sounds[current]);
 	// now the new sound is in RAM but need to be saved to the main file
-	saveSounds();
+	// saveSounds();
 }
 void Memory::clearMulti(unsigned int m)
 {

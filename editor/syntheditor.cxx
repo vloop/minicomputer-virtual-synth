@@ -1299,8 +1299,12 @@ void updatesoundNameInput(int dest, const char* new_name){
 static void do_importsound(int soundnum)
 {
 	// printf("About to import into sound %d\n", soundnum);
+	if(strlen(Speicher.getSoundName(soundnum).c_str())
+		&& fl_choice("Overwrite sound #%u %s?", "Yes", "No", 0, soundnum, Speicher.getSoundName(soundnum).c_str()))
+		return;
+
 	char warn[256];
-	sprintf (warn, "overwrite %s:", Speicher.getSoundName( soundnum).c_str()); // Is this useful for import ??
+	sprintf (warn, "overwrite %s:", Speicher.getSoundName(soundnum).c_str()); // Is this useful for import ??
 	Fl_File_Chooser *fc = new Fl_File_Chooser(".","TEXT Files (*.txt)\t",Fl_File_Chooser::SINGLE,warn);
 	fc->textsize(9);
 	fc->show();
@@ -1315,7 +1319,16 @@ static void do_importsound(int soundnum)
 		// ok, now we have a new sound loaded, but we should flag voices that use it as changed
 		// but not load them?!
 		updatesoundNameInput(soundnum, Speicher.getSoundName(soundnum).c_str());
-		fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
+		if(fl_choice("Load the imported sound #%u in voice(s) using that sound number?", "Yes", "No", 0, soundnum)==0){
+			for(int i=0;i<_MULTITEMP;i++){
+				printf("%s\n", soundNoInput[i]->value());
+				if(atoi(soundNoInput[i]->value())==soundnum)
+					sound_recall(i, soundnum);
+			}
+		}
+		if(fl_choice("Save all sounds (including #%u)?", "Yes", "No", 0, soundnum)==0)
+			Speicher.saveSounds();
+//		fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 //		Fl::check();
 //		Fl::awake();
 //		Fl::unlock();
@@ -1636,7 +1649,7 @@ static void sound_recall0(unsigned int destvoice, patch *srcpatch)
 /**
  * recall a single sound into current or given tab
  */
-static void sound_recall(int voice, unsigned int sound)
+void sound_recall(int voice, unsigned int sound)
 {
 	// Fl::lock();
 	if(voice==-1) voice=currentVoice;
@@ -2125,6 +2138,11 @@ void updatemultiNameInput(unsigned int dest, const char* new_name){
 		setmulti_changed();
 	}
 }
+
+void multiloadmnuCallback(Fl_Widget*, void*T) {
+	int multinum=((MultiTable*)T)->selected_row()+((MultiTable*)T)->rows()*((((MultiTable*)T)->selected_col())/2);
+	loadmulti(multinum);
+}
 void multicopymnuCallback(Fl_Widget*, void*T) {
 	int cell=((MultiTable *)T)->selected_cell();
 	 printf("copy multi from cell %d\n", cell);
@@ -2185,7 +2203,7 @@ void multiexportCallback(Fl_Widget*, void*T) {
 	do_exportmulti(src);
 }
 
-static void do_importmulti(int multinum)
+void do_importmulti(int multinum)
 {
 	// printf("About to import into multi %d\n", multinum);
 	char warn[256];
@@ -2304,6 +2322,7 @@ void MultiTable::event_callback2()
 //	printf("Row=%d Col=%d Context=%d Event=%d sound %d InteractiveResize? %d\n",
 //		R, C, (int)context, (int)Fl::event(), m, (int)is_interactive_resize());
 	Fl_Menu_Item menu_rclick[] = {
+		{ "Load",   0, multiloadmnuCallback, (void*)this },
 		{ "Copy",   0, multicopymnuCallback, (void*)this },
 		{ "Cut",   0, multicutmnuCallback, (void*)this },
 		{ "Paste",  0, multipastemnuCallback, (void*)this },
@@ -2315,10 +2334,14 @@ void MultiTable::event_callback2()
 	};
 	switch(Fl::event()){
 		case FL_PUSH:
+			if(Fl::event_clicks()){ // Double click or more
+				int multinum=multiTable->selected_row()+multiTable->rows()*((multiTable->selected_col())/2);
+				loadmulti(multinum);
+			}
 			// We get an event on C0 R0 outside the table contents??
 			// Fortunately we need only odd rows
 			// Otherwise event_y might do the trick
-			if(R>=0 && C>0 && (C&1)==1){
+			if(R>=0 && C>=0 && (C&1)==1){
 				_selected_row=R;
 				_selected_col=C;
 				multiNameDisplay->value(Speicher.getMultiName(m).c_str());
@@ -2329,7 +2352,21 @@ void MultiTable::event_callback2()
 				redraw();
 			}
 			break;
-		return;
+		/* How can we do this properly? We're not in handle method
+		case FL_FOCUS:		// tells FLTK we're interested in keyboard events
+		case FL_UNFOCUS:
+				return 1;
+				*/
+		/* Never triggered
+		case FL_KEYBOARD:
+		case FL_KEYUP:
+				printf("key %x\n", Fl::event_key());
+				if (Fl::event_key()==FL_Enter){
+					int multinum=multiTable->selected_row()+multiTable->rows()*((multiTable->selected_col())/2);
+					loadmulti(multinum);
+				}
+			break;
+			*/
 	}
 }
 
