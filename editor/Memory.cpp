@@ -349,7 +349,7 @@ int Memory::readPatch(ifstream& File, patch *p)
 	unsigned int j;
 	int pos=File.tellg();
 	getline(File,str);
-	bool gotname=false;
+//	bool gotname=false;
 	while (File)
 	{
 		sParameter="";
@@ -401,7 +401,7 @@ int Memory::readPatch(ifstream& File, patch *p)
 	*/
 				// Another name means another sound ??
 				// if(gotname)
-				gotname=true;
+//				gotname=true;
 				printf("importPatch: reading %s\n", p->name);
 			}
 			break;
@@ -604,10 +604,22 @@ void Memory::exportMulti(string filename, unsigned int multi)
 	}
 	for (p=0;p<_MULTITEMP;++p) // embed the sounds parameters
 	{
-		int s=multis[multi].sound[p];
-		printf("exportMulti: embedding sound %u %3u %s\n", p, s, sounds[s].name);
-		File<< "["<< s <<"]"<<endl;
-		writeSound(File, s);
+		unsigned int s=multis[multi].sound[p];
+		// Did we already save it?
+		bool found=false;
+		for(int j=0; j<p; j++){
+			if(multis[multi].sound[j]==s){
+				found=true;
+				break;
+			}
+		}
+		if(found){
+			printf("exportMulti: skipping sound %u %3u %s (already embedded)\n", p, s, sounds[s].name);
+		}else{
+			printf("exportMulti: embedding sound %u %3u %s\n", p, s, sounds[s].name);
+			File<< "["<< s <<"]"<<endl;
+			writeSound(File, s);
+		}
 	}
 	File.close();
 	printf("Export complete\n");

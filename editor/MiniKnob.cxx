@@ -14,6 +14,7 @@ MiniKnob::MiniKnob(int xx,int yy,int ww,int hh,const char *l): Fl_Valuator(xx,yy
 	_dragtype = _defaultdragtype;
 	_margin = _defaultmargin;
 	_bevel = _defaultbevel;
+	_shadow = _defaultshadow;
 	color(_defaultcolor); // 37
 	selection_color(_defaultselectioncolor); // 7
 }
@@ -46,16 +47,19 @@ void MiniKnob::draw() {
 	int dam = damage();
 	int m=margin();
 	int b=bevel();
+	int s=shadow();
 	if (dam & FL_DAMAGE_ALL)
 	{
 		int col = _bgcolor; // parent()->color();
 		fl_color(col);
 		fl_rectf(ox,oy,side,side);
-		// The actual shadow
+		
+		// Draw the shadow first
 		Fl::get_color((Fl_Color)col,rr,gg,bb);
 		shadow(-60,rr,gg,bb);
 		// fl_pie(ox+(3*m)/2,oy+(3*m)/2,side-2*m,side-2*m,0,360);
-		fl_pie(ox+2*m,oy+2*m,side-2*m,side-2*m,0,360);
+		// fl_pie(ox+2*m,oy+2*m,side-2*m,side-2*m,0,360);
+		fl_pie(ox+m+s,oy+m+s,side-2*m,side-2*m,0,360);
 		
 		draw_scale(ox,oy,side);
 		
@@ -187,6 +191,7 @@ int MiniKnob::handle(int  event) {
 					default:
 						return 0;
 				}
+				this->set_changed(); // TODO Not always changed
 				this->callback()((Fl_Widget*)this, 0);
 			}else{
 				return 0;
@@ -460,3 +465,5 @@ int MiniKnob::margin(){ return _margin; }
 void MiniKnob::margin(int m){ _margin=m; }
 int MiniKnob::bevel(){ return _bevel; }
 void MiniKnob::bevel(int b){ _bevel=b; }
+int MiniKnob::shadow(){ return _shadow; }
+void MiniKnob::shadow(int b){ _shadow=b; }

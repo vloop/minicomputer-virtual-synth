@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	*/
-	int multi = atoi(multiNoInput->value());
+	// int multi = atoi(multiNoInput->value());
 
 // ------------------------ OSC init ---------------------------------
 	// init for output
@@ -394,7 +394,8 @@ int main(int argc, char **argv) {
   }
   printf("Communication with minicomputerCPU established\n");
 
-  Schaltbrett.changeMulti(multi); // Transmit multi data to the sound engine
+  // Schaltbrett.changeMulti(multi); // Transmit multi data to the sound engine
+  Schaltbrett.changeMulti(0); // Transmit multi 0 data to the sound engine
 
 #ifdef _DEBUG
   printf("FLTK argument count: %u\n", ac);

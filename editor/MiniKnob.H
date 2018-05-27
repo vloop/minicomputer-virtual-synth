@@ -22,6 +22,8 @@ private:
   static int _defaultmargin;
   int _bevel;
   static int _defaultbevel;
+  int _shadow;
+  static int _defaultshadow;
   short a1, a2;
 public:
   MiniKnob(int xx,int yy,int ww,int hh,const char *l=0);
@@ -44,5 +46,7 @@ public:
   void margin(const int m);
   int bevel();
   void bevel(const int b);
+  int shadow();
+  void shadow(const int b);
 };
 #endif

@@ -100,6 +100,7 @@ int MiniPositioner::handle(int event){
 					default:
 						return Fl_Positioner::handle(event);
 				}
+				this->set_changed(); // TODO Not always changed
 				this->callback()((Fl_Widget*)this, 0);
 				return 1;
 			}
