@@ -54,7 +54,7 @@
 #include <math.h>
 #include <lo/lo.h>
 #include <FL/Fl_Image.H>
-#include <FL/Fl_Table_Row.H>
+
 #include <FL/fl_ask.H>
 #include <FL/Fl_Output.H>
 
@@ -63,6 +63,7 @@
 #include <locale.h>
 #define _(STRING) gettext(STRING)
 
+#include "MiniTable.H"
 #include "MiniKnob.H"
 #include "MiniPositioner.H"
 
@@ -187,169 +188,6 @@ public:
 	~MiniValue_Input() { }
 };
 
-class MiniTable : public Fl_Table_Row
-{
-protected:
-	int _selected_row;
-	int _selected_col;
-	int _copied_cell;
-	bool _cell_is_cut;
-	bool _odd_cols_only;
-	bool _cols_first;
-//	static void event_callback(Fl_Widget*, void*);
-//	void event_callback2();	// callback for table events
-
-public:
-	MiniTable(int x, int y, int w, int h, const char *l=0) : Fl_Table_Row(x,y,w,h,l)
-	{
-		_odd_cols_only=true;
-		_cols_first=true; // Cell numbering is vertical first TODO
-		_selected_row=0;
-		_selected_col=_odd_cols_only?1:0;
-		_copied_cell=-1;
-		_cell_is_cut=false;
-		// context_menu = new Fl_Menu_Button(x, y, w, h,"Sound...");
-//		callback(&event_callback, (void*)this);
-		end(); // Fl_Table derives from Fl_Group, so end() it
-	}
-	~MiniTable() { }
-	void resize_cols(int W);
-	int selected_row(){return(_selected_row);}
-	int selected_col(){return(_selected_col);}
-	// Horizontal numbering
-	// int selected_cell(){return(_selected_row*cols()+_selected_col);}
-	// Vertical numbering
-	int selected_cell(){return(_selected_col*rows()+_selected_row);}
-	int copied_cell(){return(_copied_cell);}
-	int get_copied_row(){return(_copied_cell % rows());}
-	int get_copied_col(){return(_copied_cell / rows());}
-	void copied_cell(int c){_copied_cell=c;}
-	void set_cell_is_cut(){_cell_is_cut=true;}
-	void clear_cell_is_cut(){_cell_is_cut=false;}
-	bool cell_is_cut(){return(_cell_is_cut);}
-	// Keyboard and mouse events
-	int handle(int e) {
-		// printf("MiniTable::handle(%u)\n", e);
-		int ret=1; // Optimistic, we'll handle it!
-		switch (e) {
-			case FL_KEYDOWN:
-				// printf("MiniTable::handle FL_KEYDOWN\n");
-				// Handle selected cell
-				switch (Fl::event_key()) {
-					case FL_Down:
-						_selected_row++;
-						if(_selected_row>=rows()) _selected_row=rows()-1;
-						// redraw();
-						break;
-					case FL_Up:
-						_selected_row--;
-						if(_selected_row<0) _selected_row=0;
-						// redraw();
-						break;
-					case FL_Tab:
-						if (Fl::event_shift ()){
-							_selected_col--;
-							if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
-							if(_selected_col<0){
-								_selected_row--;
-								if(_selected_row<0) {
-									_selected_row=0;
-									_selected_col=0;
-									if(_odd_cols_only) _selected_col|=1;
-								}else{
-									_selected_col=cols()-1;
-									if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
-								}
-							}
-						}else{
-							_selected_col++;
-							if(_odd_cols_only) _selected_col|=1;
-							if(_selected_col>=cols()){
-								_selected_row++;
-								if(_selected_row>=rows()){
-									_selected_row=rows()-1;
-									_selected_col=cols()-1;
-									if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
-								}else{
-									_selected_col=0;
-									if(_odd_cols_only) _selected_col|=1;
-								}
-							}
-						}
-						break;
-					case FL_Right:
-						_selected_col++;
-						if(_odd_cols_only && (_selected_col&1)==0) _selected_col++;
-						if(_selected_col>=cols()){
-							_selected_col=cols();
-							if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
-						}
-						break;
-					case FL_Left:
-						_selected_col--;
-						if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
-						if(_selected_col<0) _selected_col=_odd_cols_only?1:0;
-						break;
-					case FL_Home:
-						_selected_row=0;
-						_selected_col=_odd_cols_only?1:0;
-						break;
-					case FL_End:
-						_selected_row=rows()-1;
-						_selected_col=cols()-1;
-						if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
-						break;
-					// we need a when(FL_WHEN_ENTER_KEY|FL_WHEN_NOT_CHANGED) to propagate enter to derived class
-					case FL_Enter:
-						// printf("MiniTable::handle FL_Enter\n");
-						Fl_Table_Row::handle(e);
-						return 0; // unsure??
-						break;
-					default:
-						// Leave Fn keys to parent window
-						if(Fl::event_key()>=FL_F+1 && Fl::event_key()<=FL_F+12) return 0; // Not handled
-						return Fl_Table_Row::handle(e);
-				}
-				// Handle scrolling
-				int r1, r2, c1, c2;
-				visible_cells(r1, r2, c1, c2);
-				// printf("row %u %u..%u\n", _selected_row, r1, r2);
-				if(_selected_row<=r1) row_position (_selected_row);
-				// Fl_Table scrolls down on page before we get the event ??
-				// Still needed for FL_End
-				else if(_selected_row>=r2) row_position(_selected_row-r2+r1+1);
-				
-				// Propagate event
-				Fl_Table_Row::handle(e); // Give children a chance to update name display
-				redraw();
-				ret = 1; // Handled
-				break;
-			case FL_KEYUP:
-			case FL_PUSH:
-			case FL_RELEASE:
-			case FL_DRAG:
-				// ret = 1;		// *don't* indicate we 'handled' these, just update ('handling' prevents e.g. tab nav)
-				// printf("MiniTable::handle\n");
-				ret = Fl_Table_Row::handle(e);
-				redraw();
-				break;
-			case FL_FOCUS:		// tells FLTK we're interested in keyboard events
-			case FL_UNFOCUS:
-				ret = 1;
-				break;
-			/* Not working
-			case FL_SHOW:
-				printf("MiniTable::handle(%u) FL_SHOW\n", e);
-				ret = 0;
-				Fl_Table_Row::handle(e); // Give children a chance to update name display
-				break;
-			*/
-			default:
-				ret = Fl_Table_Row::handle(e);
-		} // end of switch
-	return(ret);
-	} // end of handle
-};
 
 class SoundTable : public MiniTable
 {
