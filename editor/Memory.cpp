@@ -44,11 +44,12 @@ Memory::Memory()
 		if (getenv("HOME") == NULL)
 		{
 			strcpy(folder,""); // ok, $HOME is not set so save it just HERE
+			_homeFolder="";
 		}
 		else
 		{ 
-			string t = getenv("HOME");
-			sprintf(folder,"%s/.miniComputer",t.c_str());
+			_homeFolder = getenv("HOME");
+			sprintf(folder, "%s/.miniComputer", _homeFolder.c_str());
 			if (access(folder, R_OK) != 0)
 			{
 				sprintf(kommand,"mkdir %s",folder);
@@ -70,7 +71,7 @@ Memory::~Memory()
 }
 
 /**
- * retreive name of a certain patch
+ * retrieve name of a certain patch
  * @param voicenumber of which we want to know the entry (should be redundant)
  * @param soundnumber
  * @return the name as string

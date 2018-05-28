@@ -96,11 +96,13 @@ public:
 	multi multis[128];
 	int setChoice(unsigned int voice,unsigned int i);
 	unsigned int getChoice(unsigned int voice);
-	
-	private:
+	string getHomeFolder(){return _homeFolder;}
+
+private:
 	unsigned int choice[_MULTITEMP];
 	bool parseNumbers(string &str,int &iParameter,int &i2Parameter,float &fValue);
-	char folder[1024]; // the directory to write stuff in
+	char folder[1024]; // the directory to write configuration stuff in
+	string _homeFolder; // the default directory for import/export
 	bool gotFolder;
 };
 

@@ -108,8 +108,6 @@ Fl_Toggle_Button *compareBtn;
 
 patch copy_buffer;
 
-//Fl_Chart * EG[7];
-
 // This function probably belongs somewhere else
 void dump_replace_color (const unsigned char * bits, int pixcount, unsigned char r1, unsigned char g1, unsigned char b1, unsigned char r2, unsigned char g2, unsigned char b2){
 	printf("==========\n");
@@ -477,7 +475,7 @@ static void tabCallback(Fl_Widget* o, void* )
 	}
 	else // The "midi", "Sounds, "Multis" and "About" tabs
 	{
-		// The controls below are displayed on all the voice tabs
+		// The controls below are displayed only on the voice tabs
 		if (parmInput != NULL)
 			parmInput->hide();
 		else
@@ -871,7 +869,7 @@ static void setNoteCallback(Fl_Widget* o, void*) {
     ((Fl_Value_Input* )o)->redraw();
     int voice=(((Fl_Input*)o)->argument())>>8;
     int knobNo=(((Fl_Input*)o)->argument()) & 0xFF;
-    printf("noteNo %d voice %d knobNo %d\n", n, voice, knobNo);
+    // printf("noteNo %d voice %d knobNo %d\n", n, voice, knobNo);
     if(((Fl_Valuator*)knobs[voice][knobNo])->value()!=n){
         ((Fl_Valuator*)knobs[voice][knobNo])->value(n);
         midiparmCallback(knobs[voice][knobNo],NULL);
@@ -1206,13 +1204,56 @@ static void exportSound(Fl_File_Chooser *w, void *userdata)
 		fflush(stdout);
 	}
 }*/
+/**
+ * Transfer parameter values from the GUI to the multi
+ */
+static void storemulti(const unsigned int multinum)
+{
+	if (multinum>_MULTIS){
+		fprintf(stderr, "storemulti: Multi %u out of range\n", multinum);
+		return;
+	}
+	int i;
+	// Get the name
+	// Speicher.setMultiName(multinum, ((Fl_Input*)e)->value());
+	Speicher.setMultiName(multinum, multiNameInput->value());
+
+	// Get the knobs of the mix and midi settings for each voice
+	for (i=0;i<_MULTITEMP;++i)
+	{
+		Speicher.multis[multinum].sound[i]=Speicher.getChoice(i);
+#ifdef _DEBUG
+		printf("sound slot: %d = %d\n",i,Speicher.getChoice(i));
+#endif
+		// Indices must match those in loadmultiCallback
+		Speicher.multis[multinum].settings[i][0]=((Fl_Valuator*)knobs[i][101])->value();
+		Speicher.multis[multinum].settings[i][1]=((Fl_Valuator*)knobs[i][106])->value();
+		Speicher.multis[multinum].settings[i][2]=((Fl_Valuator*)knobs[i][107])->value();
+		Speicher.multis[multinum].settings[i][3]=((Fl_Valuator*)knobs[i][108])->value();
+		Speicher.multis[multinum].settings[i][4]=((Fl_Valuator*)knobs[i][109])->value();
+		Speicher.multis[multinum].settings[i][5]=((Fl_Valuator*)knobs[i][125])->value();
+		Speicher.multis[multinum].settings[i][6]=((Fl_Valuator*)knobs[i][126])->value();
+		Speicher.multis[multinum].settings[i][7]=((Fl_Valuator*)knobs[i][127])->value();
+		Speicher.multis[multinum].settings[i][8]=((Fl_Valuator*)knobs[i][128])->value();
+		Speicher.multis[multinum].settings[i][9]=((Fl_Valuator*)knobs[i][129])->value();
+		Speicher.multis[multinum].settings[i][10]=((Fl_Valuator*)knobs[i][130])->value();
+		if(i<_MULTITEMP-1)
+			Speicher.multis[multinum].settings[i][11]=((Fl_Button*)knobs[i][155])->value();
+	}
+	// Get global multi parameters
+	for (i=0;i<_MULTIPARMS;++i){
+		Speicher.multis[multinum].parms[i]=((Fl_Valuator*)multiParmInput[i])->value();
+	}
+	clearmulti_changed(); // Memory is in sync with GUI, file may not be
+}
+
 static void do_exportsound(int soundnum)
 {
-	char warn[256], path[256], name[_NAMESIZE];
+	char warn[256], path[1024], name[_NAMESIZE];
 	strnrtrim(name, Speicher.getSoundName( soundnum).c_str(), _NAMESIZE);
 	snprintf(warn, 256, "export %s", name);
-	snprintf(path, 256, "./%s.txt", name);
-	Fl_File_Chooser *fc = new Fl_File_Chooser(path, "TEXT Files (*.txt)\t", Fl_File_Chooser::CREATE,warn);
+	snprintf(path, 1024, "%s/%s.txt", Speicher.getHomeFolder().c_str(), name);
+	Fl_File_Chooser *fc = new Fl_File_Chooser(path, "TEXT Files (*.txt)\t", Fl_File_Chooser::CREATE, warn);
 	fc->textsize(9);
 	fc->show();
 	while(fc->shown()) Fl::wait(); // block until choice is done
@@ -1234,12 +1275,14 @@ static void do_exportsound(int soundnum)
 		// Fl::unlock();
 	}
 }
-static void do_exportmulti(int multinum)
+static void do_exportmulti(const unsigned int multinum)
 {
-	char warn[256], path[256], name[_NAMESIZE];
-	strnrtrim(name, Speicher.getMultiName( multinum).c_str(), _NAMESIZE);
-	snprintf(warn, 256, "export %s", name);
-	snprintf(path, 256, "./%s.txt", name);
+	if(multi_changed && (fl_choice("Refresh multi %u before export?", "Yes", "No", 0, multinum)==0))
+		storemulti(multinum);
+	char warn[1024], path[1024], name[_NAMESIZE];
+	strnrtrim(name, Speicher.getMultiName(multinum).c_str(), _NAMESIZE);
+	snprintf(warn, 1024, "export %s", name);
+	snprintf(path, 1024, "%s/multi_%s.txt", Speicher.getHomeFolder().c_str(), name);
 	Fl_File_Chooser *fc = new Fl_File_Chooser(path, "TEXT Files (*.txt)\t", Fl_File_Chooser::CREATE,warn);
 	fc->textsize(9);
 	fc->show();
@@ -1317,9 +1360,10 @@ static void do_importsound(int soundnum)
 		&& fl_choice("Overwrite sound #%u %s?", "Yes", "No", 0, soundnum, Speicher.getSoundName(soundnum).c_str()))
 		return;
 
-	char warn[256];
+	char warn[256], path[1024];
 	sprintf (warn, "overwrite %s:", Speicher.getSoundName(soundnum).c_str()); // Is this useful for import ??
-	Fl_File_Chooser *fc = new Fl_File_Chooser(".","TEXT Files (*.txt)\t",Fl_File_Chooser::SINGLE,warn);
+	snprintf(path, 1024, "%s/", Speicher.getHomeFolder().c_str());
+	Fl_File_Chooser *fc = new Fl_File_Chooser(path, "TEXT Files (*.txt)\t", Fl_File_Chooser::SINGLE, warn);
 	fc->textsize(9);
 	fc->show();
 	while(fc->shown()) Fl::wait(); // block until choice is done
@@ -1757,8 +1801,9 @@ static void loadmulti(unsigned int multi)
 #ifdef _DEBUG
 			printf("loadmulti voice %u: \"%s\"\n", i, temp_name);
 #endif
+			// Update gui
 			soundNameInput[i]->value(temp_name);
-			soundRoller[i]->value(soundnum); // set gui
+			soundRoller[i]->value(soundnum);
 			char ssoundnum[]="***";
 			snprintf(ssoundnum, 4, "%i", soundnum);
 			soundNoInput[i]->value(ssoundnum);
@@ -1830,14 +1875,13 @@ static void loadmultiCallback(Fl_Widget*, void*)
  * store a multitemperal setup
  * @param pointer to the calling widget
  */
-static void storemultiCallback(Fl_Widget* o, void* e)
+static void storemultiCallback(Fl_Widget* o, void*)
 {
 //	Fl::lock();
 //	fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
 //	Fl::check();
-	int i;
-
-	if (multiNameInput != NULL)
+	// Get current multi number from GUI
+	if (multiNameInput && multiRoller)
 	{
 		unsigned int t = (unsigned int) multiRoller->value();
 #ifdef _DEBUG
@@ -1849,39 +1893,13 @@ static void storemultiCallback(Fl_Widget* o, void* e)
 		}
 	}
 	else
-		printf("problems with the multichoice widgets!\n");
+		fprintf(stderr, "problems with the multichoice widgets!\n");
 
-	Speicher.setMultiName(currentMulti, ((Fl_Input*)e)->value());
+	storemulti(currentMulti);
 
-	// get the knobs of the mix
-	for (i=0;i<_MULTITEMP;++i)
-	{
-		Speicher.multis[currentMulti].sound[i]=Speicher.getChoice(i);
-#ifdef _DEBUG
-		printf("sound slot: %d = %d\n",i,Speicher.getChoice(i));
-#endif
-		// Indices must match those in loadmultiCallback
-		Speicher.multis[currentMulti].settings[i][0]=((Fl_Valuator*)knobs[i][101])->value();
-		Speicher.multis[currentMulti].settings[i][1]=((Fl_Valuator*)knobs[i][106])->value();
-		Speicher.multis[currentMulti].settings[i][2]=((Fl_Valuator*)knobs[i][107])->value();
-		Speicher.multis[currentMulti].settings[i][3]=((Fl_Valuator*)knobs[i][108])->value();
-		Speicher.multis[currentMulti].settings[i][4]=((Fl_Valuator*)knobs[i][109])->value();
-		Speicher.multis[currentMulti].settings[i][5]=((Fl_Valuator*)knobs[i][125])->value();
-		Speicher.multis[currentMulti].settings[i][6]=((Fl_Valuator*)knobs[i][126])->value();
-		Speicher.multis[currentMulti].settings[i][7]=((Fl_Valuator*)knobs[i][127])->value();
-		Speicher.multis[currentMulti].settings[i][8]=((Fl_Valuator*)knobs[i][128])->value();
-		Speicher.multis[currentMulti].settings[i][9]=((Fl_Valuator*)knobs[i][129])->value();
-		Speicher.multis[currentMulti].settings[i][10]=((Fl_Valuator*)knobs[i][130])->value();
-		if(i<_MULTITEMP-1)
-			Speicher.multis[currentMulti].settings[i][11]=((Fl_Button*)knobs[i][155])->value();
-	}
-	for (i=0;i<_MULTIPARMS;++i){
-		Speicher.multis[currentMulti].parms[i]=((Fl_Valuator*)multiParmInput[i])->value();
-	}
 	// write to disk
 	if(fl_choice("Save all multis (including #%u) to disk?", "Yes", "No", 0, currentMulti)==0)
 		Speicher.saveMultis();
-	clearmulti_changed();
 	fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 //	Fl::check();
 //	Fl::awake();
@@ -1930,6 +1948,22 @@ void SoundTable::draw_cell(TableContext context,
 	// int m=R*(cols()/2)+(C/2); // 2 cells per sound
 	int m=R+rows()*(C/2); // 2 cells per sound
 	if(m<0 || m>=_SOUNDS) return;
+	// Cannot get this to actually refresh display
+	// except after switching to a different window or tab
+	// Probably can't do it from here, but handle doesn't catch keyboard?
+	/*
+	if((C&1) && C==_selected_col && R==_selected_row){
+		printf("display %s\n", Speicher.getSoundName(m).c_str());
+		soundNameDisplay->value(Speicher.getSoundName(m).c_str());
+		soundNameDisplay->damage(FL_DAMAGE_ALL);
+		soundNameDisplay->redraw();
+		tab[9]->redraw();
+		soundNameDisplay->hide();
+		soundNameDisplay->show();
+		soundNameDisplay->color(FL_RED);
+		printf("display value %s\n", soundNameDisplay->value());
+	}
+	*/
 
 	switch ( context )
 	{
@@ -1938,18 +1972,16 @@ void SoundTable::draw_cell(TableContext context,
 		return;
 
 	case CONTEXT_CELL:
-	{
-		// fl_font(FL_HELVETICA, 12);
-		fl_push_clip(X, Y, W, H);
-		{
 		// BG COLOR
 		if (C==_selected_col && R==_selected_row){
 			fl_color((C&1) ? FL_RED: _BGCOLOR);
+
 		}else if (Speicher.getSoundName(m).length()==0){
 			fl_color((C&1) ? FL_BLACK: _BGCOLOR);
 		}else{
 			fl_color((C&1) ? FL_WHITE: _BGCOLOR);
 		}
+		fl_push_clip(X, Y, W, H);
 		fl_rectf(X, Y, W, H);
 
 		// TEXT
@@ -1965,10 +1997,9 @@ void SoundTable::draw_cell(TableContext context,
 		// BORDER
 		fl_color(color()); 
 		fl_rect(X, Y, W, H);
-		}
+
 		fl_pop_clip();
 		return;
-	}
 
 	case CONTEXT_TABLE:
 	    fprintf(stderr, "TABLE CONTEXT CALLED\n");
@@ -1991,12 +2022,9 @@ void SoundTable::event_callback(Fl_Widget*, void *data)
 
 void SoundTable::event_callback2()
 {
-	int R = callback_row(),
-		C = callback_col();
-	// int m=R*(cols()/2)+(C/2); // 2 cells per sound
-	int m=R+rows()*(C/2); // 2 cells per sound
+	// printf("SoundTable::event_callback2() %u\n", m);
+	int m;
 //	TableContext context = callback_context();
-//	printf("'%s' callback: ", (label() ? label() : "?"));
 //	printf("Row=%d Col=%d Context=%d Event=%d sound %d InteractiveResize? %d\n",
 //		R, C, (int)context, (int)Fl::event(), m, (int)is_interactive_resize());
 	Fl_Menu_Item menu_rclick[] = {
@@ -2004,39 +2032,53 @@ void SoundTable::event_callback2()
 		{ "Cut",   0, soundcutmnuCallback, (void*)this },
 		{ "Paste",  0, soundpastemnuCallback, (void*)this },
 		{ "Rename",  0, soundrenamemnuCallback, (void*)this },
-//		{ "Init",  0, soundinitmnuCallback, (void*)this },
 		{ "Clear",  0, soundclearmnuCallback, (void*)this },
 		{ "Import",  0, soundimportmnuCallback, (void*)this },
 		{ "Export",  0, soundexportmnuCallback, (void*)this },
 		{ 0 }
 	};
+	// printf("SoundTable::event_callback2(%u)\n", Fl::event());
+
 	switch(Fl::event()){
-		case FL_PUSH:
+		case FL_PUSH:{
+			int R = callback_row(), C = callback_col();
+			// int m=R*(cols()/2)+(C/2); // 2 cells per sound (horizontal)
+			m=R+rows()*(C/2); // 2 cells per sound (vertical)
 			if(R>=0 && C>=0 && (C&1)==1){
 				_selected_row=R;
 				_selected_col=C;
 				soundNameDisplay->value(Speicher.getSoundName(m).c_str());
 				if ( Fl::event_button() == FL_RIGHT_MOUSE ) {
-	// printf("Right mouse button pushed\n");
+					// printf("Right mouse button pushed\n");
 					const Fl_Menu_Item *mnu = menu_rclick->popup(Fl::event_x(), Fl::event_y(), 0, 0, 0);
 					if ( mnu ) mnu->do_callback(0, mnu->user_data());
 					// return(1);          // (tells caller we handled this event)
 				}else{
-	// printf("Left or middle mouse button pushed\n");
+					// printf("Left or middle mouse button pushed\n");
 				}
 				redraw();
 			}
 			break;
-		case FL_RELEASE:
-			// Right mouse released - never caught?
+		}
+		/*
+		case FL_RELEASE: // Never caught?
 			if ( Fl::event_button() == FL_RIGHT_MOUSE ) {
-// printf("Right mouse button released\n");
-				// return(1);          // (tells caller we handled this event)
-			}else{ // Not caught after drag?
-// printf("Left or middle mouse button released\n");
+				printf("Right mouse button released\n");
+			}else{
+				printf("Left or middle mouse button released\n");
 			}
 			break;
-		return;
+		*/
+		case FL_KEYDOWN:
+		// case FL_SHOW: // Never caught?
+			// Standard movement was handled in MiniTable's handler
+			// We only have to redraw slave field
+			// We cannot trust R and C due to our special selection handling
+			m=_selected_row+rows()*(_selected_col/2); // 2 cells per sound
+			// printf("SoundTable::event_callback2(%u) FL_KEYDOWN %u %u %u\n", Fl::event(), R, C, m);
+			soundNameDisplay->value(Speicher.getSoundName(m).c_str());
+			redraw();
+			break;
 	}
 }
 
@@ -2211,10 +2253,11 @@ void do_importmulti(int multinum)
 	if( strlen(Speicher.getMultiName(multinum).c_str())
 		&& fl_choice("Overwrite multi #%u %s?", "Yes", "No", 0, multinum, Speicher.getMultiName(multinum).c_str()))
 		return;
-	char warn[256];
+	char warn[256], path[1024];
 	bool with_sounds=false;
-	sprintf (warn, "overwrite multi %u", multinum);
-	Fl_File_Chooser *fc = new Fl_File_Chooser(".","TEXT Files (*.txt)\t",Fl_File_Chooser::SINGLE,warn);
+	snprintf(warn, 256, "overwrite multi %u", multinum);
+	snprintf(path, 1024, "%s/", Speicher.getHomeFolder().c_str());
+	Fl_File_Chooser *fc = new Fl_File_Chooser(path, "TEXT Files (*.txt)\t", Fl_File_Chooser::SINGLE, warn);
 	fc->textsize(9);
 	fc->show();
 	while(fc->shown()) Fl::wait(); // block until choice is done
@@ -2237,7 +2280,6 @@ void do_importmulti(int multinum)
 //		Fl::awake();
 //		Fl::unlock();
 	}
-
 }
 
 void multiimportCallback(Fl_Widget*, void*T) {
@@ -2319,14 +2361,11 @@ void MultiTable::event_callback(Fl_Widget*, void *data)
 
 void MultiTable::event_callback2()
 {
-	int R = callback_row(),
-		C = callback_col();
-//	int m=R*(cols()/2)+(C/2); // 2 cells per sound
-	int m=R+rows()*(C/2); // 2 cells per sound
 //	printf("'%s' callback: ", (label() ? label() : "?"));
+	int m;
 //	TableContext context = callback_context();
-//	printf("Row=%d Col=%d Context=%d Event=%d sound %d InteractiveResize? %d\n",
-//		R, C, (int)context, (int)Fl::event(), m, (int)is_interactive_resize());
+//	printf("Row=%d Col=%d Context=%d Event=%d InteractiveResize? %d\n",
+//		R, C, (int)context, (int)Fl::event(), (int)is_interactive_resize());
 	Fl_Menu_Item menu_rclick[] = {
 		{ "Load",   0, multiloadmnuCallback, (void*)this },
 		{ "Copy",   0, multicopymnuCallback, (void*)this },
@@ -2339,7 +2378,11 @@ void MultiTable::event_callback2()
 		{ 0 }
 	};
 	switch(Fl::event()){
-		case FL_PUSH:
+		// printf("MultiTable::event_callback2(%u)\n", Fl::event());
+		case FL_PUSH:{
+			int R = callback_row(), C = callback_col();
+		//	int m=R*(cols()/2)+(C/2); // 2 cells per multi
+			m=R+rows()*(C/2); // 2 cells per multi
 			if(Fl::event_clicks()){ // Double click or more
 				int multinum=multiTable->selected_row()+multiTable->rows()*((multiTable->selected_col())/2);
 				loadmulti(multinum);
@@ -2358,13 +2401,14 @@ void MultiTable::event_callback2()
 				redraw();
 			}
 			break;
+		}
 		/* How can we do this properly? We're not in handle method
 		case FL_FOCUS:		// tells FLTK we're interested in keyboard events
 		case FL_UNFOCUS:
 				return 1;
-				*/
-		/* Never triggered
-		case FL_KEYBOARD:
+		*/
+		// Never triggered (unless called from MiniTable?) ??
+		/*
 		case FL_KEYUP:
 				printf("key %x\n", Fl::event_key());
 				if (Fl::event_key()==FL_Enter){
@@ -2372,7 +2416,18 @@ void MultiTable::event_callback2()
 					loadmulti(multinum);
 				}
 			break;
-			*/
+		*/
+		case FL_KEYDOWN:
+		// case FL_SHOW: // Never caught?
+			// Standard movement was handled in MiniTable's handler
+			// We have to redraw slave field and handle the enter key
+			// We cannot trust R and C due to our special selection handling
+			m=_selected_row+rows()*(_selected_col/2); // 2 cells per sound
+			// printf("MultiTable::event_callback2(%u) FL_KEYDOWN %u at %u %u %u\n", Fl::event(), Fl::event_key(), R, C, m);
+			multiNameDisplay->value(Speicher.getMultiName(m).c_str());
+			if (Fl::event_key()==FL_Enter) loadmulti(m);
+			redraw();
+			break;
 	}
 }
 
@@ -4121,7 +4176,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		multiTable=o;
 		o->selection_color(FL_YELLOW);
 		o->color(_BGCOLOR);
-		o->when(FL_WHEN_CHANGED); //FL_WHEN_RELEASE|
+		o->when(FL_WHEN_CHANGED|FL_WHEN_ENTER_KEY|FL_WHEN_NOT_CHANGED); //FL_WHEN_RELEASE|
 		o->table_box(FL_NO_BOX);
 		o->col_resize_min(10);
 		o->row_resize_min(10);
