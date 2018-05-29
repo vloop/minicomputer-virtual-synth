@@ -4,9 +4,11 @@ print"-                     1/2:configuring"
 
 if ARGUMENTS.get('64bit', 0):
 	env = Environment(CCFLAGS = '-m64')
+	# guienv = Environment(tools = [xgettext], CPPFLAGS = '-m64')
 	guienv = Environment(CPPFLAGS = '-m64')
 else:
 	env = Environment(CCFLAGS = '')
+	# guienv = Environment(tools = [xgettext], CPPFLAGS = '')
 	guienv = Environment(CPPFLAGS = '')
 
 if ARGUMENTS.get('k8', 0):
@@ -76,6 +78,37 @@ if not guiconf.CheckLibWithHeader('pthread', 'pthread.h','c'):
 guienv = guiconf.Finish()
 guienv.Append(CPPFLAGS = ['-O3','-Wall','-fmessage-length=0'])
 
+# see https://www.programcreek.com/python/example/94711/SCons.Action.Action
+guienv.SetDefault(gettext_package_bugs_address="marc.perilleux@laposte.net")
+guienv.SetDefault(gettext_package_name="")
+guienv.SetDefault(gettext_package_version="")
+
+guienv['BUILDERS']['gettextMoFile']=env.Builder(
+		action=Action("msgfmt -o $TARGET $SOURCE", "Compiling translation from $SOURCE"),
+		suffix=".mo",
+		src_suffix=".po"
+	)
+
+XGETTEXT_COMMON_ARGS="--keyword=_ --language=C --add-comments --sort-output"
+
+guienv['BUILDERS']['gettextPotFile']=env.Builder(
+	action=Action("xgettext " + XGETTEXT_COMMON_ARGS + " -o $TARGET $SOURCE", "Generating pot file $TARGET"),
+	suffix=".pot")
+
+# Not tested
+guienv['BUILDERS']['gettextMergePotFile']=env.Builder(
+	action=Action("xgettext " + "--omit-header --no-location " + XGETTEXT_COMMON_ARGS + " -o $TARGET $SOURCE",
+		"Generating pot file $TARGET"),
+	suffix=".pot")
+
+# Not working
+guienv['BUILDERS']['msgmergePoFile']=env.Builder(
+	action=Action("msgmerge --update $TARGET $SOURCE", "Merging po file $TARGET"),
+	suffix=".po",
+	src_suffix=".pot"
+	)
+
+
 print"-                     2/2:compiling"
 print"-                     building the engine:"
 
@@ -86,5 +119,10 @@ print"-                     building the editor:"
 
 guienv.Program('minicomputer',['editor/main.cpp','editor/Memory.cpp','editor/syntheditor.cxx','editor/MiniKnob.cxx','editor/MiniPositioner.cxx','editor/MiniTable.cxx']);
 
+# guienv.gettextPotFile('editor/po/minicomputer.pot',['editor/syntheditor.cxx']);
+# guienv.msgmergePoFile('editor/po/fr/minicomputer.po',['editor/po/minicomputer.pot']);
+guienv.gettextMoFile('editor/po/fr/minicomputer.mo',['editor/po/fr/minicomputer.po']);
+
 env.Alias(target="install", source=env.Install(dir="/usr/local/bin", source="minicomputer"));
 env.Alias(target="install", source=env.Install(dir="/usr/local/bin", source="minicomputerCPU"));
+env.Alias(target="install", source=env.Install(dir="/usr/share/locale/fr/LC_MESSAGES", source="editor/po/fr/minicomputer.mo"));
