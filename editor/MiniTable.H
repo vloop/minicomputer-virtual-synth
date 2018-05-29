@@ -19,7 +19,7 @@ protected:
 public:
 	MiniTable(int x, int y, int w, int h, const char *l=0) : Fl_Table_Row(x,y,w,h,l)
 	{
-		_odd_cols_only=true; // False not tested
+		_odd_cols_only=true; // False not tested TODO accessor
 		_cols_first=true; // Cell numbering is vertical first TODO accessor; False not tested
 		_selected_row=0;
 		_selected_col=_odd_cols_only?1:0;

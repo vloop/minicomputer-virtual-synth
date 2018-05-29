@@ -49,6 +49,103 @@ Fl_Tabs* tabs;
 static const char *voiceName[_MULTITEMP]={"1", "2", "3", "4", "5", "6", "7", "8"};
 static const char *noteNames[12]={"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
+// Fl_Menu_Item menu_amod[29]; // UserInterface::
+// Fl_Menu_Item menu_fmod[29]; // UserInterface::
+// Fl_Menu_Item menu_wave[19]; // UserInterface::
+/**
+ * predefined menu with all modulation sources
+ */
+Fl_Menu_Item menu_amod []= { // UserInterface::
+ {_("none"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("velocity"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("pitch bend"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("osc 1 fm out"), 0,  0, 0, 0, FL_NORMAL_LABEL , 0, 8, 0},
+ {_("osc 2 fm out"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ // {_("osc 1"), 0,  0, 0, FL_MENU_INVISIBLE, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("note frequency"), 0, 0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("osc 2"), 0,  0, 0, FL_MENU_INVISIBLE, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("filter"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 1"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 2"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 3"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 4"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 5"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 6"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("modulation osc"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("touch"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("mod wheel"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 12"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("delay"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("midi note"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 2"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 4"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 5"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 6"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 14"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 15"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 16"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 17"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {0,0,0,0,0,0,0,0,0}
+};
+// redundant for now...
+Fl_Menu_Item menu_fmod []= { // UserInterface::
+ {_("none"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("velocity"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("pitch bend"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("osc 1 fm out"), 0,  0, 0, 0, FL_NORMAL_LABEL , 0, 8, 0},
+ {_("osc 2 fm out"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ // {_("osc 1"), 0,  0, 0, FL_MENU_INVISIBLE, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("note frequency"), 0, 0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("osc 2"), 0,  0, 0, FL_MENU_INVISIBLE, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("filter"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 1"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 2"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 3"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 4"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 5"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("eg 6"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("modulation osc"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("touch"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("mod wheel"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 12"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("delay"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("midi note"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 2"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 4"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 5"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 6"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 14"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 15"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 16"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc 17"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {0,0,0,0,0,0,0,0,0}
+};
+/**
+ * waveform list for menu
+ */
+Fl_Menu_Item menu_wave []= { // UserInterface::
+ {_("sine"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("ramp up"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("ramp down"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("tri"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("square"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("bit"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("spike"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("comb"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0}, 
+ {_("add Saw"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("add Square"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("Microcomp 1"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("Microcomp 8"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("Microcomp 9"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("Microcomp 10"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("Microcomp 11"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("Microcomp 12"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("Microcomp 13"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("Microcomp 14"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {0,0,0,0,0,0,0,0,0}
+};
+
+
 Fl_Box* voiceDisplayBox[_MULTITEMP];
 Fl_Group *soundGroup;
 Fl_Int_Input *soundNoInput[_MULTITEMP];
@@ -59,7 +156,7 @@ Fl_Button *voiceLoadBtn[_MULTITEMP];
 Fl_Roller *soundRoller[_MULTITEMP];
 bool sound_changed[_MULTITEMP];
 SoundTable *soundTable;
-Fl_Menu_Button *soundMenu;
+// Fl_Menu_Button *soundMenu;
 Fl_Button *saveSoundsBtn;
 Fl_Output *soundNameDisplay;
 Fl_Output *soundNoDisplay[_MULTITEMP];
@@ -2026,13 +2123,13 @@ void SoundTable::event_callback2()
 //	printf("Row=%d Col=%d Context=%d Event=%d sound %d InteractiveResize? %d\n",
 //		R, C, (int)context, (int)Fl::event(), m, (int)is_interactive_resize());
 	Fl_Menu_Item menu_rclick[] = {
-		{ "Copy",   0, soundcopymnuCallback, (void*)this },
-		{ "Cut",   0, soundcutmnuCallback, (void*)this },
-		{ "Paste",  0, soundpastemnuCallback, (void*)this },
-		{ "Rename",  0, soundrenamemnuCallback, (void*)this },
-		{ "Clear",  0, soundclearmnuCallback, (void*)this },
-		{ "Import",  0, soundimportmnuCallback, (void*)this },
-		{ "Export",  0, soundexportmnuCallback, (void*)this },
+		{ _("Copy"), 0, soundcopymnuCallback, (void*)this },
+		{ _("Cut"), 0, soundcutmnuCallback, (void*)this },
+		{ _("Paste"), 0, soundpastemnuCallback, (void*)this },
+		{ _("Rename"), 0, soundrenamemnuCallback, (void*)this },
+		{ _("Clear"), 0, soundclearmnuCallback, (void*)this },
+		{ _("Import"), 0, soundimportmnuCallback, (void*)this },
+		{ _("Export"), 0, soundexportmnuCallback, (void*)this },
 		{ 0 }
 	};
 	// printf("SoundTable::event_callback2(%u)\n", Fl::event());
@@ -2346,14 +2443,14 @@ void MultiTable::event_callback2()
 //	printf("Row=%d Col=%d Context=%d Event=%d InteractiveResize? %d\n",
 //		R, C, (int)context, (int)Fl::event(), (int)is_interactive_resize());
 	Fl_Menu_Item menu_rclick[] = {
-		{ "Load",   0, multiloadmnuCallback, (void*)this },
-		{ "Copy",   0, multicopymnuCallback, (void*)this },
-		{ "Cut",   0, multicutmnuCallback, (void*)this },
-		{ "Paste",  0, multipastemnuCallback, (void*)this },
-		{ "Rename",  0, multirenamemnuCallback, (void*)this },
-		{ "Clear",   0, multiclearmnuCallback, (void*)this },
-		{ "Import",  0, multiimportCallback, (void*)this },
-		{ "Export",  0, multiexportCallback, (void*)this },
+		{_("Load"), 0, multiloadmnuCallback, (void*)this },
+		{_("Copy"), 0, multicopymnuCallback, (void*)this },
+		{_("Cut"), 0, multicutmnuCallback, (void*)this },
+		{_("Paste"), 0, multipastemnuCallback, (void*)this },
+		{_("Rename"), 0, multirenamemnuCallback, (void*)this },
+		{_("Clear"), 0, multiclearmnuCallback, (void*)this },
+		{_("Import"), 0, multiimportCallback, (void*)this },
+		{_("Export"), 0, multiexportCallback, (void*)this },
 		{ 0 }
 	};
 	switch(Fl::event()){
@@ -2473,144 +2570,6 @@ void UserInterface::changeSound(int voice, int pgm)
 	}
 	*/
 }
-/**
- * predefined menu with all modulation sources
- */
-Fl_Menu_Item menu_amod[] = { // UserInterface::
- {"none", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"velocity", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"pitch bend", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"osc 1 fm out", 0,  0, 0, 0, FL_NORMAL_LABEL , 0, 8, 0},
- {"osc 2 fm out", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- // {"osc 1", 0,  0, 0, FL_MENU_INVISIBLE, FL_NORMAL_LABEL, 0, 8, 0},
- {"note frequency", 0, 0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"osc 2", 0,  0, 0, FL_MENU_INVISIBLE, FL_NORMAL_LABEL, 0, 8, 0},
- {"filter", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 1", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 2", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 3", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 4", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 5", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 6", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"modulation osc", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"touch", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"mod wheel", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 12", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"delay", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"midi note", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 2", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 4", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 5", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 6", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 14", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 15", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 16", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 17", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {0,0,0,0,0,0,0,0,0}
-};
-// redundant for now...
-Fl_Menu_Item menu_fmod[] = { // UserInterface::
- {"none", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"velocity", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"pitch bend", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"osc 1 fm out", 0,  0, 0,0 , FL_NORMAL_LABEL , 0, 8, 0},
- {"osc 2 fm out", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- // {"osc 1", 0,  0, 0, FL_MENU_INVISIBLE, FL_NORMAL_LABEL, 0, 8, 0},
- {"note frequency", 0, 0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"osc 2", 0,  0, 0, FL_MENU_INVISIBLE, FL_NORMAL_LABEL, 0, 8, 0},
- {"filter", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 1", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 2", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 3", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 4", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 5", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"eg 6", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"modulation osc", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"touch", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"mod wheel", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 12", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"delay", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"midi note", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 2", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 4", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 5", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 6", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 14", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 15", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 16", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"cc 17", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {0,0,0,0,0,0,0,0,0}
-};
-/**
- * waveform list for menu
- */
-Fl_Menu_Item menu_wave[] = { // UserInterface::
- {"sine", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"ramp up", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"ramp down", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"tri", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"square", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"bit", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"spike", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"comb", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0}, 
- {"add Saw", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"add Square", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"Microcomp 1", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"Microcomp 8", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"Microcomp 9", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"Microcomp 10", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"Microcomp 11", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"Microcomp 12", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"Microcomp 13", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {"Microcomp 14", 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {0,0,0,0,0,0,0,0,0}
-};
-
-/*
-Fl_SteinerKnob::Fl_SteinerKnob(int x, int y, int w, int h, const char *label)
-: MiniKnob(x, y, w, h, label) {
-	
-}
-int Fl_SteinerKnob::handle(int event) {
-	if (event==FL_PUSH)
-	{
-		if (Fl::event_button2())
-		{
-			altx=Fl::event_x();
-			
-			this->set_changed();
-			//return 0;
-		}
-		else if (Fl::event_button3())
-		{
-			this->step(0.001);
-		}
-		else this->step(0);
-	}
-	if (event ==FL_DRAG)
-	{
-	if (Fl::event_button2())
-		{
-			if (Fl::event_x()<altx )
-			 this->value(this->value()+1);
-			else   this->value(this->value()-1);
-			altx=Fl::event_x();
-			this->set_changed();
-			return 0;
-		}
-		if (Fl::event_button3())
-		{
-			if (Fl::event_x()<altx )
-			 this->value(this->value()+0.01);
-			else   this->value(this->value()-0.01);
-			altx=Fl::event_x();
-			this->set_changed();
-			return 0;
-		}
-	}
-	  return MiniKnob::handle(event);
-}
-*/
 // ---------------------------------------------------------------
 // -------------------- screen initialization --------------------
 // ---------------------------------------------------------------
@@ -2668,7 +2627,7 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 		  knobs[voice][o->argument()] = o;
 		}
 		// Repeat
-		{ Fl_Light_Button* o = new Fl_Light_Button(x+136, y+11, 55, 15, "repeat");
+		{ Fl_Light_Button* o = new Fl_Light_Button(x+136, y+11, 55, 15, _("repeat"));
 		  o->box(FL_BORDER_BOX);
 		  o->selection_color((Fl_Color)89);
 		  o->labelsize(_TEXT_SIZE);
@@ -2698,7 +2657,7 @@ void make_labeltip(Fl_Widget* o, const char* tip){
 }
 
 void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int x, int y){
-	{MiniPositioner* o = new MiniPositioner(x, y, 70, 79, "cut");
+	{MiniPositioner* o = new MiniPositioner(x, y, 70, 79, _("cut"));
 	o->xbounds(0,9000);
 	o->ybounds(500,0);
 	o->selection_color(0);
@@ -2717,7 +2676,7 @@ void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int
 	  o->callback((Fl_Callback*)parmCallback);
 	*/
 	}
-	{ MiniKnob* o = new MiniKnob(x+75, y+2, 25, 25, "q");
+	{ MiniKnob* o = new MiniKnob(x+75, y+2, 25, 25, _("q"));
 	  o->labelsize(_TEXT_SIZE);
 	  o->argument(filter_base+1);
 	  o->minimum(0.9);
@@ -2726,7 +2685,7 @@ void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int
 	  o->callback((Fl_Callback*)parmCallback);
 	  knobs[voice][o->argument()] = o;
 	}
-	{ MiniKnob* o = new MiniKnob(x+85, y+39, 20, 20, "vol");
+	{ MiniKnob* o = new MiniKnob(x+85, y+39, 20, 20, _("vol"));
 	  o->labelsize(_TEXT_SIZE);
 	  o->argument(filter_base+2);
 	  o->callback((Fl_Callback*)parmCallback);
@@ -2757,7 +2716,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 	  }
 	  */
 	int w=63;
-	{ MiniKnob* o= new MiniKnob(x, y+30, w, 60, "frequency");
+	{ MiniKnob* o= new MiniKnob(x, y+30, w, 60, _("frequency"));
 	// { Fl_Dial* o= new Fl_Dial(x, y+30, w, 60, "frequency");
 		// o->tooltip("trouloulou"); // Works for Fl_Dial
 		o->labelsize(_TEXT_SIZE);
@@ -2766,7 +2725,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	}
-	{ MiniPositioner* o = new MiniPositioner(x, y+10, w, 100, "tune");
+	{ MiniPositioner* o = new MiniPositioner(x, y+10, w, 100, _("tune"));
 		o->xbounds(0,16);
 		o->ybounds(1,0);
 		o->box(FL_BORDER_BOX);
@@ -2797,7 +2756,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)tuneCallback);
 		miniInput[voice][minidisplay_base+1]=o;
 	}
-	{ Fl_Light_Button* o = new Fl_Light_Button(x, y+140, w, 15, "fixed freq.");
+	{ Fl_Light_Button* o = new Fl_Light_Button(x, y+140, w, 15, _("fixed freq."));
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(_TEXT_SIZE);
@@ -2805,7 +2764,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	}
-	{ Fl_Light_Button* o = new Fl_Light_Button(x+65, y+7, 40, 15, "boost");
+	{ Fl_Light_Button* o = new Fl_Light_Button(x+65, y+7, 40, 15, _("boost"));
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(_TEXT_SIZE);
@@ -2813,7 +2772,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	}
-	{ Fl_Choice* o = new Fl_Choice(x+107, y+7, 120, 15, "freq modulator 1");
+	{ Fl_Choice* o = new Fl_Choice(x+107, y+7, 120, 15, _("freq modulator 1"));
 		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -2824,7 +2783,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_fmod);
 		choices[voice][o->argument()]=o;
 	}
-	{ MiniKnob* o = new MiniKnob(x+233, y+3, 25, 25, "amount");
+	{ MiniKnob* o = new MiniKnob(x+233, y+3, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+4);  
 		o->minimum(-1000);
@@ -2832,7 +2791,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	}
-	{ Fl_Light_Button* o = new Fl_Light_Button(x+65, y+26, 40, 15, "exp.");
+	{ Fl_Light_Button* o = new Fl_Light_Button(x+65, y+26, 40, 15, _("exp."));
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(_TEXT_SIZE);
@@ -2840,7 +2799,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	} 
-	{ Fl_Light_Button* o = new Fl_Light_Button(x+65, y+45, 40, 15, "mult.");
+	{ Fl_Light_Button* o = new Fl_Light_Button(x+65, y+45, 40, 15, _("mult."));
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(_TEXT_SIZE);
@@ -2848,7 +2807,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	}
-	{ Fl_Choice* o = new Fl_Choice(x+107, y+45, 120, 15, "freq modulator 2");
+	{ Fl_Choice* o = new Fl_Choice(x+107, y+45, 120, 15, _("freq modulator 2"));
 		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -2859,7 +2818,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_fmod);
 		choices[voice][o->argument()]=o;
 	}
-	{ MiniKnob* o = new MiniKnob(x+232, y+40, 25, 25, "amount");
+	{ MiniKnob* o = new MiniKnob(x+232, y+40, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+6); 
 		o->minimum(-1000);
@@ -2867,7 +2826,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	}
-	{ Fl_Light_Button* o = new Fl_Light_Button(x+77, y+82, 40, 15, "mult.");
+	{ Fl_Light_Button* o = new Fl_Light_Button(x+77, y+82, 40, 15, _("mult."));
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(_TEXT_SIZE);
@@ -2875,7 +2834,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	}
-	{ Fl_Choice* o = new Fl_Choice(x+119, y+82, 120, 15, "amp modulator 1");
+	{ Fl_Choice* o = new Fl_Choice(x+119, y+82, 120, 15, _("amp modulator 1"));
 		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -2886,7 +2845,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_amod);
 		choices[voice][o->argument()]=o;
 	}
-	{ MiniKnob* o = new MiniKnob(x+245, y+77, 25, 25, "amount");
+	{ MiniKnob* o = new MiniKnob(x+245, y+77, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+8); 
 		o->minimum(-1);
@@ -2894,7 +2853,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	}
-	{ Fl_Light_Button* o = new Fl_Light_Button(x+77, y+116, 40, 15, "mult.");
+	{ Fl_Light_Button* o = new Fl_Light_Button(x+77, y+116, 40, 15, _("mult."));
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(_TEXT_SIZE);
@@ -2913,7 +2872,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->menu(menu_amod);
 		choices[voice][o->argument()]=o;
 	}
-	{ MiniKnob* o = new MiniKnob(x+245, y+111, 25, 25, "amount");
+	{ MiniKnob* o = new MiniKnob(x+245, y+111, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+9);  
 		o->minimum(-1);
@@ -2921,7 +2880,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	}
-	{ MiniKnob* o = new MiniKnob(x+77, y+144, 20, 20, "start phase");
+	{ MiniKnob* o = new MiniKnob(x+77, y+144, 20, 20, _("start phase"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+118); 
 		o->minimum(0);
@@ -2937,7 +2896,7 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	}
-	{ Fl_Choice* j = new Fl_Choice(x+119, y+147, 120, 15, "waveform");
+	{ Fl_Choice* j = new Fl_Choice(x+119, y+147, 120, 15, _("waveform"));
 		j->box(FL_BORDER_BOX);
 		j->down_box(FL_BORDER_BOX);
 		j->labelsize(_TEXT_SIZE);
@@ -2948,26 +2907,46 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 		j->callback((Fl_Callback*)choiceCallback);
 		j->menu(menu_wave);
 	}
-	  { MiniKnob* o = new MiniKnob(x+245, y+144, 20, 20, "fm out vol");
+	  { MiniKnob* o = new MiniKnob(x+245, y+144, 20, 20, _("fm out vol"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(osc_base+12);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[voice][o->argument()] = o;
 	}
-	/*{ MiniKnob* o = new Fl_SteinerKnob(20, 121, 34, 34, "tune");
-		o->labelsize(_TEXT_SIZE);
-		o->minimum(0.5);
-		o->maximum(16);
-		o->argument(3);
-		o->callback((Fl_Callback*)parmCallback);
-		knobs[3] = o;
-	}*/
 }
     
-Fenster* UserInterface::make_window(const char* title) {    
-// printf("_BGCOLOR: %u\n",_BGCOLOR);
- // Fl_Double_Window* w;
- // {
+Fenster* UserInterface::make_window(const char* title) {
+
+	// Internationalization
+	// see http://www.labri.fr/perso/fleury/posts/programming/a-quick-gettext-tutorial.html
+	// printf("LC_ALL: %s\n", getenv("LC_ALL"));
+	// printf("LC_MESSAGES: %s\n", getenv("LC_MESSAGES"));
+	// printf("LC_TYPE: %s\n", getenv("LC_TYPE"));
+	printf("LANG: %s\n", getenv("LANG"));
+	// printf("LANGUAGE: %s\n", getenv("LANGUAGE"));
+	setlocale (LC_ALL, "");
+	// bindtextdomain ("minicomputer", "/usr/share/locale/"); // Does not work ??
+	// bindtextdomain ("minicomputer", getenv("PWD"));
+	textdomain ("minicomputer");
+	// Translation files were generated as follows:
+	// xgettext --keyword=_ --language=C --add-comments --sort-output -o editor/po/minicomputer.pot editor/syntheditor.cxx
+	// msginit --input=editor/po/minicomputer.pot --locale=fr --output=editor/po/fr/minicomputer.po
+	// msgfmt --output-file=editor/po/fr/minicomputer.mo editor/po/fr/minicomputer.po
+	// su -c "cp editor/po/fr/minicomputer.mo /usr/share/locale/fr/LC_MESSAGES/"
+	// When more text strings have been added:
+	// msgmerge --update editor/po/fr/minicomputer.po editor/po/minicomputer.pot
+	// Test:
+	// gettext minicomputer "Voice " --> "Voix "
+	// printf("none -> %s\n", _("none")); --> aucune
+	
+	for(unsigned int i=0; i<sizeof(menu_amod)/sizeof(menu_amod[0]); i++){
+		// printf("label %s %s\n", menu_amod[i].label(), _(menu_amod[i].label()));
+		menu_amod[i].label(_(menu_amod[i].label()));
+		menu_fmod[i].label(_(menu_amod[i].label())); // Identical menus!
+	}
+	for(unsigned int i=0; i<sizeof(menu_wave)/sizeof(menu_wave[0]); i++)
+		menu_wave[i].label(_(menu_wave[i].label()));
+
 	currentVoice=0;
 	currentMulti=0;
 	
@@ -3085,7 +3064,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	{
 		{ 
 		ostringstream oss;
-		oss<<"voice "<<(i+1); // create name for tab
+		oss<<_("Voice ")<<(i+1); // create name for tab
 		tablabel[i]=oss.str();
 		Fl_Group* o = new Fl_Group(1, 10, _INIT_WIDTH, _INIT_HEIGHT, tablabel[i].c_str());
 		groups[nGroups++]=o;
@@ -3103,16 +3082,16 @@ Fenster* UserInterface::make_window(const char* title) {
 	}
 
 	// Oscillator 1
-	{ Fl_Group* o = new Fl_Group(5, 17, 300, 212, "oscillator 1");
+	{ Fl_Group* o = new Fl_Group(5, 17, 300, 212, _("oscillator 1"));
 		groups[nGroups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_BACKGROUND2_COLOR);
 		o->labelsize(_TEXT_SIZE);
 		o->labelcolor(FL_BACKGROUND2_COLOR);
 		o->align(FL_ALIGN_BOTTOM | FL_ALIGN_INSIDE); // No FL_ALIGN_WRAP!!
-		make_osc(i, 1, 0, 0, 16, 20, "oscillator 1", "amp modulator 2");
+		make_osc(i, 1, 0, 0, 16, 20, _("oscillator 1"), _("amp modulator 2"));
 		// Oscillator 1 specific setting
-		{ Fl_Choice* j = new Fl_Choice(134, 196, 120, 15, "sub waveform");
+		{ Fl_Choice* j = new Fl_Choice(134, 196, 120, 15, _("sub waveform"));
 			j->box(FL_BORDER_BOX);
 			j->down_box(FL_BORDER_BOX);
 			j->labelsize(_TEXT_SIZE);
@@ -3123,11 +3102,11 @@ Fenster* UserInterface::make_window(const char* title) {
 			j->callback((Fl_Callback*)choiceCallback);
 			j->menu(menu_wave);
 		}
-		make_labeltip(o, "One of the primary sound sources. Sounds originate from here.");
+		make_labeltip(o, _("One of the primary sound sources. Sounds originate from here."));
 		o->end();
 	}
 	// Oscillator 2
-	{ Fl_Group* o = new Fl_Group(5, 238, 300, 212, "oscillator 2");
+	{ Fl_Group* o = new Fl_Group(5, 238, 300, 212, _("oscillator 2"));
 		groups[nGroups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_BACKGROUND2_COLOR);
@@ -3135,10 +3114,10 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->labelcolor(FL_BACKGROUND2_COLOR);
 		o->align(FL_ALIGN_BOTTOM | FL_ALIGN_INSIDE);
 		int x=16;
-		make_osc(i, 16, 2, 6, x, 244, "oscillator 2", "fm out amp modulator");
+		make_osc(i, 16, 2, 6, x, 244, _("oscillator 2"), _("fm out amp modulator"));
 		// Oscillator 2 specific settings
 
-		{ Fl_Light_Button* o = new Fl_Light_Button(x, 404, 63, 15, "sync to osc1");
+		{ Fl_Light_Button* o = new Fl_Light_Button(x, 404, 63, 15, _("sync to osc1"));
 			o->box(FL_BORDER_BOX);
 			o->selection_color((Fl_Color)89);
 			o->labelsize(_TEXT_SIZE);
@@ -3147,7 +3126,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			knobs[i][o->argument()] = o;
 		}
 
-		{ MiniKnob* o = new MiniKnob(x+77, 417, 20, 20, "base width");
+		{ MiniKnob* o = new MiniKnob(x+77, 417, 20, 20, _("base width"));
 			o->labelsize(_TEXT_SIZE);
 			o->argument(146); 
 			o->minimum(0.01);
@@ -3156,7 +3135,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			knobs[i][o->argument()] = o;
 		}
 
-		{ Fl_Choice* j = new Fl_Choice(x+119, 420, 120, 15, "pulse width modulator");
+		{ Fl_Choice* j = new Fl_Choice(x+119, 420, 120, 15, _("pulse width modulator"));
 			j->box(FL_BORDER_BOX);
 			j->down_box(FL_BORDER_BOX);
 			j->labelsize(_TEXT_SIZE);
@@ -3167,7 +3146,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			j->callback((Fl_Callback*)choiceCallback);
 			j->menu(menu_fmod);
 		}
-		{ MiniKnob* o = new MiniKnob(x+245, 417, 20, 20, "amount");
+		{ MiniKnob* o = new MiniKnob(x+245, 417, 20, 20, _("amount"));
 			o->labelsize(_TEXT_SIZE);
 			o->argument(147);
 			o->minimum(-1);
@@ -3175,19 +3154,19 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)parmCallback);
 			knobs[i][o->argument()] = o;
 		}
-		make_labeltip(o, "One of the primary sound sources. Sounds originate from here.");
+		make_labeltip(o, _("One of the primary sound sources. Sounds originate from here."));
 		o->end();
 	}
 
 	// Filters
-	{ Fl_Group* o = new Fl_Group(312, 17, 277, 433, "filters");
+	{ Fl_Group* o = new Fl_Group(312, 17, 277, 433, _("filters"));
 	  groups[nGroups++]=o;
 	  o->box(FL_ROUNDED_FRAME);
 	  o->color(FL_BACKGROUND2_COLOR);
 	  o->labelsize(_TEXT_SIZE);
 	  o->labelcolor(FL_BACKGROUND2_COLOR);
 	  o->align(FL_ALIGN_BOTTOM | FL_ALIGN_INSIDE);
-	  { Fl_Group* o = new Fl_Group(330, 28, 241, 92, "filter 1");
+	  { Fl_Group* o = new Fl_Group(330, 28, 241, 92, _("filter 1"));
 		groups[nGroups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
@@ -3196,7 +3175,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		make_filter(i, 33, 5, 456, 31);
 		o->end();
 	  }
-		{ MiniKnob* o = new MiniKnob(559, 40, 20, 20, "tracking");
+		{ MiniKnob* o = new MiniKnob(559, 40, 20, 20, _("tracking"));
 			o->labelsize(_TEXT_SIZE);
 			o->argument(150);
 			o->minimum(-1);
@@ -3205,7 +3184,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)parmCallback);
 			knobs[i][o->argument()] = o;
 		}
-	  { Fl_Group* o = new Fl_Group(330, 132, 241, 92, "filter 2");
+	  { Fl_Group* o = new Fl_Group(330, 132, 241, 92, _("filter 2"));
 		groups[nGroups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
@@ -3227,7 +3206,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		}*/
 		o->end();
 	  }
-		{ MiniKnob* o = new MiniKnob(559, 144, 20, 20, "tracking");
+		{ MiniKnob* o = new MiniKnob(559, 144, 20, 20, _("tracking"));
 			o->labelsize(_TEXT_SIZE);
 			o->argument(151);
 			o->minimum(-1);
@@ -3236,7 +3215,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)parmCallback);
 			knobs[i][o->argument()] = o;
 		}
-	  { Fl_Group* o = new Fl_Group(330, 238, 241, 92, "filter 3");
+	  { Fl_Group* o = new Fl_Group(330, 238, 241, 92, _("filter 3"));
 		groups[nGroups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
@@ -3245,7 +3224,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		make_filter(i, 53, 9, 456, 241);
 		o->end();
 	  } 
-		{ MiniKnob* o = new MiniKnob(559, 250, 20, 20, "tracking");
+		{ MiniKnob* o = new MiniKnob(559, 250, 20, 20, _("tracking"));
 			o->labelsize(_TEXT_SIZE);
 			o->argument(152);
 			o->minimum(-1);
@@ -3254,7 +3233,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)parmCallback);
 			knobs[i][o->argument()] = o;
 		}
-	  { Fl_Choice* o = new Fl_Choice(327, 366, 85, 15, "morph mod 1");
+	  { Fl_Choice* o = new Fl_Choice(327, 366, 85, 15, _("morph mod 1"));
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		o->textsize(_TEXT_SIZE);
@@ -3264,7 +3243,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		choices[i][o->argument()]=o;
 	  }
-	  { MiniKnob* o = new MiniKnob(326, 392, 25, 25, "amount");
+	  { MiniKnob* o = new MiniKnob(326, 392, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->minimum(-2);
 		o->maximum(2);
@@ -3272,7 +3251,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { MiniKnob* o = new MiniKnob(420, 360, 60, 57, "morph");
+	  { MiniKnob* o = new MiniKnob(420, 360, 60, 57, _("morph"));
 		o->type(MiniKnob::DOTLIN);
 		o->scaleticks(0);
 		o->labelsize(_TEXT_SIZE);
@@ -3281,7 +3260,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { Fl_Choice* o = new Fl_Choice(490, 366, 85, 15, "morph mod 2");
+	  { Fl_Choice* o = new Fl_Choice(490, 366, 85, 15, _("morph mod 2"));
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		o->textsize(_TEXT_SIZE);
@@ -3292,7 +3271,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		choices[i][o->argument()]=o;
 	  }
 	  // Mult button morph mod 2
-	  { Fl_Light_Button* o = new Fl_Light_Button(490, 397, 40, 15, "mult.");
+	  { Fl_Light_Button* o = new Fl_Light_Button(490, 397, 40, 15, _("mult."));
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(_TEXT_SIZE);
@@ -3300,7 +3279,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { MiniKnob* o = new MiniKnob(551, 392, 25, 25, "amount");
+	  { MiniKnob* o = new MiniKnob(551, 392, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(48);
 		o->minimum(-2);
@@ -3308,11 +3287,11 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  make_labeltip(o, "Filters (unless bypassed) shape the harmonic contents of the sound.");
+	  make_labeltip(o, _("Filters (unless bypassed) shape the harmonic contents of the sound."));
 	  o->end(); // Group "filters"
 	  filtersGroup[i]=o;
 	  // The two following buttons are not really part of the filter parameters
-	  { Fl_Light_Button* o = new Fl_Light_Button(327, 430, 85, 15, "bypass filters");
+	  { Fl_Light_Button* o = new Fl_Light_Button(327, 430, 85, 15, _("bypass filters"));
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		// o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
@@ -3322,7 +3301,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { Fl_Button* o = new Fl_Button(490, 430, 85, 15, "clear state");
+	  { Fl_Button* o = new Fl_Button(490, 430, 85, 15, _("clear state"));
 		o->tooltip("reset the filter and delay");
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -3334,7 +3313,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	}
 
 	// Modulators
-	{ Fl_Group* o = new Fl_Group(595, 17, 225, 433, "modulators");
+	{ Fl_Group* o = new Fl_Group(595, 17, 225, 433, _("modulators"));
 	  groups[nGroups++]=o;
 	  o->box(FL_ROUNDED_FRAME);
 	  o->color(FL_BACKGROUND2_COLOR);
@@ -3343,22 +3322,22 @@ Fenster* UserInterface::make_window(const char* title) {
 	  o->align(FL_ALIGN_BOTTOM | FL_ALIGN_INSIDE);
 	  // envelope generators
 	  int h=57;
-	  make_EG(i, 60, 608, 31, "EG 1");
-	  make_EG(i, 65, 608, 31+h, "EG 2");
-	  make_EG(i, 70, 608, 31+2*h, "EG 3");
-	  make_EG(i, 75, 608, 31+3*h, "EG 4");
-	  make_EG(i, 80, 608, 31+4*h, "EG 5");
-	  make_EG(i, 85, 608, 31+5*h, "EG 6");
+	  make_EG(i, 60, 608, 31, _("Envelope generator 1"));
+	  make_EG(i, 65, 608, 31+h, _("Envelope generator 2"));
+	  make_EG(i, 70, 608, 31+2*h, _("Envelope generator 3"));
+	  make_EG(i, 75, 608, 31+3*h, _("Envelope generator 4"));
+	  make_EG(i, 80, 608, 31+4*h, _("Envelope generator 5"));
+	  make_EG(i, 85, 608, 31+5*h, _("Envelope generator 6"));
 	  
 	  // mod oscillator
 	  int y=31+6*h;
-	  { Fl_Group* o = new Fl_Group(608, y, 200, 65, "mod osc");
+	  { Fl_Group* o = new Fl_Group(608, y, 200, 65, _("mod osc"));
 		groups[nGroups++]=o;
 		o->box(FL_ROUNDED_FRAME);
 		o->color(FL_FOREGROUND_COLOR);
 		o->labelsize(_TEXT_SIZE);
 
-		{  MiniPositioner* o = new MiniPositioner(620, y+5, 55, 50,"tune");
+		{  MiniPositioner* o = new MiniPositioner(620, y+5, 55, 50, _("tune"));
 		// {  Fl_Positioner* o = new Fl_Positioner(620, y+5, 55, 50,"tune");
 		// o->tooltip("Tralala"); // Never displayed for Fl_Positioner ??
 		o->xbounds(0,128);
@@ -3371,7 +3350,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 		}
-		{ Fl_Choice* o = new Fl_Choice(680, y+12, 85, 15, "waveform");
+		{ Fl_Choice* o = new Fl_Choice(680, y+12, 85, 15, _("waveform"));
 		  o->box(FL_BORDER_BOX);
 		  o->down_box(FL_BORDER_BOX);
 		  o->labelsize(_TEXT_SIZE);
@@ -3382,7 +3361,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)choiceCallback);
 		  choices[i][o->argument()]=o;
 		} 
-		{ MiniKnob* o = new MiniKnob(768, y+7, 20, 20, "start phase");
+		{ MiniKnob* o = new MiniKnob(768, y+7, 20, 20, _("start phase"));
 			o->labelsize(_TEXT_SIZE);
 			o->argument(153); 
 			o->minimum(0);
@@ -3398,7 +3377,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)parmCallback);
 			knobs[i][o->argument()] = o;
 		}
-		{ Fl_Value_Input* o = new Fl_Value_Input(680, y+30, 50, 15, "Hz"); // frequency display for modulation oscillator
+		{ Fl_Value_Input* o = new Fl_Value_Input(680, y+30, 50, 15, _("Hz")); // frequency display for modulation oscillator
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(_TEXT_SIZE);
 		  o->align(FL_ALIGN_RIGHT);
@@ -3409,7 +3388,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->argument(90);
 		  miniInput[i][10]=o;
 		}
-		{ Fl_Value_Input* o = new Fl_Value_Input(680, y+48, 50, 15, "BPM"); // BPM display for modulation oscillator
+		{ Fl_Value_Input* o = new Fl_Value_Input(680, y+48, 50, 15, _("BPM")); // BPM display for modulation oscillator
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(_TEXT_SIZE);
 		  o->align(FL_ALIGN_RIGHT);
@@ -3420,10 +3399,10 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->argument(90);
 		  miniInput[i][11]=o;
 		}
-		{ Fl_Light_Button* o = new Fl_Light_Button(760, y+40, 40, 15, "mod.");
+		{ Fl_Light_Button* o = new Fl_Light_Button(760, y+40, 40, 15, _("mod."));
 		  o->box(FL_BORDER_BOX);
 		  o->labelsize(_TEXT_SIZE);
-		  o->tooltip("Multiply modulation oscillator by modulation wheel");
+		  o->tooltip(_("Multiply modulation oscillator by modulation wheel"));
 		  o->selection_color(FL_RED);
 		  o->argument(145);
 		  o->callback((Fl_Callback*)parmCallback);
@@ -3432,19 +3411,19 @@ Fenster* UserInterface::make_window(const char* title) {
 
 		o->end(); // of mod oscillator
 	  }
-  	  make_labeltip(o, "Modulators allow various parameters of the sound to vary with time.");
+  	  make_labeltip(o, _("Modulators allow various parameters of the sound to vary with time."));
 	  o->end(); // of modulators
 	}
 
 	// Amp group
-	{ Fl_Group* o = new Fl_Group(825, 17, 160, 212, "amp");
+	{ Fl_Group* o = new Fl_Group(825, 17, 160, 212, _("amp"));
 	  groups[nGroups++]=o;
 	  o->box(FL_ROUNDED_FRAME);
 	  o->color(FL_BACKGROUND2_COLOR);
 	  o->labelsize(_TEXT_SIZE);
 	  o->labelcolor(FL_BACKGROUND2_COLOR);
 	  o->align(FL_ALIGN_BOTTOM | FL_ALIGN_INSIDE);
-	{ Fl_Choice* o = new Fl_Choice(844, 35, 85, 15, "amp modulator");
+	{ Fl_Choice* o = new Fl_Choice(844, 35, 85, 15, _("amp modulator"));
 		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -3455,13 +3434,13 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		choices[i][o->argument()]=o;
 	}
-	{ MiniKnob* o = new MiniKnob(934, 29, 25, 25, "amount");
+	{ MiniKnob* o = new MiniKnob(934, 29, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(100);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	}
-	{ Fl_Light_Button* o = new Fl_Light_Button(844, 55, 40, 15, "legato");
+	{ Fl_Light_Button* o = new Fl_Light_Button(844, 55, 40, 15, _("legato"));
 		  o->box(FL_BORDER_BOX);
 		  o->selection_color((Fl_Color)89);
 		  o->labelsize(_TEXT_SIZE);
@@ -3471,32 +3450,36 @@ Fenster* UserInterface::make_window(const char* title) {
 	}
 	// amplitude envelope
 	{ MiniKnob* o = new MiniKnob(844, 83, 25, 25, "A");
-		o->labelsize(_TEXT_SIZE);o->argument(102); 
+		o->labelsize(_TEXT_SIZE);
+		o->argument(102); 
 		o->minimum(EG_rate_min);
 		o->maximum(EG_rate_max);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
 	  { MiniKnob* o = new MiniKnob(874, 83, 25, 25, "D");
-		o->labelsize(_TEXT_SIZE);o->argument(103); 
+		o->labelsize(_TEXT_SIZE);
+		o->argument(103); 
 		o->minimum(EG_rate_min);
 		o->maximum(EG_rate_max);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
 	  { MiniKnob* o = new MiniKnob(904, 83, 25, 25, "S");
-		o->labelsize(_TEXT_SIZE);o->argument(104);
+		o->labelsize(_TEXT_SIZE);
+		o->argument(104);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
 	  { MiniKnob* o = new MiniKnob(934, 83, 25, 25, "R");
-		o->labelsize(_TEXT_SIZE);o->argument(105); 
+		o->labelsize(_TEXT_SIZE);
+		o->argument(105); 
 		o->minimum(EG_rate_min);
 		o->maximum(EG_rate_max);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	{ MiniKnob* o = new MiniKnob(844, 120, 25, 25, "id vol");
+	{ MiniKnob* o = new MiniKnob(844, 120, 25, 25, _("id vol"));
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(101);
 		o->minimum(0);
@@ -3506,7 +3489,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	}
-	  { MiniKnob* o = new MiniKnob(874, 120, 25, 25, "aux 1");
+	  { MiniKnob* o = new MiniKnob(874, 120, 25, 25, _("aux 1"));
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(108);
 		o->minimum(0);
@@ -3516,7 +3499,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { MiniKnob* o = new MiniKnob(904, 120, 25, 25, "aux 2");
+	  { MiniKnob* o = new MiniKnob(904, 120, 25, 25, _("aux 2"));
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(109);
 		o->minimum(0);
@@ -3526,7 +3509,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { MiniKnob* o = new MiniKnob(934, 120, 25, 25, "mix vol");
+	  { MiniKnob* o = new MiniKnob(934, 120, 25, 25, _("mix vol"));
 		o->labelsize(_TEXT_SIZE); 
 		o->argument(106);
 		o->minimum(0);
@@ -3536,7 +3519,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { Fl_Slider* o = new Fl_Slider(864, 160, 80, 10, "mix pan");
+	  { Fl_Slider* o = new Fl_Slider(864, 160, 80, 10, _("mix pan"));
 		o->labelsize(_TEXT_SIZE); 
 		o->box(FL_BORDER_BOX);
 		o->argument(107);
@@ -3548,7 +3531,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { Fl_Choice* j = new Fl_Choice(844, 190, 85, 15, "pan modulator");
+	  { Fl_Choice* j = new Fl_Choice(844, 190, 85, 15, _("pan modulator"));
 		j->box(FL_BORDER_BOX);
 		j->down_box(FL_BORDER_BOX);
 		j->labelsize(_TEXT_SIZE);
@@ -3559,7 +3542,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		j->callback((Fl_Callback*)choiceCallback);
 		j->menu(menu_amod);
 	  }
-	  { MiniKnob* o = new MiniKnob(934, 185, 25, 25, "amount");
+	  { MiniKnob* o = new MiniKnob(934, 185, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(122);
 		o->minimum(-1);
@@ -3567,12 +3550,12 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  make_labeltip(o, "The amp section controls the global volume and pan position of the sound.");
+	  make_labeltip(o, _("The amp section controls the global volume and pan position of the sound."));
 	  o->end(); // of amp
 	}
 
 	// Delay group
-	{ Fl_Group* o = new Fl_Group(825, 238, 160, 149, "delay");
+	{ Fl_Group* o = new Fl_Group(825, 238, 160, 149, _("delay"));
 	  groups[nGroups++]=o;
 	  o->box(FL_ROUNDED_FRAME);
 	  o->color(FL_BACKGROUND2_COLOR);
@@ -3580,7 +3563,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	  o->labelcolor(FL_BACKGROUND2_COLOR);
 	  o->align(FL_ALIGN_BOTTOM | FL_ALIGN_INSIDE);
 
-	  { Fl_Choice* o = new Fl_Choice(844, 265, 85, 15, "time modulator 1");
+	  { Fl_Choice* o = new Fl_Choice(844, 265, 85, 15, _("time modulator 1"));
 		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -3591,13 +3574,13 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		choices[i][o->argument()]=o;
 	  }
-	  { MiniKnob* o = new MiniKnob(934, 260, 25, 25, "amount");
+	  { MiniKnob* o = new MiniKnob(934, 260, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(110);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-		{ Fl_Light_Button* o = new Fl_Light_Button(844, 285, 40, 15, "mult.");
+		{ Fl_Light_Button* o = new Fl_Light_Button(844, 285, 40, 15, _("mult."));
 		  o->box(FL_BORDER_BOX);
 		  o->selection_color((Fl_Color)89);
 		  o->labelsize(_TEXT_SIZE);
@@ -3605,7 +3588,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)parmCallback);
 		  knobs[i][o->argument()] = o;
 		}
-	  { Fl_Choice* o = new Fl_Choice(844, 310, 85, 15, "time modulator 2");
+	  { Fl_Choice* o = new Fl_Choice(844, 310, 85, 15, _("time modulator 2"));
 		o->box(FL_BORDER_BOX);
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
@@ -3616,19 +3599,19 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		choices[i][o->argument()]=o;
 	  }
-	  { MiniKnob* o = new MiniKnob(934, 305, 25, 25, "amount");
+	  { MiniKnob* o = new MiniKnob(934, 305, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(144);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { MiniKnob* o = new MiniKnob(844, 340, 25, 25, "delay time");
+	  { MiniKnob* o = new MiniKnob(844, 340, 25, 25, _("delay time"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(111);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-		{ Fl_Value_Input* o = new Fl_Value_Input(879, 345, 38, 15, "BPM"); // BPM display for delay time
+		{ Fl_Value_Input* o = new Fl_Value_Input(879, 345, 38, 15, _("BPM")); // BPM display for delay time
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(_TEXT_SIZE);
 		  o->align(FL_ALIGN_BOTTOM);
@@ -3639,7 +3622,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->argument(111);
 		  miniInput[i][12]=o;
 		}
-	  { MiniKnob* o = new MiniKnob(934, 340, 25, 25, "feedback");
+	  { MiniKnob* o = new MiniKnob(934, 340, 25, 25, _("feedback"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(112);
 		o->callback((Fl_Callback*)parmCallback);
@@ -3655,7 +3638,7 @@ Fenster* UserInterface::make_window(const char* title) {
 
 	// Sounds group
 	  int x0=319;
-	{ Fl_Group* d = new Fl_Group(x0-7, 461, 364, 48, "sound");
+	{ Fl_Group* d = new Fl_Group(x0-7, 461, 364, 48, _("sound"));
 	  groups[nGroups++]=d;
 	  soundGroup=d;
 	  d->box(FL_ROUNDED_FRAME);
@@ -3670,7 +3653,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->argument(-1);
 		o->callback((Fl_Callback*)soundincdecCallback);
 	  }
-	  { Fl_Int_Input* o = new Fl_Int_Input(x0+10, 471, 35, 30,"sound #");
+	  { Fl_Int_Input* o = new Fl_Int_Input(x0+10, 471, 35, 30,_("sound #"));
 		o->box(FL_BORDER_BOX);
 		o->color(FL_BLACK);
 		o->labelsize(_TEXT_SIZE);
@@ -3689,9 +3672,9 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->argument(+1);
 		o->callback((Fl_Callback*)soundincdecCallback);
 	  }
-	  { Fl_Input* o = new Fl_Input(x0+60, 471, 150, 14, "name");
+	  { Fl_Input* o = new Fl_Input(x0+60, 471, 150, 14, _("name"));
 		o->box(FL_BORDER_BOX);
-		o->tooltip("Enter the sound name here before storing it");
+		o->tooltip(_("Enter the sound name here before storing it"));
 		o->labelsize(_TEXT_SIZE);
 		o->textsize(_TEXT_SIZE);
 		//o->menubutton()->textsize(_TEXT_SIZE);
@@ -3703,7 +3686,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	  }
 	  { Fl_Roller* o = new Fl_Roller(x0+60, 487, 150, 14);
 		o->type(FL_HORIZONTAL);
-		o->tooltip("roll the list of sounds");
+		o->tooltip(_("roll the list of sounds"));
 		o->minimum(0);
 		o->maximum(511);
 		o->step(1);
@@ -3712,16 +3695,16 @@ Fenster* UserInterface::make_window(const char* title) {
 		soundRoller[i]=o;
 		o->callback((Fl_Callback*)soundRollerCallback, NULL);
 	  }
-	  { Fl_Button* o = new Fl_Button(x0+217, 466, 60, 19, "load sound");
-		o->tooltip("actually load the dialed sound");
+	  { Fl_Button* o = new Fl_Button(x0+217, 466, 60, 19, _("load sound"));
+		o->tooltip(_("actually load the dialed sound"));
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 		o->callback((Fl_Callback*)soundLoadBtn1Callback,soundchoice[i]);
 		loadSoundBtn[i]=o;
 	  }
-	  { Fl_Button* o = new Fl_Button(x0+217, 487, 60, 19, "store sound");
-		o->tooltip("store current sound in dialed memory");
+	  { Fl_Button* o = new Fl_Button(x0+217, 487, 60, 19, _("store sound"));
+		o->tooltip(_("store current sound in dialed memory"));
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
@@ -3729,8 +3712,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		storeSoundBtn[i]=o; // For resize, no need for array here, any will do
 	  }
 
-	  { Fl_Button* o = new Fl_Button(x0+284, 466, 60, 19, "import sound");
-		o->tooltip("import single sound to dialed memory slot, you need to load it for playing");
+	  { Fl_Button* o = new Fl_Button(x0+284, 466, 60, 19, _("import sound"));
+		o->tooltip(_("import single sound to dialed memory slot, you need to load it for playing"));
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		//o->labelcolor((Fl_Color)1);
@@ -3738,8 +3721,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		importSoundBtn[i]=o;
 	  }
 
-	  { Fl_Button* o = new Fl_Button(x0+284, 487, 60, 19, "export sound");
-		o->tooltip("export sound data of dialed memory slot");
+	  { Fl_Button* o = new Fl_Button(x0+284, 487, 60, 19, _("export sound"));
+		o->tooltip(_("export sound data of dialed memory slot"));
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
@@ -3748,61 +3731,61 @@ Fenster* UserInterface::make_window(const char* title) {
 	  }
 	  d->end();
 	}
-	{ MiniKnob* o = new MiniKnob(295, 151, 25, 25, "osc1 vol");
+	{ MiniKnob* o = new MiniKnob(295, 151, 25, 25, _("osc1 vol"));
 		o->labelsize(_TEXT_SIZE);
 		// o->align(FL_ALIGN_TOP);
 		o->argument(14);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	}
-	{ MiniKnob* o = new MiniKnob(295, 191, 25, 25, "sub vol");
+	{ MiniKnob* o = new MiniKnob(295, 191, 25, 25, _("sub vol"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(141);
 		// o->align(FL_ALIGN_TOP);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	}
-	{ MiniKnob* o = new MiniKnob(295, 252, 25, 25, "osc2 vol");
+	{ MiniKnob* o = new MiniKnob(295, 252, 25, 25, _("osc2 vol"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(29);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	}
-	{ MiniKnob* o = new MiniKnob(295, 292, 25, 25, "ring vol");
+	{ MiniKnob* o = new MiniKnob(295, 292, 25, 25, _("ring vol"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(138);
 		// o->align(FL_ALIGN_TOP);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	}
-	{ MiniKnob* o = new MiniKnob(295, 332, 25, 25, "pwm vol");
+	{ MiniKnob* o = new MiniKnob(295, 332, 25, 25, _("pwm vol"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(148);
 		// o->align(FL_ALIGN_TOP);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	}
-	{ MiniKnob* o = new MiniKnob(844, 221, 25, 25, "to delay");
+	{ MiniKnob* o = new MiniKnob(844, 221, 25, 25, _("to delay"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(114);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	}
-	{ MiniKnob* o = new MiniKnob(934, 221, 25, 25, "from delay");
+	{ MiniKnob* o = new MiniKnob(934, 221, 25, 25, _("from delay"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(113);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	}
 
-	{ MiniKnob* o = new MiniKnob(52, 221, 25, 25, "glide");
+	{ MiniKnob* o = new MiniKnob(52, 221, 25, 25, _("glide"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(116);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	}
-	{ MiniKnob* o = new MiniKnob(92, 221, 25, 25, "bender");
-		o->tooltip("Pitch bend range (semitones)");
+	{ MiniKnob* o = new MiniKnob(92, 221, 25, 25, _("bender"));
+		o->tooltip(_("Pitch bend range (semitones)"));
 		o->minimum(0);
 		o->maximum(12);
 		o->labelsize(_TEXT_SIZE);
@@ -3820,7 +3803,7 @@ Fenster* UserInterface::make_window(const char* title) {
 
 	// ==================================== midi config tab
 	{ 
-		tablabel[i]="MIDI";
+		tablabel[i]=_("MIDI");
 		Fl_Group* o = new Fl_Group(1, 10, _INIT_WIDTH, _INIT_HEIGHT, tablabel[i].c_str());
 		groups[nGroups++]=o;
 		o->color((Fl_Color)_BGCOLOR);
@@ -3837,7 +3820,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		char * voice_label[_MULTITEMP];
 		for(voice=0; voice<_MULTITEMP; voice++){
 			voice_label[voice]=(char *)malloc(20);
-			sprintf(voice_label[voice], "Voice %u", voice+1); // ?? trailing \0
+			sprintf(voice_label[voice], _("Voice %u"), voice+1); // ?? trailing \0
 			{ Fl_Group* d = new Fl_Group(11+60*voice, 30, 50, 240, voice_label[voice]);
 				groups[nGroups++]=d;
 				midiGroups[voice]=d;
@@ -3849,7 +3832,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  // Channel
 		  // "If step() is non-zero and integral, then the range of numbers is limited to integers"
 		  // range and bounds don't seem to be enforced when typing a value like 12345
-		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 46, 40, 15, "Channel");
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 46, 40, 15, _("Channel"));
 			o->box(FL_ROUNDED_BOX);
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->labelsize(_TEXT_SIZE);
@@ -3864,7 +3847,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			knobs[voice][125] = o; // NOT argument!!
 		  }
 		  // Note min as number
-		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 86, 40, 15, "Note min");
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 86, 40, 15, _("Note min"));
 			o->box(FL_ROUNDED_BOX);
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->labelsize(_TEXT_SIZE);
@@ -3877,7 +3860,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->hide();
 		  }
 		  // Note min as string
-		  { Fl_Input* o = new Fl_Input(16+60*voice, 86, 40, 14, "Note min");
+		  { Fl_Input* o = new Fl_Input(16+60*voice, 86, 40, 14, _("Note min"));
 			o->box(FL_ROUNDED_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->textsize(_TEXT_SIZE);
@@ -3887,7 +3870,7 @@ Fenster* UserInterface::make_window(const char* title) {
             noteInput[voice][1] = o;
           }
 		  // Note max as number
-		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 126, 40, 14, "Note max");
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 126, 40, 14, _("Note max"));
 			o->box(FL_ROUNDED_BOX);
 			o->align(FL_ALIGN_TOP_LEFT);
 			o->labelsize(_TEXT_SIZE);
@@ -3901,7 +3884,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->hide();
 		  }
 		  // Note max as string
-		  { Fl_Input* o = new Fl_Input(16+60*voice, 126, 40, 14, "Note max");
+		  { Fl_Input* o = new Fl_Input(16+60*voice, 126, 40, 14, _("Note max"));
 			o->box(FL_ROUNDED_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->textsize(_TEXT_SIZE);
@@ -3911,7 +3894,7 @@ Fenster* UserInterface::make_window(const char* title) {
             noteInput[voice][2] = o;
           }
 		  // Transpose
-		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 166, 40, 14, "Transpose");
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 166, 40, 14, _("Transpose"));
 			o->box(FL_ROUNDED_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->textsize(_TEXT_SIZE);
@@ -3925,7 +3908,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			knobs[voice][130] = o; // NOT argument!!
 		  }
 		  // Test note as number
-		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 206, 40, 14, "Test note");
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 206, 40, 14, _("Test note"));
 			o->box(FL_ROUNDED_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->textsize(_TEXT_SIZE);
@@ -3939,7 +3922,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->hide();
 		  }
 		  // Test note as string
-		  { Fl_Input* o = new Fl_Input(16+60*voice, 206, 40, 14, "Test note");
+		  { Fl_Input* o = new Fl_Input(16+60*voice, 206, 40, 14, _("Test note"));
 			o->box(FL_ROUNDED_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->textsize(_TEXT_SIZE);
@@ -3949,7 +3932,7 @@ Fenster* UserInterface::make_window(const char* title) {
             noteInput[voice][0] = o;
           }
 		  // Test velocity
-		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 246, 40, 14, "Test vel.");
+		  { Fl_Value_Input* o = new Fl_Value_Input(16+60*voice, 246, 40, 14, _("Test vel."));
 			o->box(FL_ROUNDED_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->textsize(_TEXT_SIZE);
@@ -3965,7 +3948,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			}
 			// Poly link
 			if(voice<_MULTITEMP-1){ // Last voice cannot be linked to next
-				{ Fl_Light_Button* o = new Fl_Light_Button(46+60*voice, 276, 40, 14, "poly");
+				{ Fl_Light_Button* o = new Fl_Light_Button(46+60*voice, 276, 40, 14, _("poly"));
 					o->box(FL_ROUNDED_BOX);
 					o->selection_color((Fl_Color)89);
 					o->labelsize(_TEXT_SIZE);
@@ -3978,7 +3961,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		} // End of for voice
 
 		// Global detune
-		{ Fl_Value_Input* o = new Fl_Value_Input(76, 300, 40, 14, "Master tune");
+		{ Fl_Value_Input* o = new Fl_Value_Input(76, 300, 40, 14, _("Master tune"));
 			o->box(FL_ROUNDED_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->textsize(_TEXT_SIZE);
@@ -3993,7 +3976,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		// Note detune, common to all voices
 		{
 			int y=330;
-			Fl_Group* d = new Fl_Group(11, y, 471, 45, "Detune");
+			Fl_Group* d = new Fl_Group(11, y, 471, 45, _("Detune"));
 			groups[nGroups++]=d;
 			d->box(FL_ROUNDED_FRAME);
 			d->color(FL_BACKGROUND2_COLOR);
@@ -4041,7 +4024,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	} // ==================================== end midi config tab
 	// ==================================== sound librarian tab
 	{ 
-		tablabel[i]="Sounds";
+		tablabel[i]=_("Sounds");
 		Fl_Group* d = new Fl_Group(0, 10, _INIT_WIDTH, _INIT_HEIGHT, tablabel[i].c_str());
 		groups[nGroups++]=d;
 		d->labelsize(_TEXT_SIZE);
@@ -4098,8 +4081,8 @@ Fenster* UserInterface::make_window(const char* title) {
 
 		int y=_INIT_HEIGHT-_LOGO_HEIGHT2-6;
 		int h=_LOGO_HEIGHT2+1;
-		{ Fl_Button* o = new Fl_Button(5, y, 60, h, "save sounds");
-			o->tooltip("save all sound data");
+		{ Fl_Button* o = new Fl_Button(5, y, 60, h, _("save sounds"));
+			o->tooltip(_("save all sound data"));
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
 			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
@@ -4108,8 +4091,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		}
 		int x=70;
 		for(int v=0; v<_MULTITEMP; v++){
-			char sv[10]="Load #";
-			snprintf(sv, 10, "load %d", v+1);
+			char sv[10]="";
+			snprintf(sv, 10, _("load %d"), v+1);
 			Fl_Button* o = new Fl_Button(x+66*v, y, 35, h);
 			o->copy_label(sv);
 			o->box(FL_BORDER_BOX);
@@ -4138,7 +4121,7 @@ Fenster* UserInterface::make_window(const char* title) {
 	}// ==================================== end sounds tab
 	// ==================================== multi librarian tab
 	{ 
-		tablabel[i]="Multis";
+		tablabel[i]=_("Multis");
 		Fl_Group* d = new Fl_Group(0, 10, _INIT_WIDTH, _INIT_HEIGHT, tablabel[i].c_str());
 		groups[nGroups++]=d;
 		d->labelsize(_TEXT_SIZE);
@@ -4168,32 +4151,32 @@ Fenster* UserInterface::make_window(const char* title) {
 
 		o->end(); 
 		}
-		{ Fl_Button* o = new Fl_Button(5, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "save multis");
-			o->tooltip("save all multis data");
+		{ Fl_Button* o = new Fl_Button(5, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, _("save multis"));
+			o->tooltip(_("save all multis data"));
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
 			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 			o->callback((Fl_Callback*)multissavebtnCallback);
 			saveMultisBtn=o;
 		}
-		{ Fl_Button* o = new Fl_Button(70, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "load multi");
-			o->tooltip("load (activate) currently selected multi");
+		{ Fl_Button* o = new Fl_Button(70, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, _("load multi"));
+			o->tooltip(_("load (activate) currently selected multi"));
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
 			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 			o->callback((Fl_Callback*)loadmultibtn2Callback);
 			loadMultiBtn2=o;
 		}
-		{ Fl_Button* o = new Fl_Button(135, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "import multi");
-			o->tooltip("Import multi from file to selected location");
+		{ Fl_Button* o = new Fl_Button(135, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, _("import multi"));
+			o->tooltip(_("Import multi from file to selected location"));
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
 			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 			o->callback((Fl_Callback*)multiimportCallback, (void*) multiTable);
 			importMultiBtn=o;
 		}
-		{ Fl_Button* o = new Fl_Button(200, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, "export multi");
-			o->tooltip("Export multi from selected location to file");
+		{ Fl_Button* o = new Fl_Button(200, _INIT_HEIGHT-_LOGO_HEIGHT2-5, 60, _LOGO_HEIGHT2, _("export multi"));
+			o->tooltip(_("Export multi from selected location to file"));
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
 			//o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
@@ -4215,7 +4198,7 @@ Fenster* UserInterface::make_window(const char* title) {
 
 	// ==================================== about tab 
 	{ 
-		tablabel[i]="about";
+		tablabel[i]=_("About");
 		Fl_Group* o = new Fl_Group(1, 10, _INIT_WIDTH, _INIT_HEIGHT, tablabel[i].c_str());
 		groups[nGroups++]=o;
 		o->color((Fl_Color)_BGCOLOR);
@@ -4229,7 +4212,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		}
 		*/ 
 		{
-		  Fl_Help_View* o=new Fl_Help_View(200, 50, 600, 300, "About Minicomputer");
+		  Fl_Help_View* o=new Fl_Help_View(200, 50, 600, 300, _("About Minicomputer"));
 		  o->box(FL_ROUNDED_BOX);
 		  o->labelsize(12);
 		  o->color((Fl_Color)_BGCOLOR);
@@ -4302,7 +4285,7 @@ Fenster* UserInterface::make_window(const char* title) {
 // There is only one instance of the multi section.
 // It impacts resizing?
 		int x0=12;
-		{ Fl_Group* d = new Fl_Group(x0-7, 461, 300, 48, "multi");
+		{ Fl_Group* d = new Fl_Group(x0-7, 461, 300, 48, _("multi"));
 			groups[nGroups++]=d;
 			multiGroup=d;
 			d->box(FL_ROUNDED_FRAME);
@@ -4318,7 +4301,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)multiincdecCallback);
 			decMultiBtn=o;
 		  }
-		  { Fl_Int_Input* o = new Fl_Int_Input(x0+10, 471, 35, 30, "multi #");
+		  { Fl_Int_Input* o = new Fl_Int_Input(x0+10, 471, 35, 30, _("multi #"));
 			o->box(FL_BORDER_BOX);
 			o->color(FL_BLACK);
 			o->labelsize(_TEXT_SIZE);
@@ -4338,12 +4321,12 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)multiincdecCallback);
 			incMultiBtn=o;
 		  }
-		  { Fl_Input* o = new Fl_Input(x0+60, 471, 150, 14, "name");
+		  { Fl_Input* o = new Fl_Input(x0+60, 471, 150, 14, _("name"));
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->textsize(_TEXT_SIZE);
 			o->align(FL_ALIGN_TOP_LEFT);
-			o->tooltip("Enter the multi name here before storing it");
+			o->tooltip(_("Enter the multi name here before storing it"));
 			o->callback((Fl_Callback*)multiNameInputCallback);
 			// multichoice = o;
 			multiNameInput = o; // global ??
@@ -4351,7 +4334,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  // roller for the multis:
 		  { Fl_Roller* o = new Fl_Roller(x0+60, 487, 150, 14);
 			o->type(FL_HORIZONTAL);
-			o->tooltip("roll the list of multis, press load button for loading or save button for storing");
+			o->tooltip(_("roll the list of multis, press load button for loading or save button for storing"));
 			o->minimum(0);
 			o->maximum(127);
 			o->value(0);
@@ -4360,16 +4343,16 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)multiRollerCallback,NULL);
 			multiRoller=o;
 		  }
-		  { Fl_Button* o = new Fl_Button(x0+217, 465, 60, 19, "load multi");
-			o->tooltip("load current multi");
+		  { Fl_Button* o = new Fl_Button(x0+217, 465, 60, 19, _("load multi"));
+			o->tooltip(_("load current multi"));
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 			o->callback((Fl_Callback*)loadmultiCallback, multiNameInput); // multichoice
 			loadMultiBtn = o;
 		  }
-		  { Fl_Button* o = new Fl_Button(x0+217, 485, 60, 19, "store multi");
-			o->tooltip("overwrite this multi");
+		  { Fl_Button* o = new Fl_Button(x0+217, 485, 60, 19, _("store multi"));
+			o->tooltip(_("overwrite this multi"));
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
@@ -4401,8 +4384,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		parmInput = o;
 	}
 
-	{ Fl_Toggle_Button* o = new Fl_Toggle_Button(679, 466, 60, 19, "Audition");
-		o->tooltip("Hear the currently loaded sound");
+	{ Fl_Toggle_Button* o = new Fl_Toggle_Button(679, 466, 60, 19, _("Audition"));
+		o->tooltip(_("Hear the currently loaded sound"));
 		// These borders won't prevent look change on focus
 		o->box(FL_BORDER_BOX);
 		// o->downbox(FL_BORDER_BOX);
@@ -4412,8 +4395,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)do_audition);
 		auditionBtn = o;
 	}
-	{ Fl_Toggle_Button* o = new Fl_Toggle_Button(679, 487, 60, 19, "Compare");
-		o->tooltip("Compare edited sound to original");
+	{ Fl_Toggle_Button* o = new Fl_Toggle_Button(679, 487, 60, 19, _("Compare"));
+		o->tooltip(_("Compare edited sound to original"));
 		// These borders won't prevent look change on focus
 		o->box(FL_BORDER_BOX);
 		// o->downbox(FL_BORDER_BOX);
@@ -4423,8 +4406,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)do_compare);
 		compareBtn = o;
 	}
-	{ Fl_Button* o = new Fl_Button(741, 466, 60, 40, "PANIC");
-		o->tooltip("Instantly stop all voices (shortcut Esc)");
+	{ Fl_Button* o = new Fl_Button(741, 466, 60, 40, _("PANIC"));
+		o->tooltip(_("Instantly stop all voices (shortcut Esc)"));
 		o->box(FL_BORDER_BOX);
 		// o->labelsize(_TEXT_SIZE);
 		o->color(FL_RED);
@@ -4482,7 +4465,7 @@ Fenster::Fenster(int w, int h): Fl_Double_Window(w,h)
  */
 Fenster::~Fenster()
 {
-	printf("gui quit\n");
+	printf(_("gui quit\n"));
 	fflush(stdout);
 	if (transmit) lo_send(t, "/Minicomputer/close", "i",1);
 	//~Fl_Double_Window();
@@ -4667,8 +4650,8 @@ int Fenster::handle (int event)
 			do_audition(auditionBtn, NULL);
 		break;
 		
-				}// end of switch
-		}// end of if
+				} // end of switch
+		} // end of if
 				return 1;
 
 		default:
