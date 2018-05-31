@@ -11,44 +11,75 @@ Minicomputer est un synthétiseur virtuel Linux pour
 créer des sons électroniques expérimentaux comme on en utilise par exemple 
 en musique industrielle, Glitch, IDM et d'autres musiques électroniques.
 
+Note de Malte Steiner:
 Il se peut qu'il y ait des bugs mais Minicomputer a déjà été utilisé avec succés en studio pour le projet 'Akustikkoppler' 
 et en live pour 'Notstandskomitee'.
-
-Minicomputer est un logiciel libre, gratuit et open source sous licence GPL3.
-
-Il est composé d'un moteur sonore et d'un éditeur.
-
-Les prérequis comprennent:
-– Jack
-– FLTK pour l'éditeur
-– Alsaseq pour la communication MIDI
-– pthreads
-– liblo pour la communication OSC
-et 
-– Scons pour la compilation
-
-Voyez l'explication pas à pas vers la fin de ce fichier.
-
 Faites attention, les sons peuvent être brutaux!
 L'utilisation est de votre responsabilité, vous êtes avertis!
 
------------------------------ démarrage de Minicomputer ------------------------
+Minicomputer est un logiciel libre, gratuit et open source sous licence GPL3.
 
+----------------------------- installation pour Linux Mint et ubuntu ------------------------
+
+Ces étapes ont été testées sur une installation vierge de linuxmint-18.3-xfce-64bit
+et sur ubuntu 18.04
+D'autres distributions peuvent nécessiter de légères modifications
+
+    sudo apt-get update
+    sudo apt-get upgrade
+    sudo apt-get install build-essential scons liblo-dev libclthreads-dev libasound-dev libfltk1.3-dev
+    # Pour debian 9.4.0
+    # su -c "apt-get install g++ scons liblo-dev libasound-dev libfltk1.3-dev gettext"
+
+    sudo apt-get install libjack-dev
+OU BIEN (selon votre distribution et votre version de jack)
+    sudo apt-get install libjack-jackd2-dev
+ATTENTION!
+Si apt-get vous propose de désinstaller certaines choses,
+n'acceptez pas, cela indique la mauvaise version de jack,
+utilisez l'autre librairie!
+
+    wget https://github.com/vloop/minicomputer-virtual-synth/archive/master.zip
+    unzip master.zip
+    cd minicomputer-virtual-synth-master/
+    scons
+    sudo scons install
+    ./installpresets.sh
+
+A ce stade, les exécutables et les données sont en place.
+Evidemment, vous aurez aussi besoin de jack 1 or 2 pour pouvoir utiliser le synthé!
+Attention, l'installation de jack 2 supprime libjack-dev, ce qui empêche scons d'aboutir.
+
+    sudo apt-get install jackd1
+    # Pour debian 9.4.0
+    # su -c "apt-get install jackd1"
+OU BIEN
+    sudo apt-get install jackd2
+
+Pour les deux, en remplaçant "test" par votre nom d'utilisateur dans la ligne ci-dessous:
+    sudo usermod -aG audio test
+
+----------------------------- démarrage de Minicomputer ------------------------
+Commencer par démarrer jack, par exemple
+    pasuspender -- jackd -d alsa &
 Pour démarrer le synthé, il suffit de saisir minicomputer à l'invite de commande.
+    minicomputer
+et pour établir des connexions manuellement, par exemple
+    jack_connect "Minicomputer7771:mix out left" "system:playback_1"
+    jack_connect "Minicomputer7771:mix out right" "system:playback_2"
+
+Vous pouvez bien sur aussi utiliser qjackctl pour démarrer jack et pour établir les connexions.
 Ceci lancera l'éditeur ainsi que le moteur sonore si nécessaire.
 Par défaut ces programmes communiquent via OSC sur les ports 7771 et 7772.
 Si vous préférez un autre port ou souhaitez lancer plusieurs instances, vous pouvez définir le port de base au moyen du paramètre -port:
-
-minicomputer -port 434334
+    minicomputer -port 434334
 
 Le numéro de port apparait avec le nom dans qjackctl, ceci permet d'identifier les différentes instances.
+Pour voir les paramètres disponibles:
+    minicomputer --help
 
 
------------------------------ compilation de Minicomputer ------------------------
-
-Pour compiler Minicomputer, saisissez simplement
-
-scons
+----------------------------- Notes d'installation ------------------------
 
 Le nettoyage (suppression) des fichiers intermédiaires de la compilation mais aussi des exécutables nouvellement générés s'effectue par la commande
 
@@ -83,53 +114,16 @@ scons 64bit=1 k8=1
 
 D'autres optimisations peuvent être activées dans common.h mais il s'agit d'expérimentations, le résultat peut varier.
 
------------------------------ installation pour Linux Mint ------------------------
-
-Ces étapes ont été testées sur une installation vierge de linuxmint-18.3-xfce-64bit
-D'autres distributions peuvent nécessiter de légères modifications
-
-    sudo apt-get update
-    sudo apt-get upgrade
-    sudo apt-get install build-essential scons fluid liblo-dev libclthreads-dev libasound-dev libfltk1.3-dev
-
-    sudo apt-get install libjack-dev
-OU BIEN (selon votre distribution et votre version de jack)
-    sudo apt-get install libjack-jackd2-dev
-ATTENTION!
-Si apt-get vous propose de désinstaller certaines choses,
-n'acceptez pas, cela indique la mauvaise version de jack,
-utilisez l'autre librairie!
-
-    wget https://github.com/vloop/minicomputer-virtual-synth/archive/master.zip
-    unzip master.zip
-    cd minicomputer-virtual-synth-master/
-    scons
-    sudo scons install
-    ./installpresets.sh
-
-A ce stade, les exécutables et les données sont en place.
-Evidemment, vous aurez aussi besoin de jack 1 or 2 pour pouvoir utiliser le synthé!
-Attention, l'installation de jack 2 supprime libjack-dev, ce qui empêche scons d'aboutir.
-Il est quand même possible d'utiliser Minicomputer avec jack 2, si vous n'avez pas besoin de le construire à nouveau.
-Par exemple, en remplaçant "test" par votre nom d'utilisateur dans la ligne usermod:
-
-    sudo apt-get install jackd2 qjackctl
-    sudo usermod -aG audio test
-    pasuspender -- jackd -d alsa &
-    minicomputer
-et si vous avez utilisé l'option -no-connect
-    jack_connect "Minicomputer7771:mix out left" "system:playback_1"
-    jack_connect "Minicomputer7771:mix out right" "system:playback_2"
-
-Vous pouvez bien sur aussi utiliser qjackctl pour démarrer jack et pour établir les connexions.
-
 ----------------------------- Dépannage -----------------------------
 
 « j'ai installé la bibliothèque xyz mais scons ne la trouve pas »
-- Vérifiez que vous avez bien installé aussi la version de développement, qui aura habituellement un nom du genre libxyz.dev.
+Vérifiez que vous avez bien installé aussi la version de développement, qui aura habituellement un nom du genre libxyz.dev.
+scons émet parfois des messages concernant les bibliothèques pour des raisons sans rapport, comme des options de compilation erronées.
 
-Un mot à l'intention des créateurs de paquetages:
+-----------------------------Crédits -----------------------------
+Sons supplémentaires par jmechmech
+
+----------------------------- Un mot à l'intention des créateurs de paquetages -----------------------------
 
 J'apprécie l'inclusion de Minicomputer dans les dépôts.
 Si vous rencontrez des difficultés, merci de me contacter à l'adresse mail ci-dessus et nous chercherons une solution.
-

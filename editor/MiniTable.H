@@ -40,6 +40,11 @@ public:
 	int selected_cell(){return _cols_first ? _selected_col*rows()+_selected_row : _selected_row*cols()+_selected_col;}
 	int copied_row(){return _cols_first ? _copied_cell % rows() : _copied_cell / cols();}
 	int copied_col(){return _cols_first ? _copied_cell / rows() : _copied_cell % cols();}
+	int index(const unsigned int R, const unsigned int C){
+		return _odd_cols_only ?
+			(_cols_first ? R+rows()*(C/2) : R*cols()+(C/2))
+			:selected_cell();
+	}
 	int selected_index(){
 		return _odd_cols_only ?
 			(_cols_first ? _selected_row+rows()*(_selected_col/2) : _selected_row*cols()+(_selected_col/2))

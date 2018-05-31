@@ -17,7 +17,6 @@
  */
 
 #include "syntheditor.h"
-#include "Memory.h"
 
 short MiniKnob::_defaultdragtype=MiniKnob::VERTICAL;
 int MiniKnob::_defaultmargin=3;
@@ -536,8 +535,16 @@ static void tabCallback(Fl_Widget* o, void* )
 		return;
 	}
 
-    if (currenttab==9) Fl::focus(soundTable);
-    if (currenttab==10) Fl::focus(multiTable);
+    if (currenttab==9){
+		Fl::focus(soundTable);
+		soundNameDisplay->value(Speicher.getSoundName(soundTable->selected_index()).c_str());
+		soundNameDisplay->redraw();
+	}
+    if (currenttab==10){
+		Fl::focus(multiTable);
+		multiNameDisplay->value(Speicher.getMultiName(multiTable->selected_index()).c_str());
+		multiNameDisplay->redraw();
+	}
 	if (currenttab==9 || currenttab==10) // The "Sounds" and "Multis" tabs
 	{
 		panicBtn->hide();
@@ -1374,7 +1381,7 @@ static void do_exportsound(int soundnum)
 }
 static void do_exportmulti(const unsigned int multinum)
 {
-	if(multi_changed && (fl_choice("Refresh multi %u before export?", "Yes", "No", 0, multinum)==0))
+	if(multi_changed && (fl_choice(_("Refresh multi %u before export?"), _("Yes"), _("No"), 0, multinum)==0))
 		storemulti(multinum);
 	char warn[1024], path[1024], name[_NAMESIZE];
 	strnrtrim(name, Speicher.getMultiName(multinum).c_str(), _NAMESIZE);
@@ -1454,7 +1461,7 @@ static void do_importsound(int soundnum)
 {
 	// printf("About to import into sound %d\n", soundnum);
 	if(strlen(Speicher.getSoundName(soundnum).c_str())
-		&& fl_choice("Overwrite sound #%u %s?", "Yes", "No", 0, soundnum, Speicher.getSoundName(soundnum).c_str()))
+		&& fl_choice("Overwrite sound #%u %s?", _("Yes"), _("No"), 0, soundnum, Speicher.getSoundName(soundnum).c_str()))
 		return;
 
 	char warn[256], path[1024];
@@ -1483,14 +1490,14 @@ static void do_importsound(int soundnum)
 			}
 		}
 		// If sound is in use, propose to apply imported version
-		if(found && fl_choice("Load the imported sound #%u in voice(s) using that sound number?", "Yes", "No", 0, soundnum)==0){
+		if(found && fl_choice(_("Load the imported sound #%u in voice(s) using that sound number?"), _("Yes"), _("No"), 0, soundnum)==0){
 			for(int i=0; i<_MULTITEMP; i++){
 				// printf("voice %u sound %s\n", i, soundNoInput[i]->value());
 				if(atoi(soundNoInput[i]->value())==soundnum)
 					sound_recall(i, soundnum);
 			}
 		}
-		if(fl_choice("Save all sounds (including #%u)?", "Yes", "No", 0, soundnum)==0)
+		if(fl_choice(_("Save all sounds (including #%u)?"), _("Yes"), _("No"), 0, soundnum)==0)
 			Speicher.saveSounds();
 //		fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 //		Fl::check();
@@ -1993,7 +2000,7 @@ static void storemultiCallback(Fl_Widget* o, void*)
 	storemulti(currentMulti);
 
 	// write to disk
-	if(fl_choice("Save all multis (including #%u) to disk?", "Yes", "No", 0, currentMulti)==0)
+	if(fl_choice("Save all multis (including #%u) to disk?", _("Yes"), _("No"), 0, currentMulti)==0)
 		Speicher.saveMultis();
 	fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 //	Fl::check();
@@ -2041,7 +2048,8 @@ void SoundTable::draw_cell(TableContext context,
 {
 	static char s[40];
 	// int m=R*(cols()/2)+(C/2); // 2 cells per sound
-	int m=R+rows()*(C/2); // 2 cells per sound
+	// int m=R+rows()*(C/2); // 2 cells per sound
+	int m=index(R, C);
 	if(m<0 || m>=_SOUNDS) return;
 	// Cannot get this to actually refresh display
 	// except after switching to a different window or tab
@@ -2168,9 +2176,11 @@ void SoundTable::event_callback2()
 		case FL_KEYDOWN:
 		// case FL_SHOW: // Never caught?
 			// Standard movement was already handled in MiniTable's handler
-			// We only have to redraw slave field
+			// We only have to handle delete and redraw slave field
+			int m=selected_index();
+			if (Fl::event_key()==FL_Delete && (fl_choice(_("Delete sound %u?"), _("Yes"), _("No"), 0, m)==0)) Speicher.clearSound(m);
 			// We cannot trust R and C due to our special selection handling
-			soundNameDisplay->value(Speicher.getSoundName(selected_index()).c_str());
+			soundNameDisplay->value(Speicher.getSoundName(m).c_str());
 			redraw();
 			break;
 	}
@@ -2329,7 +2339,7 @@ void do_importmulti(int multinum)
 {
 	// printf("About to import into multi %d\n", multinum);
 	if( strlen(Speicher.getMultiName(multinum).c_str())
-		&& fl_choice("Overwrite multi #%u %s?", "Yes", "No", 0, multinum, Speicher.getMultiName(multinum).c_str()))
+		&& fl_choice("Overwrite multi #%u %s?", _("Yes"), _("No"), 0, multinum, Speicher.getMultiName(multinum).c_str()))
 		return;
 	char warn[256], path[1024];
 	bool with_sounds=false;
@@ -2344,14 +2354,15 @@ void do_importmulti(int multinum)
 //		Fl::lock();
 //		fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
 //		Fl::check();
-		with_sounds=fl_choice("Do you want to import embedded sounds, overwriting existing sounds?", "Yes", "No", 0)==0;
+		with_sounds=fl_choice(_("Do you want to import embedded sounds, overwriting existing sounds?"), _("Yes"), _("No"), 0)==0;
 		Speicher.importMulti(fc->value(), multinum, with_sounds);
 		// ok, now we have a new multi loaded
 		// but not applied?!
 		updatemultiNameInput(multinum, Speicher.getMultiName(multinum).c_str());
-		if(fl_choice("Use the imported multi as current?", "Yes", "No", 0)==0) loadmulti(multinum);
+		if(fl_choice(_("Use the imported multi as current?"), _("Yes"), _("No"), 0)==0) loadmulti(multinum);
 		// now the new multi is in RAM but need to be saved to the main file
-		// saveMultis();
+		if(fl_choice(_("Save all multis?"), _("Yes"), _("No"), 0)==0) Speicher.saveMultis();
+		if(with_sounds && fl_choice(_("Save all sounds?"), _("Yes"), _("No"), 0)==0) Speicher.saveSounds();
 
 //		fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 //		Fl::check();
@@ -2372,7 +2383,8 @@ void MultiTable::draw_cell(TableContext context,
 {
 	static char s[40];
 	// int m=R*(cols()/2)+(C/2); // 2 cells per sound
-	int m=R+rows()*(C/2); // 2 cells per sound
+	// int m=R+rows()*(C/2); // 2 cells per sound
+	int m=index(R, C);
 	if(m<0 || m>=_MULTIS) return;
 
 	switch ( context )
@@ -2493,8 +2505,10 @@ void MultiTable::event_callback2()
 			// We cannot trust R and C due to our special selection handling
 			m=selected_index();
 			// printf("MultiTable::event_callback2(%u) FL_KEYDOWN %u at %u %u %u\n", Fl::event(), Fl::event_key(), R, C, m);
-			multiNameDisplay->value(Speicher.getMultiName(m).c_str());
 			if (Fl::event_key()==FL_Enter) loadmulti(m);
+			else if (Fl::event_key()==FL_Delete && (fl_choice(_("Delete multi %u?"), _("Yes"), _("No"), 0, m)==0))
+				Speicher.clearMulti(m);
+			multiNameDisplay->value(Speicher.getMultiName(m).c_str());
 			redraw();
 			break;
 	}

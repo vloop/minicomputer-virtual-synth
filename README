@@ -11,66 +11,91 @@ Minicomputer is a standalone Linux softwaresynthesizer for
 creating experimental electronic sounds as its often used 
 in but not limited to Industrial music, Glitch, IDM and other electronic genres.
 
+Note from Malte Steiner:
 This may contain some bugs but already worked in studio for my project 'Akustikkoppler' 
 and live for 'Notstandskomitee'.
+Take care, it can be harsh! Use it on your own risk, you have been warnend!
 
 Minicomputer is free open source software under the GPL3 license.
 
-Its split into the engine and an editor.
+------------------------ installation steps for mint and ubuntu ------------------------
 
-Dependancies includes:
+The steps below were tested on a fresh linuxmint-18.3-xfce-64bit install
+and on a fresh ubuntu 18.04
+Other distributions may slightly vary
 
-- Jack
-- FLTK
-- Alsaseq
-- pthreads
-- liblo
+    sudo apt-get update
+    sudo apt-get upgrade
+    sudo apt-get install build-essential scons liblo-dev libclthreads-dev libasound-dev libfltk1.3-dev gettext
+    # For debian 9.4.0
+    # su -c "apt-get install g++ scons liblo-dev libasound-dev libfltk1.3-dev gettext"
 
-and 
+    sudo apt-get install libjack-dev
+OR (depending on your distribution and jack version)
+    sudo apt-get install libjack-jackd2-dev
 
-- Scons for building
-
-See details near the end of this file
-
-Take care, it can be harsh! Use it on your own risk, you have been warnend!
-
------------------------------ starting Minicomputer ------------------------
-
-after the installation simply type 
-
-minicomputer 
-
-and it will start the editor application and the synthesis core. By closing the editor window the core engine will be stopped too.
-
-Per default both programs communicate via OSC at the port 7770. If you like to have another one or want several instances you can define the port with the -port parameter:
-
-minicomputer -port 434334
-
-It will be shown at the name in QJackctrl so you know which instances belongs together.
+BEWARE!
+If apt-get prompts you about uninstalling some packages,
+don't accept, this is an indication of jack version mismatch,
+use the other library!
 
 
------------------------------ building Minicomputer ------------------------
+    wget https://github.com/vloop/minicomputer-virtual-synth/archive/master.zip
+    unzip master.zip
+    cd minicomputer-virtual-synth-master/
+    scons native=1
+    sudo scons install native=1
+    ./installpresets.sh
 
-For building Minicomputer just type
+At this stage, the binaries and presets are in place.
+Of course, you still need jack 1 or 2 to actually use the synth!
+For jack 1:
+    sudo apt-get install jackd1
+    # For debian 9.4.0
+    # su -c "apt-get install jackd1"
+For jack 2:
+    sudo apt-get install jackd2 qjackctl
+For both, with your user name instead of "test":
+    sudo usermod -aG audio test
+Beware that jack 2 installation removes libjack-dev, and that causes scons to fail.
 
-scons
+------------------------ Launching ------------------------ 
+Launch jack first
+    pasuspender -- jackd -d alsa &
 
-Cleaning the buildfiles but the new created programfiles TOO, is done by typing 
+Launch the synth editor
+    minicomputer
 
-scons -c
+NB Use minicomputer --help to show usage
+The synth editor automatically launches the synth engine
+The synth engine automatically connects to jack
+You may add custom connections, for example
+    jack_connect "Minicomputer7771:mix out left" "system:playback_1"
+    jack_connect "Minicomputer7771:mix out right" "system:playback_2"
+
+or you may use qjackctl to start jack and setup the connections.
+Notice that the name in jack includes the port number.
+This is specially useful if you use several instances of minicomputer.
+
+----------------------------- Installation notes ------------------------
+
+Cleaning the build files (and removing the program files from the build folder) is done by typing
+
+	scons -c
 
 Installation as root into /usr/local/bin can be done with 
 
-scons install
+	sudo scons install
 
 deinstallation is done as root:
 
-scons -c install
+	sudo scons -c install
 
-
-So far the target directory is hardcoded in SConstruct file, its the last two lines.
-Data is kept in .miniComputer/ directory in your home folder. For starting you can install the presets with the installpresets.sh script as the user you want to use it later. Be careful this overwrites of course your settings if you have any previous but they are backed up for security.
-
+So far the target directory is hardcoded in SConstruct file, it's the last lines.
+Data is kept in .miniComputer/ directory in your home folder.
+Run the installpresets.sh script as the user who'll launch the synth (NOT as root).
+Be careful this overwrites any previous settings.
+The previous settings are backed up automatically.
 
 The buildprocess accept parameters for refining architecture optimization:
 
@@ -92,53 +117,20 @@ scons 64bit=1 k8=1
 
 further optimization can be switched in common.h but it's experimental and results vary
 
------------------------------ installation steps for mint ------------------------
-
-The steps below were tested on a fresh linuxmint-18.3-xfce-64bit install
-Other distributions may slightly vary
-
-    sudo apt-get update
-    sudo apt-get upgrade
-    sudo apt-get install build-essential scons fluid liblo-dev libclthreads-dev libasound-dev libfltk1.3-dev
-
-    sudo apt-get install libjack-dev
-OR (depending on your distribution and jack version)
-    sudo apt-get install libjack-jackd2-dev
-BEWARE!
-If apt-get prompts you about uninstalling some packages,
-don't accept, this is an indication of jack version mismatch,
-use the other library!
-
-
-    wget https://github.com/vloop/minicomputer-virtual-synth/archive/master.zip
-    unzip master.zip
-    cd minicomputer-virtual-synth-master/
-    scons
-    sudo scons install
-    ./installpresets.sh
-
-At this stage, the binaries and presets are in place.
-Of course, you still need jack 1 or 2 to actually use the synth!
-Beware that jack 2 installation removes libjack-dev, and that causes scons to fail.
-For jack 2, with your user name instead of "test" on the usermod line:
-
-    sudo apt-get install jackd2 qjackctl
-    sudo usermod -aG audio test
-    pasuspender -- jackd -d alsa &
-    minicomputer
-if minicomputer was launched with -no-connect
-    jack_connect "Minicomputer7771:mix out left" "system:playback_1"
-    jack_connect "Minicomputer7771:mix out right" "system:playback_2"
-
-Or you may use qjackctl to start jack and setup the connections.
 
 ----------------------------- TROUBLESHOOTING -----------------------------
 
 - 'I have library xyz installed but scons complains about not finding xyz'
-make sure that you have the developer version of the library installed which comes extra and additionally.Usually looks like libxyz.dev
+make sure that you have the developer version of the library installed which comes extra and additionally.
+Usually looks like libxyz.dev
+scons sometimes also gives message about libraries for apparently unrelated reasons such as wrong compiler options in the sconstruct file.
 
 
-A word to package maintainers:
+----------------------------- Credits -----------------------------
+Additional sounds by jmechmech
 
-I welcome the inclusion of Minicomputer in repositorys. If you encounter any difficulties please contact me at the email address seen above and we work out a solution.
+----------------------------- A word to package maintainers -----------------------------
+
+I welcome the inclusion of Minicomputer in repositorys.
+If you encounter any difficulties please contact me at the email address seen above and we work out a solution.
 
