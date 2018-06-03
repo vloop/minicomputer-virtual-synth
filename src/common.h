@@ -42,6 +42,6 @@
 #define _MULTIS 128
 
 // the version number as string
-#define _VERSION "1.4a"
+#define _VERSION "1.5.0"
 
 #endif

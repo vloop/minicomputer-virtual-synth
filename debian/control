@@ -1,0 +1,19 @@
+Source: minicomputer
+Section: sound
+Priority: optional
+Maintainer: bonap <marc.perilleux@laposte.net>
+Build-Depends: debhelper (>= 9), scons, liblo-dev, libasound-dev, libjack-dev, libfltk1.3-dev, gettext
+#removed g++ because it is part of build-essentials which is pbuilder default
+Standards-Version: 3.9.8
+Homepage: https://github.com/vloop/minicomputer-virtual-synth
+#Vcs-Git: https://anonscm.debian.org/collab-maint/minicomputer.git
+#Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/minicomputer.git
+
+Package: minicomputer
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: a standalone software synthesizer
+  Minicomputer is a standalone Linux software synthesizer for
+  creating experimental electronic sounds as often used in (but
+  not limited to) Industrial music, Glitch, IDM and other
+  electronic genres.

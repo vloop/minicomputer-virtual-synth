@@ -1,0 +1,7 @@
+mv minicomputer-1.5.0.tar.gz minicomputer_1.5.0.orig.tar.gz
+cd minicomputer-1.5.0/
+# debuild -k869C0CB46EAD097A -S -sa --lintian-opts -i
+debuild -i -us -uc -S -sa --lintian-opts -i
+dpkg-buildpackage -rfakeroot -uc -b
+#for testing:
+su -c"dpkg -i minicomputer_1.5.0-1_amd64.deb"

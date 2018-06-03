@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# export DEB_BUILD_MAINT_OPTIONS = hardening=+bindnow
+# export CPPFLAGS += -std=c++11
+
+SCONS = scons --warn=no-deprecated
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(SCONS) PREFIX=/usr
+
+override_dh_auto_clean:
+	[ ! $(DEB_MAINTAINER_MODE) -ne 1 ] || $(SCONS) -c
+	rm -f .sconsign.dblite scache.conf .sconf_temp
+
+override_dh_auto_install:
+	$(SCONS) install DESTDIR=$(CURDIR)/debian/minicomputer
+
+#override_dh_installchangelogs:
+#	dh_installchangelogs NEWS

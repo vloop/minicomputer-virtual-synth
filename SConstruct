@@ -1,15 +1,48 @@
+# sample use: scons native=1 --prefix='/usr/local'
+
+import os.path
+
 print" "
 print"Minicomputer-------------- "
 print"-                     1/2:configuring"
 
+# works but no binaries
+# AddOption('--prefix',
+#          dest='prefix',
+#          type='string',
+#          nargs=1,
+#          action='store',
+#          metavar='DIR',
+#          help='installation prefix')
+# prefix = GetOption('prefix')
+# if prefix is None:
+#	prefix = '/usr'
+# print "prefix:", prefix
+# bin_dir = os.path.join(prefix, 'local/bin')
+# print "executables directory:", bin_dir
+# mo_dir = os.path.join(prefix, 'share/locale/fr/LC_MESSAGES')
+# print "translations directory:", mo_dir
+
 if ARGUMENTS.get('64bit', 0):
-	env = Environment(CCFLAGS = '-m64')
+	# env = Environment(CCFLAGS = '-m64')
+	env = Environment(CCFLAGS = '-m64', CONFIGURELOG = '#/../config_minicomputer.log')
 	# guienv = Environment(tools = [xgettext], CPPFLAGS = '-m64')
-	guienv = Environment(CPPFLAGS = '-m64')
+	guienv = Environment(CPPFLAGS = '-m64', CONFIGURELOG = '#/../config_minicomputer.log')
 else:
-	env = Environment(CCFLAGS = '')
+	# env = Environment(CCFLAGS = '')
+	env = Environment(CCFLAGS = '', CONFIGURELOG = '#/../config_minicomputer.log')
 	# guienv = Environment(tools = [xgettext], CPPFLAGS = '')
-	guienv = Environment(CPPFLAGS = '')
+	guienv = Environment(CPPFLAGS = '', CONFIGURELOG = '#/../config_minicomputer.log')
+
+# build options
+opts = Options('scache.conf')
+opts.AddOptions(
+    PathOption('PREFIX', 'install prefix', '/usr'), # Was /usr/local
+    PathOption('DESTDIR', 'intermediate install prefix', '', PathOption.PathAccept),
+)
+opts.Update(env)
+opts.Save('scache.conf', env)
+Help(opts.GenerateHelpText(env))
 
 if ARGUMENTS.get('k8', 0):
 	env.Append(CCFLAGS = ['-march=k8','-mtune=k8','-m3dnow'])
@@ -43,9 +76,16 @@ if not conf.CheckCXX():
 if not conf.CheckFunc('printf'):
     print('!! Your compiler and/or environment is not correctly configured.')
     Exit(1)
-if not conf.CheckLibWithHeader('jack', 'jack/jack.h','c'):
-	print 'Did not find jack, exiting!'
+# if not conf.CheckLibWithHeader('jack', 'jack/jack.h','c'):
+#	print 'Did not find jack, exiting!'
+#	Exit(1)
+if not conf.CheckLib('libjack'):
+	print 'Did not find jack library, exiting!'
 	Exit(1)
+if not conf.CheckHeader('jack/jack.h'):
+	if not conf.CheckHeader('jack/jack.h'):
+		print 'Did not find jack development files, exiting!'
+		Exit(1)
 if not conf.CheckLibWithHeader('lo', 'lo/lo.h','c'):
 	print 'Did not find liblo for OSC, exiting!'
 	Exit(1)
@@ -58,6 +98,11 @@ if not conf.CheckLibWithHeader('pthread', 'pthread.h','c'):
 
 env.Append(LIBS=['m'])
 # env.Append(LINKFLAGS = ['-pg'])
+
+# install paths
+prefix_bin = os.path.join(env['PREFIX'], 'bin')
+prefix_share = os.path.join(env['PREFIX'], 'share')
+
 env = conf.Finish()
 
 print"-                    checking dependencies for the editor:"
@@ -89,19 +134,19 @@ guienv['BUILDERS']['gettextMoFile']=env.Builder(
 		src_suffix=".po"
 	)
 
-XGETTEXT_COMMON_ARGS="--keyword=_ --language=C --add-comments --sort-output"
+XGETTEXT_COMMON_ARGS="--keyword=_ --language=C --add-comments --sort-output -o $TARGET $SOURCE"
 
 guienv['BUILDERS']['gettextPotFile']=env.Builder(
-	action=Action("xgettext " + XGETTEXT_COMMON_ARGS + " -o $TARGET $SOURCE", "Generating pot file $TARGET"),
+	action=Action("xgettext " + XGETTEXT_COMMON_ARGS, "Generating pot file $TARGET"),
 	suffix=".pot")
 
 # Not tested
 guienv['BUILDERS']['gettextMergePotFile']=env.Builder(
-	action=Action("xgettext " + "--omit-header --no-location " + XGETTEXT_COMMON_ARGS + " -o $TARGET $SOURCE",
+	action=Action("xgettext " + "--omit-header --no-location " + XGETTEXT_COMMON_ARGS,
 		"Generating pot file $TARGET"),
 	suffix=".pot")
 
-# Not working
+# Not working (removes the .po before attempting merge because it's a target?)
 guienv['BUILDERS']['msgmergePoFile']=env.Builder(
 	action=Action("msgmerge --update $TARGET $SOURCE", "Merging po file $TARGET"),
 	suffix=".po",
@@ -112,17 +157,27 @@ guienv['BUILDERS']['msgmergePoFile']=env.Builder(
 print"-                     2/2:compiling"
 print"-                     building the engine:"
 
-env.Program('minicomputerCPU','cpu/main.c');
+env.Program('minicomputerCPU','src/cpu/minicomputerCPU.c');
 
 print""
 print"-                     building the editor:"
 
-guienv.Program('minicomputer',['editor/main.cpp','editor/Memory.cpp','editor/syntheditor.cxx','editor/MiniKnob.cxx','editor/MiniPositioner.cxx','editor/MiniTable.cxx']);
+guienv.Program('minicomputer',['src/editor/main.cpp','src/editor/Memory.cpp','src/editor/syntheditor.cxx','src/editor/MiniKnob.cxx','src/editor/MiniPositioner.cxx','src/editor/MiniTable.cxx']);
 
-# guienv.gettextPotFile('editor/po/minicomputer.pot',['editor/syntheditor.cxx']);
-# guienv.msgmergePoFile('editor/po/fr/minicomputer.po',['editor/po/minicomputer.pot']);
-guienv.gettextMoFile('editor/po/fr/minicomputer.mo',['editor/po/fr/minicomputer.po']);
+guienv.gettextPotFile('src/editor/po/minicomputer.pot',['src/editor/syntheditor.cxx']);
+# guienv.msgmergePoFile('src/editor/po/fr/minicomputer.po',['src/editor/po/minicomputer.pot']);
+guienv.gettextMoFile('src/editor/po/fr/minicomputer.mo',['src/editor/po/fr/minicomputer.po']);
 
-env.Alias(target="install", source=env.Install(dir="/usr/local/bin", source="minicomputer"));
-env.Alias(target="install", source=env.Install(dir="/usr/local/bin", source="minicomputerCPU"));
-env.Alias(target="install", source=env.Install(dir="/usr/share/locale/fr/LC_MESSAGES", source="editor/po/fr/minicomputer.mo"));
+# env.Alias('install', '$prefix') // ??
+#env.Alias(target="install", source=env.Install(dir=bin_dir, source="minicomputer"));
+#env.Alias(target="install", source=env.Install(dir=bin_dir, source="minicomputerCPU"));
+env.Alias('install', [
+    env.Install(env['DESTDIR'] + prefix_bin, 'minicomputer'),
+    env.Install(env['DESTDIR'] + prefix_bin, 'minicomputerCPU'),
+#    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'samples'), samples)
+    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'locale/fr/LC_MESSAGES'), 'src/editor/po/fr/minicomputer.mo')
+])
+
+
+# should it be guienv below?
+# guienv.Alias(target="install", source=env.Install(dir=mo_dir, source="src/editor/po/fr/minicomputer.mo"));

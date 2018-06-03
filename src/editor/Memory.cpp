@@ -52,7 +52,7 @@ Memory::Memory()
 			sprintf(folder, "%s/.miniComputer", _homeFolder.c_str());
 			if (access(folder, R_OK) != 0)
 			{
-				sprintf(kommand,"mkdir %s",folder);
+				sprintf(kommand,"mkdir %s", folder);
 				result=system(kommand);
 				cout<<kommand<<endl;
 				printf("mkdir result: %u", result);
@@ -167,8 +167,8 @@ unsigned int Memory::getChoice(unsigned int voice)
  */
 void Memory::saveSounds()
 {
-	char kommand[1200];
-	sprintf(kommand, "%s/minicomputerMemory.temp", folder);
+	char kommand[2400]; // twice folder and some
+	snprintf(kommand, 2400, "%s/minicomputerMemory.temp", folder);
 
 	ofstream File (kommand); // temporary file
 	int result;
@@ -202,15 +202,15 @@ void Memory::saveSounds()
 	 }// end of for i
 
 	File.close();
-	sprintf(kommand,"%s/minicomputerMemory.txt",folder);
+	snprintf(kommand, 2400, "%s/minicomputerMemory.txt", folder);
 	printf("Saving sounds to file %s\n", kommand);
 	if (access(kommand, R_OK) == 0) // check if there a previous file which need to be backed up
 	{
-		sprintf(kommand,"mv %s/minicomputerMemory.txt %s/minicomputerMemory.txt.bak",folder,folder);
+		sprintf(kommand,"mv %s/minicomputerMemory.txt %s/minicomputerMemory.txt.bak", folder, folder);
 		result=system(kommand);// make a backup
 		if(result) fprintf(stderr, "mv to .bak error, result: %u\n", result);
 	}
-	sprintf(kommand,"mv %s/minicomputerMemory.temp %s/minicomputerMemory.txt",folder,folder);
+	snprintf(kommand, 2400, "mv %s/minicomputerMemory.temp %s/minicomputerMemory.txt", folder, folder);
 	result=system(kommand);// commit the file finally
 	if(result) fprintf(stderr, "mv to .txt error, result: %u\n", result);
 }
@@ -530,13 +530,13 @@ void Memory::clearInit()
  */
 void Memory::saveMultis()
 {
-	char kommand[1200];
+	char kommand[2400];
 	int i;
 	int result;
 	//---------------------- new text format
 	// first write in temporary file, just in case
 
-	sprintf(kommand,"%s/minicomputerMulti.temp",folder);
+	snprintf(kommand, 2400, "%s/minicomputerMulti.temp", folder);
 	ofstream File (kommand); // temporary file
 	File<<"# Minicomputer v"<<_VERSION<<" multis file"<<endl;
 
@@ -571,15 +571,15 @@ void Memory::saveMultis()
 
 	File.close(); // done
 
-	sprintf(kommand,"%s/minicomputerMulti.txt",folder);
+	snprintf(kommand, 2400, "%s/minicomputerMulti.txt", folder);
 	printf("Saving multis to file %s\n", kommand);
 	if (access(kommand, R_OK) == 0) // check if there a previous file which need to be backed up
  	{
-		sprintf(kommand,"mv %s/minicomputerMulti.txt %s/minicomputerMulti.txt.bak",folder,folder);
+		sprintf(kommand,"mv %s/minicomputerMulti.txt %s/minicomputerMulti.txt.bak", folder, folder);
 		result=system(kommand);// make a backup of the original file
 		if(result) fprintf(stderr, "mv old file to .bak failed, result: %u\n", result);
 	}
-	sprintf(kommand,"mv %s/minicomputerMulti.temp %s/minicomputerMulti.txt",folder,folder);
+	sprintf(kommand,"mv %s/minicomputerMulti.temp %s/minicomputerMulti.txt", folder, folder);
 	result=system(kommand);// commit the file
 	if(result) fprintf(stderr, "mv new file to .txt failed, result: %u\n", result);
 }
@@ -753,7 +753,7 @@ int iParameter,i2Parameter;
 float fValue;
 
 char path[1200];
-sprintf(path,"%s/minicomputerMulti.txt",folder);
+sprintf(path,"%s/minicomputerMulti.txt", folder);
 
 ifstream file (path);
 if(!file){
