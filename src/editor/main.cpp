@@ -179,10 +179,11 @@ static inline void error(int num, const char *msg, const char *path) {
 void usage() {
 	printf(
 		"Usage:\n"
-		"	-port nnnn		sets the base OSC port\n"
-		"	-port2 nnnn		sets the secondary OSC port (default to base+1)\n"
-		"	-no-launch		don't launch sound engine core (for example if it's remote)\n"
-		"	-no-connect		core will not attempt to autoconnect to jack audio\n"
+		"	-port nnnn			sets the base OSC port\n"
+		"	-port2 nnnn			sets the secondary OSC port (default to base+1)\n"
+		"	-no-launch			don't launch sound engine core (for example if it's remote)\n"
+		"	-no-connect			core will not attempt to autoconnect to jack audio\n"
+		"	-ask-before-save	always prompt before saving sounds or multis\n"
 		"	-h or --help		show this message\n"
 		"other options (such as -bg and -fg) will be forwarded to FLTK engine\n"
 	);
@@ -215,6 +216,8 @@ int main(int argc, char **argv) {
   int ac = 1; // Argument count for FLTK
   // There is at least the command name  av[0]=argv[0])
 	for (i = 1; i < argc; ++i) {
+		// BEWARE! any change below must be matched
+		// in the "Prepare command line for FLTK" section
 		if ( (strcmp(argv[i], "-bg") == 0) || (strcmp(argv[i], "-fg") == 0) ) {
 			needcolor = false;
 		} else if (strcmp(argv[i], "-port") == 0) { // got a OSC port argument
@@ -254,6 +257,8 @@ int main(int argc, char **argv) {
 			no_connect = true;
 		} else if (strcmp(argv[i], "-no-launch") == 0) {
 			no_launch = true;
+		} else if (strcmp(argv[i], "-ask-before-save") == 0) {
+			alwaysSave = false;
 		} else if ( strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0 ) {
 			usage();
 			exit(0);
@@ -363,7 +368,7 @@ int main(int argc, char **argv) {
 	if (strcmp(argv[i], "-port") == 0 || strcmp(argv[i], "-port2") == 0) {
 		i++; // skip this parameter and its argument
 		// We know this is safe because parm checking already occured above
-	} else if (strcmp(argv[i], "-no-connect") == 0 || strcmp(argv[i], "-no-launch") == 0) {
+	} else if (strcmp(argv[i], "-no-connect") == 0 || strcmp(argv[i], "-no-launch") == 0 || strcmp(argv[i], "-ask-before-save") == 0) {
 		// ++i; // skip this parameter
 	} else {
 		av[j] = argv[i];

@@ -43,5 +43,7 @@ public:
 	int index(const unsigned int R, const unsigned int C);
 	int selected_index();
 	int copied_index();
+	void copy();
+	void cut();
 };
 #endif

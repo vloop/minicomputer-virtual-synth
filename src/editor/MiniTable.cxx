@@ -34,6 +34,19 @@ int MiniTable::copied_index(){
 		_copied_cell;
 		*/
 }
+void MiniTable::copy() {
+	int cell=selected_cell();
+	printf("copy from cell %d\n", cell);
+	copied_cell(cell);
+	clear_cell_is_cut();
+}
+void MiniTable::cut() {
+	int cell=selected_cell();
+	printf("cut from cell %d\n", cell);
+	copied_cell(cell);
+	set_cell_is_cut();
+}
+
 
 
 // Keyboard and mouse events
@@ -106,6 +119,22 @@ int MiniTable::handle(int e) {
 					_selected_col=cols()-1;
 					if(_odd_cols_only && (_selected_col&1)==0) _selected_col--;
 					break;
+				// case 'C':
+				case 'c':
+					if(Fl::event_ctrl()){
+						copy();
+						return 1;
+					}else{
+						return Fl_Table_Row::handle(e);
+					}
+				// case 'X':
+				case 'x':
+					if(Fl::event_ctrl()){
+						cut();
+						return 1;
+					}else{
+						return Fl_Table_Row::handle(e);
+					}
 				// we need a when(FL_WHEN_ENTER_KEY|FL_WHEN_NOT_CHANGED) to propagate enter to derived class
 				case FL_Enter:
 					// printf("MiniTable::handle FL_Enter\n");

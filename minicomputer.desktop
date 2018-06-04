@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=minicomputer virtual synth
+GenericName=Soft Synth
+Comment=stand-alone substractive and FM synthesizer
+Exec=minicomputer
+Icon=/usr/share/pixmaps/minicomputer.xpm
+Terminal=false
+Type=Application
+Categories=GTK;GNOME;AudioVideo;Audio;X-Synthesis;

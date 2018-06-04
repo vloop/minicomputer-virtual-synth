@@ -1,27 +1,10 @@
-# sample use: scons native=1 --prefix='/usr/local'
+# sample use: scons native=1
 
 import os.path
 
 print" "
 print"Minicomputer-------------- "
 print"-                     1/2:configuring"
-
-# works but no binaries
-# AddOption('--prefix',
-#          dest='prefix',
-#          type='string',
-#          nargs=1,
-#          action='store',
-#          metavar='DIR',
-#          help='installation prefix')
-# prefix = GetOption('prefix')
-# if prefix is None:
-#	prefix = '/usr'
-# print "prefix:", prefix
-# bin_dir = os.path.join(prefix, 'local/bin')
-# print "executables directory:", bin_dir
-# mo_dir = os.path.join(prefix, 'share/locale/fr/LC_MESSAGES')
-# print "translations directory:", mo_dir
 
 if ARGUMENTS.get('64bit', 0):
 	# env = Environment(CCFLAGS = '-m64')
@@ -97,6 +80,7 @@ if not conf.CheckLibWithHeader('pthread', 'pthread.h','c'):
 	Exit(1)
 
 env.Append(LIBS=['m'])
+# use the option below for profiling
 # env.Append(LINKFLAGS = ['-pg'])
 
 # install paths
@@ -174,10 +158,8 @@ guienv.gettextMoFile('src/editor/po/fr/minicomputer.mo',['src/editor/po/fr/minic
 env.Alias('install', [
     env.Install(env['DESTDIR'] + prefix_bin, 'minicomputer'),
     env.Install(env['DESTDIR'] + prefix_bin, 'minicomputerCPU'),
-#    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'samples'), samples)
-    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'locale/fr/LC_MESSAGES'), 'src/editor/po/fr/minicomputer.mo')
+    # should it be guienv below?
+    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'locale/fr/LC_MESSAGES'), 'src/editor/po/fr/minicomputer.mo'),
+    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'applications'), 'minicomputer.desktop'),
+    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'pixmaps'), 'minicomputer.xpm')
 ])
-
-
-# should it be guienv below?
-# guienv.Alias(target="install", source=env.Install(dir=mo_dir, source="src/editor/po/fr/minicomputer.mo"));

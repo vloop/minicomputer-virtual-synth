@@ -55,6 +55,7 @@
 
 #include <FL/fl_ask.H>
 #include <FL/Fl_Output.H>
+#include <FL/names.h>
 
 // See http://www.labri.fr/perso/fleury/posts/programming/a-quick-gettext-tutorial.html
 #include <libintl.h>
@@ -244,6 +245,7 @@ extern Fl_Int_Input *multiNoInput;
 extern Fl_Input* Multichoice;
 extern char *oport;
 extern char *oport2;
+extern bool alwaysSave;
 
 // the logo image
 static unsigned char idata_miniMini[] =
