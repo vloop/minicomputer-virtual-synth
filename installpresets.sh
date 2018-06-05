@@ -14,6 +14,6 @@ if [ -e "${HOME}/.miniComputer/initsinglesound.txt" ];then
 	mv "${HOME}/.miniComputer/initsinglesound.txt" "${HOME}/.miniComputer/initsinglesound.txt.beforeInstall"
 	echo "backed up ${HOME}/.miniComputer/initsinglesound.txt"
 fi 
-	cp "factoryPresets/minicomputerMemory.txt" "${HOME}/.miniComputer/minicomputerMemory.txt"
-	cp "factoryPresets/minicomputerMulti.txt" "${HOME}/.miniComputer/minicomputerMulti.txt"
-	cp "factoryPresets/initsinglesound.txt" "${HOME}/.miniComputer/initsinglesound.txt"
+	cp "/usr/share/minicomputer/factory_presets/minicomputerMemory.txt" "${HOME}/.miniComputer/minicomputerMemory.txt"
+	cp "/usr/share/minicomputer/factory_presets/minicomputerMulti.txt" "${HOME}/.miniComputer/minicomputerMulti.txt"
+	cp "/usr/share/minicomputer/factory_presets/initsinglesound.txt" "${HOME}/.miniComputer/initsinglesound.txt"

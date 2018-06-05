@@ -2252,6 +2252,7 @@ void soundrenamemnuCallback(Fl_Widget*, void*T) {
 		Speicher.setSoundName(dest, new_name);
 		updatesoundNameInput(dest, new_name);
 		((SoundTable *)T)->clear_cell_is_cut();
+		((MiniTable*)T)->copy(); // Previous has been cleared
 	}
 }
 void soundinitmnuCallback(Fl_Widget*, void*T) { // Is this still needed??
@@ -2328,6 +2329,7 @@ void multipastemnuCallback(Fl_Widget*, void*T) {
 		printf("clear multi %d\n", src);
 		((MultiTable *)T)->clear_cell_is_cut();
 		Speicher.clearMulti(src);
+		((MiniTable*)T)->copy(); // Previous has been cleared
 	}
 }
 void multirenamemnuCallback(Fl_Widget*, void*T) {

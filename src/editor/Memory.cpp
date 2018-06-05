@@ -55,7 +55,7 @@ Memory::Memory()
 				sprintf(kommand,"mkdir %s", folder);
 				result=system(kommand);
 				cout<<kommand<<endl;
-				printf("mkdir result: %u", result);
+				printf("mkdir result: %u\n", result);
 
 			}
 		}
@@ -206,20 +206,33 @@ void Memory::saveSounds()
 	printf("Saving sounds to file %s\n", kommand);
 	if (access(kommand, R_OK) == 0) // check if there a previous file which need to be backed up
 	{
-		sprintf(kommand,"mv %s/minicomputerMemory.txt %s/minicomputerMemory.txt.bak", folder, folder);
-		result=system(kommand);// make a backup
+		snprintf(kommand, 2400, "mv %s/minicomputerMemory.txt %s/minicomputerMemory.txt.bak", folder, folder);
+		result=system(kommand); // make a backup
 		if(result) fprintf(stderr, "mv to .bak error, result: %u\n", result);
 	}
 	snprintf(kommand, 2400, "mv %s/minicomputerMemory.temp %s/minicomputerMemory.txt", folder, folder);
-	result=system(kommand);// commit the file finally
+	result=system(kommand); // commit the file finally
 	if(result) fprintf(stderr, "mv to .txt error, result: %u\n", result);
 }
 
 int Memory::loadInit()
 {
-	char initfile[1200];
-	sprintf(initfile, "%s/initsinglesound.txt", folder);
-	return(importPatch(initfile, &initSound));
+	char path[1200], kommand[2400];
+	sprintf(path, "%s/initsinglesound.txt", folder);
+	if (importPatch(path, &initSound)){ // Import failed
+		// Attempt copy
+		printf("loadInit: import failed - attempting to copy factory settings\n");
+		snprintf(kommand, 2400, "cp /usr/share/minicomputer/factory_presets/initsinglesound.txt %s", path);
+		if(system(kommand)){ // Copy failed
+			fprintf(stderr, "Copy to %s failed.\n", path);
+			return 1;
+		}
+		if(importPatch(path, &initSound)){ // Retry
+			fprintf(stderr, "loadInit: error importing file %s\n", path);
+			return(1);
+		}
+	}
+	return 0;
 }
 /**
  * load the soundmemory (i.e. all preset definitions) from disk
@@ -228,88 +241,100 @@ int Memory::loadInit()
  */
 int Memory::loadSounds()
 {
-// new fileinput in textformat which is the way to go
-char path[1200];
-sprintf(path,"%s/minicomputerMemory.txt", folder);
-printf("loading %s\n", path);
-ifstream file (path);
-if(!file){
-	fprintf(stderr, "loadSounds: error opening file %s\n", path);
-	return(1);
-}
-string str,sParameter,sValue;
-float fValue;
-int iParameter,i2Parameter;
-int current=-1;
-unsigned int j;
-getline(file,str);
-while (file)
-{
-	sParameter="";
-	sValue = "";
-	switch (str[0])
-	{
-		case '(': // setting parameter
-		{
-			if (parseNumbers(str,iParameter,i2Parameter,fValue))
-			{
-				sounds[current].parameter[iParameter]=fValue;
-			}
+	char path[1200]; // , kommand[2400];;
+	snprintf(path, 1200, "%s/minicomputerMemory.txt", folder);
+	printf("loadSounds: Loading %s\n", path);
+	ifstream file (path);
+	if(!file){
+		/*
+		fprintf(stderr, "loadSounds: error opening file %s - attempting to copy\n", path);
+		// Attempt copy
+		snprintf(kommand, 2400, "cp /usr/share/minicomputer/factory_presets/minicomputerMemory.txt %s", path);
+		if(system(kommand)){ // Copy failed
+			fprintf(stderr, "Copy to %s failed.\n", path);
+			return 1;
 		}
-		break;
-		case '{': // setting additional parameter
-		{
-			if (parseNumbers(str,iParameter,i2Parameter,fValue))
-			{
-				sounds[current].choice[iParameter]=(int)fValue;
-			}
+		*/
+		// Fallback to factory presets
+		fprintf(stderr, "loadSounds: error opening file - reverting to factory settings\n");
+		snprintf(path, 1200, "/usr/share/minicomputer/factory_presets/minicomputerMemory.txt");
+		printf("loadSounds: Loading %s\n", path);
+		file.open(path);
+		// rewind(file);
+		// It looks like cp returns before actually copying?
+		if(!file){
+			fprintf(stderr, "loadSounds: error opening file %s\n", path);
+			return(1);
 		}
-		break;
-		case '<': // setting additional parameter
-		{
-			if (parseNumbers(str,iParameter,i2Parameter,fValue))
-			{
-				sounds[current].freq[iParameter][i2Parameter]=fValue;
-			}
-		}
-		break;
-		case '\'': // setting the name
-		{
-			j = 1; // important, otherwise it would bail out at the first '	
-			while ((j<str.length()) && (str[j]!='\'') && (j<_NAMESIZE) )
-			{
-				sounds[current].name[j-1] = str[j];
-				++j;
-			}
-			sounds[current].name[j-1]=0;
-			// printf("Preset # %u : \"%s\"\n", current, sounds[current].name);
-/*
-			while (j<_NAMESIZE) // fill the rest with blanks to clear the string
-			{
-				sounds[current].name[j-1]=' ';
-				++j;
-			}
-*/
-		}
-		break;
-		case '[': // setting the current sound index
-		{
-			if (parseNumbers(str,iParameter,i2Parameter,fValue))
-			{
-				current = iParameter;
-			}
-		}
-		break;
-		case '#': // Comment
-			printf("loadSounds: %s\n", &str[1]);
-		break;
-
 	}
+	
+	string str,sParameter,sValue;
+	float fValue;
+	int iParameter,i2Parameter;
+	int current=-1;
+	unsigned int j;
+	getline(file,str);
+	while (file)
+	{
+		sParameter="";
+		sValue = "";
+		switch (str[0])
+		{
+			case '(': // setting parameter
+			{
+				if (parseNumbers(str,iParameter,i2Parameter,fValue))
+				{
+					sounds[current].parameter[iParameter]=fValue;
+				}
+			}
+			break;
+			case '{': // setting additional parameter
+			{
+				if (parseNumbers(str,iParameter,i2Parameter,fValue))
+				{
+					sounds[current].choice[iParameter]=(int)fValue;
+				}
+			}
+			break;
+			case '<': // setting additional parameter
+			{
+				if (parseNumbers(str,iParameter,i2Parameter,fValue))
+				{
+					sounds[current].freq[iParameter][i2Parameter]=fValue;
+				}
+			}
+			break;
+			case '\'': // setting the name
+			{
+				// printf(".");
+				j = 1; // important, otherwise it would bail out at the first '	
+				while ((j<str.length()) && (str[j]!='\'') && (j<_NAMESIZE) )
+				{
+					sounds[current].name[j-1] = str[j];
+					++j;
+				}
+				sounds[current].name[j-1]=0;
+			}
+			break;
+			case '[': // setting the current sound index
+			{
+				if (parseNumbers(str,iParameter,i2Parameter,fValue))
+				{
+					current = iParameter;
+				}
+			}
+			break;
+			case '#': // Comment
+				printf("loadSounds: %s\n", &str[1]);
+			break;
 
-	getline(file, str);// get the next line of the file
-}
-file.close();
-return(0);
+		}
+
+		getline(file, str);// get the next line of the file
+	}
+	file.close();
+	// printf("done.\n");
+	return(0);
 }
 
 void Memory::writeSound(ofstream& file, unsigned int current)
@@ -390,49 +415,38 @@ int Memory::readPatch(ifstream& File, patch *p)
 					++j;
 				}
 				p->name[j-1] = 0;
-	/*
-				if (j<_NAMESIZE) // fill the rest with blanks to clear the string
-				{
-					while (j<_NAMESIZE)
-					{
-						sounds[current].name[j-1]=' ';
-						++j;
-					}
-				}
-	*/
-				// Another name means another sound ??
-				// if(gotname)
-//				gotname=true;
-				printf("importPatch: reading %s\n", p->name);
+				printf("readPatch: Reading patch \"%s\"\n", p->name);
 			}
 			break;
-			case '[': // Next patch
+			case '[': // Next patch (new patch number)
 				File.seekg(pos ,std::ios_base::beg);
 				return 0;
 			case '#': // Comment
-				printf("importPatch: %s\n", &str[1]);
+				printf("readPatch: %s\n", &str[1]);
 			break;
 			default:
-				fprintf(stderr, "importPatch: unexpected leading character %c (%d)\n", str[0], str[0]);
+				fprintf(stderr, "readPatch: unexpected leading character %c (%d)\n", str[0], str[0]);
 		}
 		pos=File.tellg();
 		getline(File,str); // get the next line of the file
 	}
 	return 0;
 }
+
 int Memory::importPatch(string filename, patch *p)
 {
 	ifstream File (filename.c_str());
 	if(!File){
-		fprintf(stderr, "importPatch: cannot open file %s\n", filename.c_str());
+		fprintf(stderr, "importPatch: error opening file %s\n", filename.c_str());
 		return(1);
 	}
-	printf("importPatch: reading from %s\n", filename.c_str());
+	printf("importPatch: Loading %s\n", filename.c_str());
 	readPatch(File, p);
 	File.close();
-	printf("importPatch: read complete.\n");
+	// printf("importPatch: read complete.\n");
 	return(0);
 }
+
 /** import a single sound from a textfile
  * and write it to the given memory location
  * @param the filename
@@ -747,98 +761,108 @@ void Memory::copyMulti(int src, int dest)
  */
 int Memory::loadMultis()
 {
-// *********************************** the new text format **********************
-string str,sValue,sParameter;
-int iParameter,i2Parameter;
-float fValue;
+	string str,sValue,sParameter;
+	int iParameter,i2Parameter;
+	float fValue;
 
-char path[1200];
-sprintf(path,"%s/minicomputerMulti.txt", folder);
+	char path[1200]; // , kommand[2400];
+	snprintf(path, 1200, "%s/minicomputerMulti.txt", folder);
+	printf("loadMultis: Loading %s\n", path);
 
-ifstream file (path);
-if(!file){
-	fprintf(stderr, "loadMultis: error opening file %s\n", path);
-	return(1);
-}
+	ifstream file (path);
+	if(!file){
+		/*
+		fprintf(stderr, "loadMultis: error opening file %s - attempting to copy\n", path);
+		// Attempt copy
+		snprintf(kommand, 2400, "cp /usr/share/minicomputer/factory_presets/minicomputerMulti.txt %s", path);
+		if(system(kommand)){ // Copy failed
+			fprintf(stderr, "Copy to %s failed.\n", path);
+			return 1;
+		}
+		*/
+		// Fallback to factory settings
+		fprintf(stderr, "loadMultis: error opening file - reverting to factory settings\n");
+		snprintf(path, 1200, "/usr/share/minicomputer/factory_presets/minicomputerMulti.txt");
+		printf("loadMultis: Loading %s\n", path);
+		file.open(path);
+		if(!file){
+			fprintf(stderr, "loadMultis: error opening file %s\n", path);
+			return(1);
+		}
+	}
 
-getline(file,str); // get the first line from the file
-int current=0;
-unsigned int j;
-while (file) // as long as there is anything in the file
-{
-	// reset some variables
-	sParameter="";
-	sValue = "";
-	// parse the entry (line) based on the first character
-	switch (str[0])
+	getline(file, str); // get the first line from the file
+	int current=0;
+	unsigned int j;
+	while (file) // as long as there is anything in the file
 	{
-		case '(': // setting per voice multi parameter
+		// reset some variables
+		sParameter="";
+		sValue = "";
+		// parse the entry (line) based on the first character
+		switch (str[0])
 		{
-			if (parseNumbers(str, iParameter, i2Parameter, fValue))
+			case '(': // setting per voice multi parameter
 			{
-				if(iParameter<_MULTITEMP)
-					multis[current].sound[iParameter]=fValue;
-				else
-					fprintf(stderr, "ERROR: loadMultis - unexpected parameter number %i", iParameter);
+				if (parseNumbers(str, iParameter, i2Parameter, fValue))
+				{
+					if(iParameter<_MULTITEMP)
+						multis[current].sound[iParameter]=fValue;
+					else
+						fprintf(stderr, "ERROR: loadMultis - unexpected parameter number %i", iParameter);
+				}
 			}
-		}
-		break;
-		case '<': // setting global multi parameter
-		{
-			if (parseNumbers(str, iParameter, i2Parameter, fValue))
+			break;
+			case '<': // setting global multi parameter
 			{
-				if(iParameter<_MULTIPARMS)
-					multis[current].parms[iParameter]=fValue;
-				else
-					fprintf(stderr, "ERROR: loadMultis - unexpected global parameter number %i", iParameter);
+				if (parseNumbers(str, iParameter, i2Parameter, fValue))
+				{
+					if(iParameter<_MULTIPARMS)
+						multis[current].parms[iParameter]=fValue;
+					else
+						fprintf(stderr, "ERROR: loadMultis - unexpected global parameter number %i", iParameter);
+				}
 			}
-		}
-		break;
-		case '\'': // setting the name
-		{
-			j = 1; // important, otherwise it would bail out at the first '	
-			while ((j<str.length()) && (str[j]!='\'') && (j<_NAMESIZE) )
+			break;
+			case '\'': // setting the name
 			{
-				multis[current].name[j-1] = str[j];
-				++j;
+				// printf(".");
+				j = 1; // important, otherwise it would bail out at the first '	
+				while ((j<str.length()) && (str[j]!='\'') && (j<_NAMESIZE) )
+				{
+					multis[current].name[j-1] = str[j];
+					++j;
+				}
+				multis[current].name[j-1]=0;
 			}
-			multis[current].name[j-1]=0;
-			/*
-			// printf("Multi # %u : \"%s\"\n", current, multis[current].name);
-			while (j<_NAMESIZE)
+			break;
+			case '[': // setting the current sound index
 			{
-				multis[current].name[j-1]=' ';
-				++j;
+				if (parseNumbers(str,iParameter,i2Parameter,fValue))
+				{
+					current = iParameter;
+				}
 			}
-			*/
-		}
-		break;
-		case '[': // setting the current sound index
-		{
-			if (parseNumbers(str,iParameter,i2Parameter,fValue))
+			break;
+			case '{': // setting additional parameter
 			{
-				current = iParameter;
+				if (parseNumbers(str,iParameter,i2Parameter,fValue))
+				{
+					multis[current].settings[iParameter][i2Parameter]=fValue;
+				}
 			}
-		}
-		break;
-		case '{': // setting additional parameter
-		{
-			if (parseNumbers(str,iParameter,i2Parameter,fValue))
-			{
-				multis[current].settings[iParameter][i2Parameter]=fValue;
-			}
-		}
-		break;
-		case '#': // Comment
-			printf("loadMultis: %s\n", &str[1]);
-		break;
-		default:
-			fprintf(stderr, "ERROR: loadMultis - unexpected token '%c'", str[0]);
-	}// end of switch
-	getline(file, str);// get the next line
-}// end of while (file)
-file.close();// done
-return(0);
+			break;
+			case '#': // Comment in file
+				printf("loadMultis: %s\n", &str[1]);
+			break;
+			default:
+				fprintf(stderr, "ERROR: loadMultis - unexpected token '%c'", str[0]);
+		} // end of switch
+		getline(file, str); // get the next line
+	} // end of while (file)
+	file.close(); // done
+	// printf("done.\n");
+	return(0);
 }
 
 /**

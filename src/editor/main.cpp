@@ -292,16 +292,6 @@ int main(int argc, char **argv) {
 		printf("Cannot load init - clearing init sound\n");
 		Speicher.clearInit();
 	}
-	// One-shot to cleanup empty sounds
-	/*
-	for(int j=0; j<_SOUNDS; j++){
-		if(Speicher.getSoundName(j).length()==0){
-			Speicher.copyPatch(&Speicher.initSound, &Speicher.sounds[j]);
-			Speicher.setSoundName(j, "");
-		}
-	}
-	*/
-	// int multi = atoi(multiNoInput->value());
 
 // ------------------------ OSC init ---------------------------------
 	// init for output

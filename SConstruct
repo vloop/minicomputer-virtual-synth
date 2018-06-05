@@ -161,5 +161,8 @@ env.Alias('install', [
     # should it be guienv below?
     env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'locale/fr/LC_MESSAGES'), 'src/editor/po/fr/minicomputer.mo'),
     env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'applications'), 'minicomputer.desktop'),
-    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'pixmaps'), 'minicomputer.xpm')
+    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'pixmaps'), 'minicomputer.xpm'),
+    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'minicomputer/factory_presets'), 'factory_presets/initsinglesound.txt'),
+    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'minicomputer/factory_presets'), 'factory_presets/minicomputerMemory.txt'),
+    env.Install(env['DESTDIR'] + os.path.join(prefix_share, 'minicomputer/factory_presets'), 'factory_presets/minicomputerMulti.txt')
 ])

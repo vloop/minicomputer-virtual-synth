@@ -20,9 +20,15 @@ Minicomputer is free open source software under the GPL3 license.
 
 ------------------------ installation steps for mint and ubuntu ------------------------
 
-The steps below were tested on a fresh linuxmint-18.3-xfce-64bit install
-and on a fresh ubuntu 18.04
-Other distributions may slightly vary
+Debian users may want to try the package install:
+    su -c"dpkg -i minicomputer_1.5.0-1_amd64.deb"
+    ./installpresets.sh
+
+Otherwise, you need to compile from source.
+The steps below were tested on a fresh linuxmint-18.3-xfce-64bit install,
+on debian 8.6 and 9.4, and on ubuntu 18.04
+Other distributions may slightly vary.
+If you use a different distribution, please share any change you had to apply!
 
     sudo apt-get update
     sudo apt-get upgrade
