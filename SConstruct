@@ -121,7 +121,7 @@ guienv['BUILDERS']['gettextMoFile']=env.Builder(
 XGETTEXT_COMMON_ARGS="--keyword=_ --language=C --add-comments --sort-output -o $TARGET $SOURCE"
 
 guienv['BUILDERS']['gettextPotFile']=env.Builder(
-	action=Action("xgettext " + XGETTEXT_COMMON_ARGS, "Generating pot file $TARGET"),
+	action=Action("xgettext --from-code=UTF-8 " + XGETTEXT_COMMON_ARGS, "Generating pot file $TARGET"),
 	suffix=".pot")
 
 # Not tested
@@ -152,9 +152,6 @@ guienv.gettextPotFile('src/editor/po/minicomputer.pot',['src/editor/syntheditor.
 # guienv.msgmergePoFile('src/editor/po/fr/minicomputer.po',['src/editor/po/minicomputer.pot']);
 guienv.gettextMoFile('src/editor/po/fr/minicomputer.mo',['src/editor/po/fr/minicomputer.po']);
 
-# env.Alias('install', '$prefix') // ??
-#env.Alias(target="install", source=env.Install(dir=bin_dir, source="minicomputer"));
-#env.Alias(target="install", source=env.Install(dir=bin_dir, source="minicomputerCPU"));
 env.Alias('install', [
     env.Install(env['DESTDIR'] + prefix_bin, 'minicomputer'),
     env.Install(env['DESTDIR'] + prefix_bin, 'minicomputerCPU'),

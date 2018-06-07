@@ -1,8 +1,10 @@
 /** Minicomputer
  * industrial grade digital synthesizer
- * editorsoftware
+ * editor software
  * Copyright 2007, 2008 Malte Steiner
- * This file is part of Minicomputer, which is free software: you can redistribute it and/or modify
+ * Changes by Marc Périlleux 2018
+ * This file is part of Minicomputer, which is free software:
+ * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -151,11 +153,11 @@ Fl_Box* voiceDisplayBox[_MULTITEMP];
 Fl_Group *soundGroup;
 Fl_Int_Input *soundNoInput[_MULTITEMP];
 Fl_Input *soundNameInput[_MULTITEMP];
-Fl_Button *loadSoundBtn[_MULTITEMP], *storeSoundBtn[_MULTITEMP];
+Fl_Button *loadSoundBtn[_MULTITEMP], *soundstoreBtn[_MULTITEMP];
 Fl_Button *importSoundBtn[_MULTITEMP], *exportSoundBtn[_MULTITEMP];
 Fl_Button *voiceLoadBtn[_MULTITEMP];
 Fl_Roller *soundRoller[_MULTITEMP];
-bool sound_changed[_MULTITEMP];
+bool sound_changed[_MULTITEMP]; // Not stored to memory or not recorded to disk ??
 SoundTable *soundTable;
 // Fl_Menu_Button *soundMenu;
 Fl_Button *saveSoundsBtn;
@@ -175,10 +177,10 @@ Fl_Box* sounding[_MULTITEMP];
 Fl_Group *multiGroup;
 Fl_Int_Input *multiNoInput;
 Fl_Input* multiNameInput;
-Fl_Button *loadMultiBtn, *loadMultiBtn2, *storeMultiBtn, *importMultiBtn, *exportMultiBtn;
+Fl_Button *loadMultiBtn, *loadMultiBtn2, *multistoreBtn, *importMultiBtn, *exportMultiBtn;
 Fl_Button *decMultiBtn, *incMultiBtn;
 Fl_Roller* multiRoller;
-bool multi_changed;
+bool multi_changed; // Not stored to memory or not recorded to disk ??
 Fl_Menu_Button *multiMenu;
 MultiTable *multiTable;
 Fl_Button *saveMultisBtn;
@@ -596,6 +598,7 @@ static void tabCallback(Fl_Widget* o, void* )
 		else
 			printf("there seems to be something wrong with the compare button widget");
  	} // end of else
+//	fl_cursor(FL_CURSOR_DEFAULT, FL_WHITE, FL_BLACK);
 // Fl::awake();
 // Fl::unlock();
 }
@@ -1246,13 +1249,6 @@ static void soundNoInputCallback(Fl_Widget* o, void*)
 //		Fl::unlock();
 	}
 }
-/*
-static void chooseCallback(Fl_Widget* o, void*)
-{
-//	int Faktor = (int)((Fl_Valuator* )o)->value();
-	soundRoller[currentVoice]->value(soundNameInput[currentVoice]->menubutton()->value());// set gui
-	soundNoInput[currentVoice]->value(soundNameInput[currentVoice]->menubutton()->value());// set gui
-}*/
 static void multiRollerCallback(Fl_Widget* o, void*)
 {
 //	Fl::lock();
@@ -1314,10 +1310,10 @@ static void exportSound(Fl_File_Chooser *w, void *userdata)
 /**
  * Transfer parameter values from the GUI to the multi
  */
-static void storemulti(const unsigned int multinum)
+static void multistore(const unsigned int multinum)
 {
 	if (multinum>_MULTIS){
-		fprintf(stderr, "storemulti: Multi %u out of range\n", multinum);
+		fprintf(stderr, "multistore: Multi %u out of range\n", multinum);
 		return;
 	}
 	int i;
@@ -1385,7 +1381,7 @@ static void do_exportsound(int soundnum)
 static void do_exportmulti(const unsigned int multinum)
 {
 	if(multi_changed && (fl_choice(_("Refresh multi %u before export?"), _("Yes"), _("No"), 0, multinum)==0))
-		storemulti(multinum);
+		multistore(multinum);
 	char warn[1024], path[1024], name[_NAMESIZE];
 	strnrtrim(name, Speicher.getMultiName(multinum).c_str(), _NAMESIZE);
 	snprintf(warn, 1024, "export %s", name);
@@ -1543,17 +1539,17 @@ static void soundimportbtnCallback(Fl_Widget* o, void* )
 
 /** Store given sound # parameters into given patch
  */
-static void storesound(unsigned int srcVoice, patch *destpatch)
+static void soundstore(unsigned int srcVoice, patch *destpatch)
 {
 //	Fl::lock();
 //	fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
 //	Fl::check();
 #ifdef _DEBUG
-	printf("storesound: source voice %i\n", srcVoice);
+	printf("soundstore: source voice %i\n", srcVoice);
 	fflush(stdout);
 #endif
 	if(srcVoice>=_MULTITEMP){
-		fprintf(stderr, "storesound: unexpected voice %u - ignoring", srcVoice);
+		fprintf(stderr, "soundstore: unexpected voice %u - ignoring", srcVoice);
 		return;
 	}
 	// clean first the name string
@@ -1566,12 +1562,12 @@ static void storesound(unsigned int srcVoice, patch *destpatch)
 			if (is_button[i]){
 				destpatch->parameter[i]=((Fl_Valuator*)knobs[srcVoice][i])->value()?1.0f:0.0f;
 #ifdef _DEBUG
-				printf("storesound: button %d = %f\n", i, destpatch->parameter[i]);
+				printf("soundstore: button %d = %f\n", i, destpatch->parameter[i]);
 #endif
 			}else{
 				destpatch->parameter[i]=((Fl_Valuator*)knobs[srcVoice][i])->value();
 #ifdef _DEBUG
-				printf("storesound: parameter %d = %f\n", i, destpatch->parameter[i]);
+				printf("soundstore: parameter %d = %f\n", i, destpatch->parameter[i]);
 #endif
 				switch (i)
 				{
@@ -1641,7 +1637,7 @@ static void storesound(unsigned int srcVoice, patch *destpatch)
 		{
 			destpatch->choice[i]=choices[srcVoice][i]->value();
 #ifdef _DEBUG
-			printf("storesound: choice #%i: %i\n", i, choices[srcVoice][i]->value());
+			printf("soundstore: choice #%i: %i\n", i, choices[srcVoice][i]->value());
 #endif
 		}
 	}
@@ -1654,14 +1650,14 @@ static void storesound(unsigned int srcVoice, patch *destpatch)
  * @param Fl_Widget the calling widget
  * @param defined by FLTK but not used
  */
-static void storesoundCallback(Fl_Widget* o, void* e)
+static void soundstoreCallback(Fl_Widget*, void*)
 {
 	int preset=atoi(soundNoInput[currentVoice]->value());
 #ifdef _DEBUG
-	printf("storesoundCallback: source sound %i\n", preset);
+	printf("soundstoreCallback: source sound %i\n", preset);
 	fflush(stdout);
 #endif
-	storesound(currentVoice, &Speicher.sounds[preset]);
+	soundstore(currentVoice, &Speicher.sounds[preset]);
 	Speicher.saveSounds();
 	clearsound_changed();
 }
@@ -1845,7 +1841,7 @@ void sound_recall(int voice, unsigned int sound)
 
 static void do_compare(Fl_Widget* o, void* ){
 	if(((Fl_Valuator*)o)->value()){
-		storesound(currentVoice, &compare_buffer);
+		soundstore(currentVoice, &compare_buffer);
 		int preset=atoi(soundNoInput[currentVoice]->value());
 		sound_recall0(currentVoice, &Speicher.sounds[preset]);
 	}else{
@@ -1980,7 +1976,7 @@ static void loadmultiCallback(Fl_Widget*, void*)
  * store a multitemperal setup
  * @param pointer to the calling widget
  */
-static void storemultiCallback(Fl_Widget* o, void*)
+static void multistoreCallback(Fl_Widget*, void*)
 {
 //	Fl::lock();
 //	fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
@@ -2000,12 +1996,12 @@ static void storemultiCallback(Fl_Widget* o, void*)
 	else
 		fprintf(stderr, "problems with the multichoice widgets!\n");
 
-	storemulti(currentMulti);
+	multistore(currentMulti);
 
 	// write to disk
 	if(alwaysSave || fl_choice("Save all multis (including #%u) to disk?", _("Yes"), _("No"), 0, currentMulti)==0)
 		Speicher.saveMultis();
-	fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
+//	fl_cursor(FL_CURSOR_DEFAULT, FL_WHITE, FL_BLACK);
 //	Fl::check();
 //	Fl::awake();
 //	Fl::unlock();
@@ -2674,19 +2670,26 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 
 void make_labeltip(Fl_Widget* o, const char* tip){
 // measure_label gives inconsistent results if this is not called right before o->end ??
-	o->align(); // Don't ask why
-	int wl, hl;
+	int wl, hl, x, y, a;
+	// o->align(); // Or measure will sometimes err - don't ask why
+	a=o->align();
 	o->measure_label(wl, hl);
+	x=o->x()+(o->w()-wl)/2; // Todo handle X alignment ??
+	y=o->y();
+	if (a & FL_ALIGN_BOTTOM){
+		y+=o->h();
+		if (a & FL_ALIGN_INSIDE) y -= hl;
+	}
+	if (a & FL_ALIGN_TOP){
+		if ((a & FL_ALIGN_INSIDE)==0) y -= hl;
+	}
+	// what about border width ??
 // printf("make_labeltip: %u %u %u %u %u %u\n", o->y(), o->h(), o->labelsize(), o->align(), hl, wl); // hl is 9 or 18 ??
 // printf("make_labeltip: %u %u %u\n", o->align(), hl, wl); // hl is 9 or 18 ??
-	Fl_Box* b = new Fl_Box(o->x()+(o->w()-wl)/2, o->y()+o->h()-hl, wl, hl, o->label());
-	b->labelsize(o->labelsize());
-	b->labelcolor(o->labelcolor());
-	b->color(o->color());
+	Fl_Box* b = new Fl_Box(x, y, wl, hl);//, o->label());
 	b->tooltip(tip);
-	// b->box(FL_BORDER_BOX);
-	o->label("");
-	groups[nGroups]=b;
+	// b->box(FL_BORDER_FRAME);
+	b->box(FL_NO_BOX);
 }
 
 void UserInterface::make_filter(int voice, int filter_base, int minidisplay, int x, int y){
@@ -2949,16 +2952,28 @@ void UserInterface::make_osc(int voice, int osc_base, int minidisplay_base, int 
 }
 
 void do_close(Fl_Widget * o, void *){
-	switch (fl_choice(_("What do you want to do?"), _("Save and exit"), _("Don't exit"), _("Abandon changes and exit"))){
-		case 0:
-			Speicher.saveSounds();
-			Speicher.saveMultis();
-			// Fall through next case
-		case 2:
+	bool changed=multi_changed;
+	for(int i=0; i<_MULTITEMP && !changed; i++)
+		changed|=sound_changed[i];
+	if(changed){
+		switch (fl_choice(_("What do you want to do?"), _("Save and exit"), _("Don't exit"), _("Abandon changes and exit"))){
+			case 0:
+				multistoreCallback((Fl_Widget*)0, (void*)0);
+				// loop for voices and soundstoreCallback(Fl_Widget*, void*) ??
+				for(int i=0; i<_MULTITEMP; i++)
+					soundstore(i, &Speicher.sounds[atoi(soundNoInput[i]->value())]);
+				Speicher.saveSounds();
+				Speicher.saveMultis();
+				// Fall through next case
+			case 2:
+				Fl::first_window()->hide();
+				break;
+			default: // Don't exit
+				break;
+		}
+	}else{
+		if(fl_choice(_("Do you really want to exit?"), _("Yes"), _("No"), 0)==0)
 			Fl::first_window()->hide();
-			break;
-		default: // Don't exit
-			break;
 	}
 }
 
@@ -3457,8 +3472,10 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)parmCallback);
 		  knobs[i][o->argument()] = o;
 		}
-
 		o->end(); // of mod oscillator
+		make_labeltip(o,
+			_("The modulation oscillator aka LFO applies repetitive change to the sound parameters.\n"
+			"When the mod button is active, you may use the mod wheel to scale the effect."));
 	  }
   	  make_labeltip(o, _("Modulators allow various parameters of the sound to vary with time."));
 	  o->end(); // of modulators
@@ -3678,8 +3695,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		knobs[i][o->argument()] = o;
 	  }
 	  make_labeltip(o,
-		"The delay section adds a delayed version of itself to the sound.\n"
-		"It is suitable for effects ranging from slight phasing to echo."
+		_("The delay section adds a delayed version of itself to the sound.\n"
+		"It is suitable for effects ranging from slight phasing to echo.")
 	  );
 	  o->end(); // of delay
 	}
@@ -3713,6 +3730,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->cursor_color(FL_RED);
 		soundNoInput[i]=o;
 		o->callback((Fl_Callback*)soundNoInputCallback);
+		o->tooltip(_("Target slot number in the sound memory"));
 	  }
 	  { Fl_Button* o = new Fl_Button(x0+45, 471, 10, 30, "@>");
 		o->box(FL_BORDER_BOX);
@@ -3757,8 +3775,8 @@ Fenster* UserInterface::make_window(const char* title) {
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
-		o->callback((Fl_Callback*)storesoundCallback,soundchoice[i]);
-		storeSoundBtn[i]=o; // For resize, no need for array here, any will do
+		o->callback((Fl_Callback*)soundstoreCallback,soundchoice[i]);
+		soundstoreBtn[i]=o; // For resize, no need for array here, any will do
 	  }
 
 	  { Fl_Button* o = new Fl_Button(x0+284, 466, 60, 19, _("import sound"));
@@ -3779,6 +3797,10 @@ Fenster* UserInterface::make_window(const char* title) {
 		exportSoundBtn[i]=o;
 	  }
 	  d->end();
+		make_labeltip(d,
+		_("These controls allow storing current sound parameters to the selected memory slot,\n"
+		"or retrieving them from it. The name is displayed in red when the current settings\n"
+		"do not match the selected memory slot."));
 	}
 	{ MiniKnob* o = new MiniKnob(295, 151, 25, 25, _("osc1 vol"));
 		o->labelsize(_TEXT_SIZE);
@@ -4269,7 +4291,7 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->textfont(FL_HELVETICA_BOLD );
 		  o->labelcolor(FL_BACKGROUND2_COLOR);
 		  const char version[] = _VERSION;
-		  const char *about="<html><body>"
+		  const char *about=_("<html><body>"
 			  "<i><center>version %s</center></i><br>"
 			  "<p><br>a standalone industrial grade software synthesizer for Linux<br>"
 			  "<p><br>originally developed by Malte Steiner 2007-2009"
@@ -4285,7 +4307,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			  "<center>marc.perilleux@laposte.net"
 			  "<br>https://github.com/vloop/minicomputer-virtual-synth"
 			  "</center>"
-			  "</body></html>";
+			  "</body></html>");
 		  char *Textausgabe;
 		  Textausgabe=(char *)malloc(strlen(about)+strlen(version)+strlen(oport)+strlen(oport2));
 		  sprintf(Textausgabe, about, version, oport, oport2);
@@ -4360,6 +4382,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			o->textcolor(FL_RED);
 			o->cursor_color(FL_RED);
 			o->callback((Fl_Callback*)multiNoInputCallback);
+			o->tooltip(_("Target slot number in the multi memory"));
 			multiNoInput=o;
 		  }
 		  { Fl_Button* o = new Fl_Button(x0+45, 471, 10, 30, "@>");
@@ -4393,7 +4416,7 @@ Fenster* UserInterface::make_window(const char* title) {
 			multiRoller=o;
 		  }
 		  { Fl_Button* o = new Fl_Button(x0+217, 465, 60, 19, _("load multi"));
-			o->tooltip(_("load current multi"));
+			o->tooltip(_("load (activate) selected multi"));
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
@@ -4401,14 +4424,18 @@ Fenster* UserInterface::make_window(const char* title) {
 			loadMultiBtn = o;
 		  }
 		  { Fl_Button* o = new Fl_Button(x0+217, 485, 60, 19, _("store multi"));
-			o->tooltip(_("overwrite this multi"));
+			o->tooltip(_("overwrite selected multi with current settings"));
 			o->box(FL_BORDER_BOX);
 			o->labelsize(_TEXT_SIZE);
 			o->labelcolor((Fl_Color)_BTNLBLCOLOR2);
-			o->callback((Fl_Callback*)storemultiCallback, multiNameInput); // multichoice
-			storeMultiBtn = o;
+			o->callback((Fl_Callback*)multistoreCallback, multiNameInput); // multichoice
+			multistoreBtn = o;
 		  }
 			d->end(); // groups multi
+			make_labeltip(d,
+				_("These controls allow storing current multi parameters to the selected memory slot,\n"
+				"or retrieving them from it. The name is displayed in red when the current settings\n"
+				"do not match the selected memory slot."));
 		}
 	/*{ Fl_Chart * o = new Fl_Chart(600, 300, 70, 70, "eg");
 		o->bounds(0.0,1.0);
@@ -4542,12 +4569,12 @@ void Fenster::resize (int x, int y, int w, int h)
 	multiRoller->position(multiRoller->x(), soundRoller[0]->y());
 	multiNoInput->position(multiNoInput->x(), soundNoInput[0]->y());
 	loadMultiBtn->position(loadMultiBtn->x(), loadSoundBtn[0]->y());
-	storeMultiBtn->position(storeMultiBtn->x(), storeSoundBtn[0]->y());
+	multistoreBtn->position(multistoreBtn->x(), soundstoreBtn[0]->y());
 	decMultiBtn->position(decMultiBtn->x(), soundNoInput[0]->y());
 	incMultiBtn->position(incMultiBtn->x(), soundNoInput[0]->y());
 
 	auditionBtn->position(auditionBtn->x(), loadSoundBtn[0]->y());
-	compareBtn->position(compareBtn->x(), storeSoundBtn[0]->y());
+	compareBtn->position(compareBtn->x(), soundstoreBtn[0]->y());
 	panicBtn->position(panicBtn->x(), loadSoundBtn[0]->y());
 	soundTable->resize_cols(w);
 	multiTable->resize_cols(w);
@@ -4566,7 +4593,7 @@ void Fenster::resize (int x, int y, int w, int h)
 		loadMultiBtn2->labelsize(new_text_size);
 		importMultiBtn->labelsize(new_text_size);
 		exportMultiBtn->labelsize(new_text_size);
-		storeMultiBtn->labelsize(new_text_size);
+		multistoreBtn->labelsize(new_text_size);
 		saveMultisBtn->labelsize(new_text_size);
 		saveSoundsBtn->labelsize(new_text_size);
 		multiNoInput->textsize(16*minscale);
@@ -4601,7 +4628,7 @@ void Fenster::resize (int x, int y, int w, int h)
 			soundNameInput[i]->textsize(new_text_size);
 			soundNameInput[i]->labelsize(new_text_size);
 			loadSoundBtn[i]->labelsize(new_text_size);
-			storeSoundBtn[i]->labelsize(new_text_size);
+			soundstoreBtn[i]->labelsize(new_text_size);
 			voiceLoadBtn[i]->labelsize(new_text_size);
 			clearStateBtn[i]->labelsize(new_text_size);
 			importSoundBtn[i]->labelsize(new_text_size);

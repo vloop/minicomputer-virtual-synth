@@ -1,8 +1,10 @@
 /** Minicomputer
  * industrial grade digital synthesizer
- * editorsoftware
+ *
  * Copyright 2007 Malte Steiner
- * This file is part of Minicomputer, which is free software: you can redistribute it and/or modify
+ * Changes by Marc Périlleux 2018
+ * This file is part of Minicomputer, which is free software:
+ * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -241,20 +243,20 @@ int Memory::loadInit()
  */
 int Memory::loadSounds()
 {
-	char path[1200]; // , kommand[2400];;
+	char path[1200], kommand[2400];;
 	snprintf(path, 1200, "%s/minicomputerMemory.txt", folder);
 	printf("loadSounds: Loading %s\n", path);
 	ifstream file (path);
 	if(!file){
-		/*
-		fprintf(stderr, "loadSounds: error opening file %s - attempting to copy\n", path);
+
 		// Attempt copy
+		fprintf(stderr, "loadSounds: error opening file %s - attempting to copy\n", path);
 		snprintf(kommand, 2400, "cp /usr/share/minicomputer/factory_presets/minicomputerMemory.txt %s", path);
 		if(system(kommand)){ // Copy failed
 			fprintf(stderr, "Copy to %s failed.\n", path);
 			return 1;
 		}
-		*/
+
 		// Fallback to factory presets
 		fprintf(stderr, "loadSounds: error opening file - reverting to factory settings\n");
 		snprintf(path, 1200, "/usr/share/minicomputer/factory_presets/minicomputerMemory.txt");
@@ -765,21 +767,21 @@ int Memory::loadMultis()
 	int iParameter,i2Parameter;
 	float fValue;
 
-	char path[1200]; // , kommand[2400];
+	char path[1200], kommand[2400];
 	snprintf(path, 1200, "%s/minicomputerMulti.txt", folder);
 	printf("loadMultis: Loading %s\n", path);
 
 	ifstream file (path);
 	if(!file){
-		/*
-		fprintf(stderr, "loadMultis: error opening file %s - attempting to copy\n", path);
+		
 		// Attempt copy
+		fprintf(stderr, "loadMultis: error opening file %s - attempting to copy\n", path);
 		snprintf(kommand, 2400, "cp /usr/share/minicomputer/factory_presets/minicomputerMulti.txt %s", path);
 		if(system(kommand)){ // Copy failed
 			fprintf(stderr, "Copy to %s failed.\n", path);
 			return 1;
 		}
-		*/
+		
 		// Fallback to factory settings
 		fprintf(stderr, "loadMultis: error opening file - reverting to factory settings\n");
 		snprintf(path, 1200, "/usr/share/minicomputer/factory_presets/minicomputerMulti.txt");
