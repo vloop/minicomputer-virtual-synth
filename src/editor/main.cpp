@@ -198,6 +198,7 @@ void usage() {
  */
 char *oport;
 char *oport2;
+bool noEscape;
 int main(int argc, char **argv) {
   printf("minicomputer editor version %s\n", _VERSION);
 
@@ -257,6 +258,8 @@ int main(int argc, char **argv) {
 			no_connect = true;
 		} else if (strcmp(argv[i], "-no-launch") == 0) {
 			no_launch = true;
+		} else if (strcmp(argv[i], "-no-escape") == 0) {
+			noEscape = true;
 		} else if (strcmp(argv[i], "-ask-before-save") == 0) {
 			alwaysSave = false;
 		} else if ( strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0 ) {
@@ -358,7 +361,10 @@ int main(int argc, char **argv) {
 	if (strcmp(argv[i], "-port") == 0 || strcmp(argv[i], "-port2") == 0) {
 		i++; // skip this parameter and its argument
 		// We know this is safe because parm checking already occured above
-	} else if (strcmp(argv[i], "-no-connect") == 0 || strcmp(argv[i], "-no-launch") == 0 || strcmp(argv[i], "-ask-before-save") == 0) {
+	} else if (strcmp(argv[i], "-no-connect") == 0
+		|| strcmp(argv[i], "-no-launch") == 0
+		|| strcmp(argv[i], "-no-escape") == 0
+		|| strcmp(argv[i], "-ask-before-save") == 0) {
 		// ++i; // skip this parameter
 	} else {
 		av[j] = argv[i];

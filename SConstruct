@@ -131,6 +131,7 @@ guienv['BUILDERS']['gettextMergePotFile']=env.Builder(
 	suffix=".pot")
 
 # Not working (removes the .po before attempting merge because it's a target?)
+# maybe could use Precious()
 guienv['BUILDERS']['msgmergePoFile']=env.Builder(
 	action=Action("msgmerge --update $TARGET $SOURCE", "Merging po file $TARGET"),
 	suffix=".po",

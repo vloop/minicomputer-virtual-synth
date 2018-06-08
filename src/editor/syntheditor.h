@@ -248,6 +248,7 @@ extern Fl_Input* Multichoice;
 extern char *oport;
 extern char *oport2;
 extern bool alwaysSave;
+extern bool noEscape;
 
 // the logo image
 static unsigned char idata_miniMini[] =

@@ -16,8 +16,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// a way to compile it was:
-//  gcc -o synthesizer synth2.c -ljack -ffast-math -O3 -march=k8 -mtune=k8 -funit-at-a-time -fpeel-loops -ftracer -funswitch-loops -llo -lasound
 
 #include <jack/jack.h>
 #include <jack/midiport.h>
@@ -168,10 +166,15 @@ float f[_MULTITEMP][4] __attribute__((aligned (16)));
 float q[_MULTITEMP][4] __attribute__((aligned (16)));
 float v[_MULTITEMP][4] __attribute__((aligned (16)));
 
+unsigned int keydown[_MULTITEMP]; // 0 or 1
 unsigned int lastnote[_MULTITEMP];
-unsigned int hold[_MULTITEMP];
-unsigned int heldnote[_MULTITEMP];
+unsigned int hold[_MULTITEMP]; // 0 or 1
+int heldnote[_MULTITEMP]; // -1 for none; 0 is note C0
 // unsigned int kbnotes[_MULTITEMP][128]; // Keyboard assignment state
+unsigned int sostenuto[_MULTITEMP]; // 0 or 1
+int sostenutonote[_MULTITEMP]; // -1 for none; 0 is note C0
+unsigned int unacorda[_MULTITEMP]; // 0 or 1
+
 unsigned int polySlave[_MULTITEMP]; // Poly link
 unsigned int polyMaster[_MULTITEMP]; // Poly link
 float glide[_MULTITEMP];
@@ -1315,6 +1318,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			final_mix = 1.0f-mod[choi[13]]*param[100];
 			final_mix *= mod[7];
 			final_mix *= egCalc(currentvoice, 0, masterVoice); // the final shaping envelope
+			if(unacorda[currentvoice]) final_mix *= 0.25; // Should be a parameter ??
 
 	// --------------------------------- delay unit
 			if( delayI[currentvoice] >= delayBufferSize )
@@ -1617,12 +1621,31 @@ void doControlChange(int voice, int n, int v){
 					hold[voice]=1;
 				}else{ // Hold off
 					hold[voice]=0;
-					if (heldnote[voice]){
+					if (heldnote[voice]>=0){
 					// note is held if note_off occurs while hold is on
 						doNoteOff(voice, heldnote[voice], 0); // Do a note_off
-						heldnote[voice]=0;
+						heldnote[voice]=-1;
 					}
 				}
+				break;
+			}
+			case 66:{ // sostenuto
+				if(v>63){ // sostenuto on
+					sostenuto[voice]=keydown[voice]; // main difference with hold
+					// sostenutonote[voice]=lastnote[voice];
+				}else{ // sostenuto off
+					sostenuto[voice]=0;
+					if (sostenutonote[voice]>=0){
+					// note is in sustenuto if note_off occurs while sostenuto is on
+						if(keydown[voice]==0)
+							doNoteOff(voice, sostenutonote[voice], 0); // Do a note_off
+						sostenutonote[voice]=-1;
+					}
+				}
+				break;
+			}
+			case 67:{ // una corda (soft pedal)
+				unacorda[voice]=(v>63); // Could be a modulator ??
 				break;
 			}
 		}
@@ -1684,14 +1707,18 @@ void doMidi(int status, int n, int v){
 
 static inline void doNoteOff(int voice, int note, int velocity){
 	// Velocity currently ignored
-	if (voice <_MULTITEMP){
+	if (voice <_MULTITEMP){ // Should always be true
 //		kbnotes[voice][note]=0;
 		note+=transpose[voice];
 		while(note!=lastnote[voice] && polyMaster[voice]) voice++;
 		if(note==lastnote[voice]){ // Ignore release for old notes
-			if(hold[voice]){
+			keydown[voice]=0;
+			if(hold[voice])
 				heldnote[voice]=note;
-			}else{
+			if(sostenuto[voice])
+				sostenutonote[voice]=note;
+			if(hold[voice]==0 && sostenuto[voice]==0){
+				// lastnote[voice]=-1;
 				egStop(voice,0);  
 				if (EGrepeat[voice][1] == 0) egStop(voice,1);  
 				if (EGrepeat[voice][2] == 0) egStop(voice,2); 
@@ -1705,17 +1732,21 @@ static inline void doNoteOff(int voice, int note, int velocity){
 }
 
 static inline void doNoteOn(int voice, int note, int velocity){
-	if (voice <_MULTITEMP){
+	if (voice <_MULTITEMP){ // Should always be true
 		if ((note>=note_min[voice]) && (note<=note_max[voice])){
 //			kbnotes[voice][note]=1;
 			note+=transpose[voice];
 			if(note>=0 && note<=127){
 				if (velocity>0){
-					while(lastnote[voice]!=note && EGstate[voice][0]!=4 && polyMaster[voice]){ // Note not finished, try poly
+					while(lastnote[voice]!=note // Skip voice used by an other note
+					&& EGstate[voice][0]!=4  // unless note is finished
+					&& polyMaster[voice]){ // and there is a slave
 						voice++;
 					}
-					heldnote[voice]=0;
+					heldnote[voice]=-1; // Note is played, not held (may be held again later)
+					// sostenutonote[voice]=-1;
 					lastnote[voice]=note;
+					keydown[voice]=1;
 					glide[voice]+=midi2freq[note]-midif[voice]; // Span between previous and new note
 					if(EGstate[voice][0]==4){
 						glide[voice]=0; // Don't glide from finished note
@@ -1749,7 +1780,7 @@ static inline void doNoteOn(int voice, int note, int velocity){
 					// Parameter 139 is legato, don't retrigger unless released (0) or idle (4)
 					if(EGstate[voice][0]==4 || EGstate[voice][0]==0 || parameter[voice][139]==0){
 						egStart(voice, 0);// start the engines!
-						// Maybe optionally restart repeatable envelopes too, i.e free-run boutton?
+						// Maybe optionally restart repeatable envelopes too, i.e free-run button?
 						if (EGrepeat[voice][1] == 0) egStart(voice, 1);
 						if (EGrepeat[voice][2] == 0) egStart(voice, 2);
 						if (EGrepeat[voice][3] == 0) egStart(voice, 3);
@@ -2251,7 +2282,9 @@ static inline int multiparm_handler(const char *path, const char *types, lo_arg 
 		}
 		// Fix currently playing note if needed so detune is immediately effective
 		for(voice=0; voice<_MULTITEMP; voice++){
-			if (lastnote[voice]%12 == parmnum) midif[voice]=midi2freq[lastnote[voice]];
+			if (lastnote[voice]%12 == parmnum)
+			// if (lastnote[voice]>=0 && lastnote[voice]%12 == parmnum)
+				midif[voice]=midi2freq[lastnote[voice]];
 		}
 	}else if (parmnum==12){ // Master tune
 // printf("multiparm_handler: master tune %f --> %f\n", parmval, 1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*parmval);
@@ -2262,7 +2295,8 @@ static inline int multiparm_handler(const char *path, const char *types, lo_arg 
 		}
 		// Fix all currently playing notes so detune is immediately effective
 		for(voice=0; voice<_MULTITEMP; voice++){
-			midif[voice]=midi2freq[lastnote[voice]];
+			// if(lastnote[voice]>=0)
+				midif[voice]=midi2freq[lastnote[voice]];
 		}
 	}else{
 		fprintf(stderr, "WARNING: multiparm_handler - unhandled parameter number %i\n", parmnum);

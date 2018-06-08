@@ -4732,7 +4732,7 @@ int Fenster::handle (int event)
 			tabCallback(tabs,NULL);
 		break;
 				case FL_Escape:
-			do_all_off(NULL, NULL);
+			if(noEscape==false) do_all_off(NULL, NULL);
 		break;
 				// case 32: // Space bar - Doesn't work
 				case FL_Insert:
