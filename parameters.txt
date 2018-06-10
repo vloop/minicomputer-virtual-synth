@@ -1,0 +1,255 @@
+minicomputer editor version 1.5.0
+LANG: fr_FR.UTF-8
+label amp. modulator #0: none aucune
+label amp. modulator #1: velocity vélocité
+label amp. modulator #2: pitch bend molette de pitch
+label amp. modulator #3: osc 1 fm out sortie fm osc 1
+label amp. modulator #4: osc 2 fm out sortie fm osc 2
+label amp. modulator #5: note frequency fréquence de la note
+label amp. modulator #6: osc 2 osc 2
+label amp. modulator #7: filter filtre
+label amp. modulator #8: eg 1 eg 1
+label amp. modulator #9: eg 2 eg 2
+label amp. modulator #10: eg 3 eg 3
+label amp. modulator #11: eg 4 eg 4
+label amp. modulator #12: eg 5 eg 5
+label amp. modulator #13: eg 6 eg 6
+label amp. modulator #14: modulation osc osc. de modulation
+label amp. modulator #15: touch toucher
+label amp. modulator #16: mod wheel molette de mod.
+label amp. modulator #17: cc 12 cc 12
+label amp. modulator #18: delay ligne à retard
+label amp. modulator #19: midi note note midi
+label amp. modulator #20: cc 2 cc 2
+label amp. modulator #21: cc 4 cc 4
+label amp. modulator #22: cc 5 cc 5
+label amp. modulator #23: cc 6 cc 6
+label amp. modulator #24: cc 14 cc 14
+label amp. modulator #25: cc 15 cc 15
+label amp. modulator #26: cc 16 cc 16
+label amp. modulator #27: cc 17 cc 17
+label amp. modulator #28: (null) (null)
+label freq. modulator #0: none aucune
+label freq. modulator #1: velocity vélocité
+label freq. modulator #2: pitch bend molette de pitch
+label freq. modulator #3: osc 1 fm out sortie fm osc 1
+label freq. modulator #4: osc 2 fm out sortie fm osc 2
+label freq. modulator #5: note frequency fréquence de la note
+label freq. modulator #6: osc 2 osc 2
+label freq. modulator #7: filter filtre
+label freq. modulator #8: eg 1 eg 1
+label freq. modulator #9: eg 2 eg 2
+label freq. modulator #10: eg 3 eg 3
+label freq. modulator #11: eg 4 eg 4
+label freq. modulator #12: eg 5 eg 5
+label freq. modulator #13: eg 6 eg 6
+label freq. modulator #14: modulation osc osc. de modulation
+label freq. modulator #15: touch toucher
+label freq. modulator #16: mod wheel molette de mod.
+label freq. modulator #17: cc 12 cc 12
+label freq. modulator #18: delay ligne à retard
+label freq. modulator #19: midi note note midi
+label freq. modulator #20: cc 2 cc 2
+label freq. modulator #21: cc 4 cc 4
+label freq. modulator #22: cc 5 cc 5
+label freq. modulator #23: cc 6 cc 6
+label freq. modulator #24: cc 14 cc 14
+label freq. modulator #25: cc 15 cc 15
+label freq. modulator #26: cc 16 cc 16
+label freq. modulator #27: cc 17 cc 17
+label freq. modulator #28: (null) (null)
+label wave #0: sine sinus
+label wave #1: ramp up rampe asc.
+label wave #2: ramp down rampe desc.
+label wave #3: tri triangle
+label wave #4: square carré
+label wave #5: bit bit
+label wave #6: spike pointe
+label wave #7: comb peigne
+label wave #8: add Saw dent de scie add.
+label wave #9: add Square carré additif
+label wave #10: Microcomp 1 Microcomp 1
+label wave #11: Microcomp 8 Microcomp 8
+label wave #12: Microcomp 9 Microcomp 9
+label wave #13: Microcomp 10 Microcomp 10
+label wave #14: Microcomp 11 Microcomp 11
+label wave #15: Microcomp 12 Microcomp 12
+label wave #16: Microcomp 13 Microcomp 13
+label wave #17: Microcomp 14 Microcomp 14
+label wave #18: (null) (null)
+000 : not defined
+001 : fréquence
+002 : fréq. fixe
+003 : accord
+004 : x100
+005 : niveau
+006 : exp.
+007 : niveau
+008 : not defined
+009 : niveau
+010 : niveau
+011 : not defined
+012 : not defined
+013 : sortie fm
+014 : osc1 vol
+015 : not defined
+016 : fréquence
+017 : fréq. fixe
+018 : accord
+019 : x100
+020 : niveau
+021 : exp.
+022 : niveau
+023 : not defined
+024 : niveau
+025 : niveau
+026 : not defined
+027 : not defined
+028 : sortie fm
+029 : osc2 vol
+030 : coupure
+031 : q
+032 : vol
+033 : coupure
+034 : q
+035 : vol
+036 : not defined
+037 : not defined
+038 : niveau
+039 : not defined
+040 : coupure
+041 : q
+042 : vol
+043 : coupure
+044 : q
+045 : vol
+046 : not defined
+047 : not defined
+048 : niveau
+049 : not defined
+050 : coupure
+051 : q
+052 : vol
+053 : coupure
+054 : q
+055 : vol
+056 : morph
+057 : not defined
+058 : not defined
+059 : not defined
+060 : A
+061 : D
+062 : S
+063 : R
+064 : répét.
+065 : A
+066 : D
+067 : S
+068 : R
+069 : répét.
+070 : A
+071 : D
+072 : S
+073 : R
+074 : répét.
+075 : A
+076 : D
+077 : S
+078 : R
+079 : répét.
+080 : A
+081 : D
+082 : S
+083 : R
+084 : répét.
+085 : A
+086 : D
+087 : S
+088 : R
+089 : répét.
+090 : accord
+091 : not defined
+092 : not defined
+093 : not defined
+094 : not defined
+095 : not defined
+096 : not defined
+097 : not defined
+098 : not defined
+099 : not defined
+100 : niveau
+101 : indiv.
+102 : A
+103 : D
+104 : S
+105 : R
+106 : mix vol
+107 : mix pan
+108 : aux 1
+109 : aux 2
+110 : niveau
+111 : durée
+112 : feedback
+113 : depuis le retard
+114 : vers le retard
+115 : sync osc1
+116 : glissando
+117 : mult.
+118 : mult.
+119 : phase initiale
+120 : (null)
+121 : mult.
+122 : niveau
+123 : not defined
+124 : not defined
+125 : Canal
+126 : Vél. test
+127 : Note test
+128 : Note min
+129 : Note max
+130 : Transp.
+131 : not defined
+132 : mult.
+133 : mult.
+134 : phase initiale
+135 : (null)
+136 : mult.
+137 : filtres désactivés
+138 : ring vol
+139 : legato
+140 : mult.
+141 : sub vol
+142 : molette de pitch
+143 : mult.
+144 : niveau
+145 : mod.
+146 : largeur
+147 : niveau
+148 : pwm vol
+149 : not defined
+150 : suivi
+151 : suivi
+152 : suivi
+153 : phase initiale
+154 : (null)
+155 : poly
+156 : una corda
+#00 : mod. de fréquence 1
+#01 : mod. de fréquence 2
+#02 : mod. d'amplitude 1
+#03 : mod. d'amplitude 2
+#04 : forme d'onde
+#05 : mod. de morph 1
+#06 : mod. de fréquence 1
+#07 : mod. de fréquence 2
+#08 : mod. d'amplitude 1
+#09 : mod. d'amp. de la sortie fm
+#10 : forme d'onde
+#11 : mod. de morph 2
+#12 : forme d'onde
+#13 : mod. d'amplitude
+#14 : mod. de durée 1
+#15 : forme d'onde du sub-osc.
+#16 : mod. de pan
+#17 : mod. de durée 2
+#18 : mod. de largeur d'impulsion

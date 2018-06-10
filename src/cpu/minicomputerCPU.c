@@ -77,64 +77,67 @@ float modwheel[_MULTITEMP] __attribute__((aligned (16)));
 // Bias and scale ensure modulator range is 0..1
 // This is useful when adding modulations
 float modulator_bias[_MODCOUNT] __attribute__((aligned (16)))={
-	1.0f, // 00 none
-	0.0f, // 01 velocity
-	1.0f, // 02 pitch bend
-	1.0f, // 03 osc 1 fm out
-	1.0f, // 04 osc 2 fm out
-	0.0f, // Note frequency
-	0.0f, // Hole in numbering
-	1.0f, // 05 filter
-	0.0f, // 06 eg 1
-	0.0f, // 07 eg 2
-	0.0f, // 08 eg 3
-	0.0f, // 09 eg 4
-	0.0f, // 10 eg 5
-	0.0f, // 11 eg 6
-	1.0f, // 12 modulation osc
-	0.0f, // 13 touch
-	0.0f, // 14 mod wheel
-	0.0f, // 15 cc 12
-	1.0f, // 16 delay
-	0.0f, // 17 midi note
-	0.0f, // 18 cc 2
-	0.0f, // 19 cc 4
-	0.0f, // 20 cc 5
-	0.0f, // 21 cc 6
-	0.0f, // 22 cc 14
-	0.0f, // 23 cc 15
-	0.0f, // 24 cc 16
-	0.0f, // 25 cc 17
+	1.0f, // amp. modulator #0: none aucune 
+	0.0f, // amp. modulator #1: velocity vélocité
+	1.0f, // amp. modulator #2: pitch bend molette de pitch
+	1.0f, // amp. modulator #3: osc 1 fm out sortie fm osc 1
+	1.0f, // amp. modulator #4: osc 2 fm out sortie fm osc 2
+	0.0f, // amp. modulator #5: note frequency fréquence de la note
+	0.0f, // amp. modulator #6: osc 2 osc 2 (unused)
+	1.0f, // amp. modulator #7: filter filtre
+	0.0f, // amp. modulator #8: eg 1 eg 1
+	0.0f, // amp. modulator #9: eg 2 eg 2
+	0.0f, // amp. modulator #10: eg 3 eg 3
+	0.0f, // amp. modulator #11: eg 4 eg 4
+	0.0f, // amp. modulator #12: eg 5 eg 5
+	0.0f, // amp. modulator #13: eg 6 eg 6
+	1.0f, // amp. modulator #14: modulation osc osc. de modulation
+	0.0f, // amp. modulator #15: touch toucher
+	0.0f, // amp. modulator #16: mod wheel molette de mod.
+	0.0f, // amp. modulator #17: cc 12 cc 12
+	1.0f, // amp. modulator #18: delay ligne à retard
+	0.0f, // amp. modulator #19: midi note note midi
+	0.0f, // amp. modulator #20: cc 2 cc 2
+	0.0f, // amp. modulator #21: cc 4 cc 4
+	0.0f, // amp. modulator #22: cc 5 cc 5
+	0.0f, // amp. modulator #23: cc 6 cc 6
+	0.0f, // amp. modulator #24: cc 14 cc 14
+	0.0f, // amp. modulator #25: cc 15 cc 15
+	0.0f, // amp. modulator #26: cc 16 cc 16
+	0.0f, // amp. modulator #27: cc 17 cc 17
+	0.0f, // amp. modulator #28: hold
 };
+
 float modulator_scale[_MODCOUNT] __attribute__((aligned (16)))={
-	1.0f, // 00 none
-	1.0f, // 01 velocity
-	0.5f, // 02 pitch bend
-	0.5f, // 03 osc 1 fm out
-	0.5f, // 04 osc 2 fm out
-	1.0f, // Note frequency
-	0.0f, // Hole in numbering
-	0.5f, // 05 filter
-	1.0f, // 06 eg 1
-	1.0f, // 07 eg 2
-	1.0f, // 08 eg 3
-	1.0f, // 09 eg 4
-	1.0f, // 10 eg 5
-	1.0f, // 11 eg 6
-	0.5f, // 12 modulation osc
-	1.0f, // 13 touch
-	1.0f, // 14 mod wheel
-	1.0f, // 15 cc 12
-	0.5f, // 16 delay
-	1.0f, // 17 midi note
-	1.0f, // 18 cc 2
-	1.0f, // 19 cc 4
-	1.0f, // 20 cc 5
-	1.0f, // 21 cc 6
-	1.0f, // 22 cc 14
-	1.0f, // 23 cc 15
-	1.0f, // 24 cc 16
-	1.0f, // 25 cc 17
+	1.0f,// amp. modulator #0: none aucune 
+	1.0f,// amp. modulator #1: velocity vélocité
+	0.5f,// amp. modulator #2: pitch bend molette de pitch
+	0.5f,// amp. modulator #3: osc 1 fm out sortie fm osc 1
+	0.5f,// amp. modulator #4: osc 2 fm out sortie fm osc 2
+	1.0f,// amp. modulator #5: note frequency fréquence de la note
+	0.0f,// amp. modulator #6: osc 2 osc 2 (unused)
+	0.5f,// amp. modulator #7: filter filtre
+	1.0f,// amp. modulator #8: eg 1 eg 1
+	1.0f,// amp. modulator #9: eg 2 eg 2
+	1.0f,// amp. modulator #10: eg 3 eg 3
+	1.0f,// amp. modulator #11: eg 4 eg 4
+	1.0f,// amp. modulator #12: eg 5 eg 5
+	1.0f,// amp. modulator #13: eg 6 eg 6
+	0.5f,// amp. modulator #14: modulation osc osc. de modulation
+	1.0f,// amp. modulator #15: touch toucher
+	1.0f,// amp. modulator #16: mod wheel molette de mod.
+	1.0f,// amp. modulator #17: cc 12 cc 12
+	0.5f,// amp. modulator #18: delay ligne à retard
+	1.0f,// amp. modulator #19: midi note note midi
+	1.0f,// amp. modulator #20: cc 2 cc 2
+	1.0f,// amp. modulator #21: cc 4 cc 4
+	1.0f,// amp. modulator #22: cc 5 cc 5
+	1.0f,// amp. modulator #23: cc 6 cc 6
+	1.0f,// amp. modulator #24: cc 14 cc 14
+	1.0f,// amp. modulator #25: cc 15 cc 15
+	1.0f,// amp. modulator #26: cc 16 cc 16
+	1.0f,// amp. modulator #27: cc 17 cc 17
+	0.0f,// amp. modulator #28: hold
 };
 float midif[_MULTITEMP] __attribute__((aligned (16)));
 
@@ -174,6 +177,7 @@ int heldnote[_MULTITEMP]; // -1 for none; 0 is note C0
 unsigned int sostenuto[_MULTITEMP]; // 0 or 1
 int sostenutonote[_MULTITEMP]; // -1 for none; 0 is note C0
 unsigned int unacorda[_MULTITEMP]; // 0 or 1
+float unacordacoeff[_MULTITEMP];
 
 unsigned int polySlave[_MULTITEMP]; // Poly link
 unsigned int polyMaster[_MULTITEMP]; // Poly link
@@ -1318,7 +1322,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			final_mix = 1.0f-mod[choi[13]]*param[100];
 			final_mix *= mod[7];
 			final_mix *= egCalc(currentvoice, 0, masterVoice); // the final shaping envelope
-			if(unacorda[currentvoice]) final_mix *= 0.25; // Should be a parameter ??
+			final_mix *= unacordacoeff[currentvoice]; // Should be a parameter ??
 
 	// --------------------------------- delay unit
 			if( delayI[currentvoice] >= delayBufferSize )
@@ -1617,6 +1621,7 @@ void doControlChange(int voice, int n, int v){
 				break;
 			}
 			case 64:{ // Hold
+				modulator[voice][28]=v*scale127;
 				if(v>63){ // Hold on
 					hold[voice]=1;
 				}else{ // Hold off
@@ -1744,7 +1749,8 @@ static inline void doNoteOn(int voice, int note, int velocity){
 						voice++;
 					}
 					heldnote[voice]=-1; // Note is played, not held (may be held again later)
-					// sostenutonote[voice]=-1;
+					// sostenutonote[voice]=-1; // Note stays in sostenuto!!
+					unacordacoeff[voice]=unacorda[voice]?parameter[voice][156]:1.0;
 					lastnote[voice]=note;
 					keydown[voice]=1;
 					glide[voice]+=midi2freq[note]-midif[voice]; // Span between previous and new note

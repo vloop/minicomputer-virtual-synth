@@ -16,4 +16,4 @@ dpkg-buildpackage -rfakeroot -uc -b
 cd ~/packaging/minicomputer
 su -c"dpkg -i minicomputer_1.5.0-1_amd64.deb"
 
-cp ../minicomputer_1.5.0-1_amd64.deb /media/bonap/wd2tbk2p1/ins_linux/minicomputer-1.5.0
+cp ~/packaging/minicomputer/minicomputer_1.5.0-1_amd64.deb /media/bonap/wd2tbk2p1/ins_linux/minicomputer-1.5.0

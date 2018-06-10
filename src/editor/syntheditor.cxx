@@ -64,8 +64,7 @@ Fl_Menu_Item menu_amod []= { // UserInterface::
  {_("pitch bend"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("osc 1 fm out"), 0,  0, 0, 0, FL_NORMAL_LABEL , 0, 8, 0},
  {_("osc 2 fm out"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- // {_("osc 1"), 0,  0, 0, FL_MENU_INVISIBLE, FL_NORMAL_LABEL, 0, 8, 0},
- {_("note frequency"), 0, 0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("note frequency"), 0, 0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0}, // Was osc 1
  {_("osc 2"), 0,  0, 0, FL_MENU_INVISIBLE, FL_NORMAL_LABEL, 0, 8, 0},
  {_("filter"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("eg 1"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
@@ -88,6 +87,7 @@ Fl_Menu_Item menu_amod []= { // UserInterface::
  {_("cc 15"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("cc 16"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("cc 17"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("damper pedal"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {0,0,0,0,0,0,0,0,0}
 };
 // redundant for now...
@@ -121,6 +121,7 @@ Fl_Menu_Item menu_fmod []= { // UserInterface::
  {_("cc 15"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("cc 16"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("cc 17"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("damper pedal"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {0,0,0,0,0,0,0,0,0}
 };
 /**
@@ -152,6 +153,7 @@ Fl_Menu_Item menu_wave []= { // UserInterface::
 Fl_Box* voiceDisplayBox[_MULTITEMP];
 Fl_Group *soundGroup;
 Fl_Int_Input *soundNoInput[_MULTITEMP];
+char soundNoTooltip[_MULTITEMP][_NAMESIZE];
 Fl_Input *soundNameInput[_MULTITEMP];
 Fl_Button *loadSoundBtn[_MULTITEMP], *soundstoreBtn[_MULTITEMP];
 Fl_Button *importSoundBtn[_MULTITEMP], *exportSoundBtn[_MULTITEMP];
@@ -1214,6 +1216,8 @@ static void soundRollerCallback(Fl_Widget* o, void*)
 	char ssoundnum[]="***";
 	snprintf(ssoundnum, 4, "%i", soundnum);
 	soundNoInput[currentVoice]->value(ssoundnum);// set gui
+	snprintf(soundNoTooltip[currentVoice], _NAMESIZE, _("Bank %u program %u"), soundnum/128, soundnum%128);
+	soundNoInput[currentVoice]->tooltip(soundNoTooltip[currentVoice]);
 	setsound_changed();
 //	Fl::awake();
 //	Fl::unlock();
@@ -1239,6 +1243,8 @@ static void soundNoInputCallback(Fl_Widget* o, void*)
 	char ssoundnum[]="***";
 	snprintf(ssoundnum, 4, "%i", soundnum);
 	soundNoInput[currentVoice]->value(ssoundnum);
+	snprintf(soundNoTooltip[currentVoice], _NAMESIZE, _("Bank %u program %u"), soundnum/128, soundnum%128);
+	soundNoInput[currentVoice]->tooltip(soundNoTooltip[currentVoice]);
 	if(soundRoller[currentVoice]->value()!=soundnum){
 		soundRoller[currentVoice]->value(soundnum);
 //		Fl::awake();
@@ -1825,6 +1831,8 @@ void sound_recall(int voice, unsigned int sound)
 	soundNoDisplay[voice]->tooltip(soundName[voice]);
 	soundNoDisplay[voice]->redraw();
 	soundNoInput[voice]->value(s);
+	snprintf(soundNoTooltip[voice], _NAMESIZE, _("Bank %u program %u"), sound/128, sound%128);
+	soundNoInput[voice]->tooltip(soundNoTooltip[voice]);
 	soundNoInput[voice]->redraw();
 	soundRoller[voice]->value(sound);
 	// In case name has been edited
@@ -1909,6 +1917,8 @@ static void loadmulti(unsigned int multi)
 			char ssoundnum[]="***";
 			snprintf(ssoundnum, 4, "%i", soundnum);
 			soundNoInput[i]->value(ssoundnum);
+			snprintf(soundNoTooltip[i], _NAMESIZE, _("Bank %u program %u"), soundnum/128, soundnum%128);
+			soundNoInput[i]->tooltip(soundNoTooltip[i]);
 		} else {
 			fprintf(stderr, "loadmulti: sound %d is out of range!\n", soundnum);
 		}
@@ -3000,18 +3010,29 @@ Fenster* UserInterface::make_window(const char* title) {
 	// Test:
 	// gettext minicomputer "Voice " --> "Voix "
 	// printf("none -> %s\n", _("none")); --> aucune
-	
+// #define _DEBUG
 	for(unsigned int i=0; i<sizeof(menu_amod)/sizeof(menu_amod[0]); i++){
-		// printf("label %s %s\n", menu_amod[i].label(), _(menu_amod[i].label()));
+#ifdef _DEBUG
+		printf("label amp. modulator #%u: %s %s\n", i, menu_amod[i].label(), _(menu_amod[i].label()));
+#endif
 		menu_amod[i].label(_(menu_amod[i].label()));
-		menu_fmod[i].label(_(menu_amod[i].label())); // Identical menus!
 	}
-	for(unsigned int i=0; i<sizeof(menu_wave)/sizeof(menu_wave[0]); i++)
+	for(unsigned int i=0; i<sizeof(menu_fmod)/sizeof(menu_fmod[0]); i++){
+#ifdef _DEBUG
+		printf("label freq. modulator #%u: %s %s\n", i, menu_fmod[i].label(), _(menu_fmod[i].label()));
+#endif
+		menu_fmod[i].label(_(menu_fmod[i].label()));
+	}
+	for(unsigned int i=0; i<sizeof(menu_wave)/sizeof(menu_wave[0]); i++){
+#ifdef _DEBUG
+		printf("label wave #%u: %s %s\n", i, menu_wave[i].label(), _(menu_wave[i].label()));
+#endif
 		menu_wave[i].label(_(menu_wave[i].label()));
+	}
 
 	currentVoice=0;
 	currentMulti=0;
-	
+
 	// special treatment for the mix knobs and MIDI settings
 	// they are saved in the multi, not in the sound
 	needs_multi[101]=1; // Id vol
@@ -3514,6 +3535,12 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->callback((Fl_Callback*)parmCallback);
 		  knobs[i][o->argument()] = o;
 	}
+	  { MiniKnob* o = new MiniKnob(904, 52, 20, 20, "una corda");
+		o->labelsize(_TEXT_SIZE);
+		o->argument(156);
+		o->callback((Fl_Callback*)parmCallback);
+		knobs[i][o->argument()] = o;
+	  }
 	// amplitude envelope
 	{ MiniKnob* o = new MiniKnob(844, 83, 25, 25, "A");
 		o->labelsize(_TEXT_SIZE);

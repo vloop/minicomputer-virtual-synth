@@ -18,6 +18,7 @@ else:
 	guienv = Environment(CPPFLAGS = '', CONFIGURELOG = '#/../config_minicomputer.log')
 
 # build options
+# deprecated
 opts = Options('scache.conf')
 opts.AddOptions(
     PathOption('PREFIX', 'install prefix', '/usr'), # Was /usr/local
@@ -26,6 +27,12 @@ opts.AddOptions(
 opts.Update(env)
 opts.Save('scache.conf', env)
 Help(opts.GenerateHelpText(env))
+# should be something like
+# opts = Variables()
+# opts.Add('xxxx',0)
+# env = Environment(variables=opts, ...)
+#for key in opts.keys():
+#    print key
 
 if ARGUMENTS.get('k8', 0):
 	env.Append(CCFLAGS = ['-march=k8','-mtune=k8','-m3dnow'])
@@ -132,6 +139,7 @@ guienv['BUILDERS']['gettextMergePotFile']=env.Builder(
 
 # Not working (removes the .po before attempting merge because it's a target?)
 # maybe could use Precious()
+# msgmerge --update ./src/editor/po/fr/minicomputer.po ./src/editor/po/minicomputer.pot
 guienv['BUILDERS']['msgmergePoFile']=env.Builder(
 	action=Action("msgmerge --update $TARGET $SOURCE", "Merging po file $TARGET"),
 	suffix=".po",
