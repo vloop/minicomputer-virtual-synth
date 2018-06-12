@@ -128,7 +128,7 @@ guienv['BUILDERS']['gettextMoFile']=env.Builder(
 XGETTEXT_COMMON_ARGS="--keyword=_ --language=C --add-comments --sort-output -o $TARGET $SOURCE"
 
 guienv['BUILDERS']['gettextPotFile']=env.Builder(
-	action=Action("xgettext --from-code=UTF-8 " + XGETTEXT_COMMON_ARGS, "Generating pot file $TARGET"),
+	action=Action("xgettext --from-code=UTF-8 " + XGETTEXT_COMMON_ARGS, "Generating pot file $TARGET from $SOURCE"),
 	suffix=".pot")
 
 # Not tested
@@ -155,9 +155,21 @@ env.Program('minicomputerCPU','src/cpu/minicomputerCPU.c');
 print""
 print"-                     building the editor:"
 
-guienv.Program('minicomputer',['src/editor/main.cpp','src/editor/Memory.cpp','src/editor/syntheditor.cxx','src/editor/MiniKnob.cxx','src/editor/MiniPositioner.cxx','src/editor/MiniTable.cxx']);
+sources = ['src/editor/main.cpp',
+  'src/editor/Memory.cpp',
+  'src/editor/syntheditor.cxx',
+  'src/editor/MiniKnob.cxx',
+  'src/editor/MiniButton.cxx',
+  'src/editor/MiniPositioner.cxx',
+  'src/editor/MiniTable.cxx',
+  'src/editor/minichoice.cxx']
+guienv.Program('minicomputer', sources);
 
-guienv.gettextPotFile('src/editor/po/minicomputer.pot',['src/editor/syntheditor.cxx']);
+guienv.gettextPotFile('src/editor/po/minicomputer.pot',['src/editor/syntheditor.cxx']); # OK
+#guienv.gettextPotFile('src/editor/po/minicomputer.pot',['src/editor/*.cxx']); # Untested
+#guienv.gettextPotFile('src/editor/po/minicomputer.pot',['src/editor/syntheditor.cxx', 'src/editor/minichoice.cxx']); # minichoice ignored??
+# guienv.gettextPotFile('src/editor/po/minicomputer.pot', sources); # KO
+
 # guienv.msgmergePoFile('src/editor/po/fr/minicomputer.po',['src/editor/po/minicomputer.pot']);
 guienv.gettextMoFile('src/editor/po/fr/minicomputer.mo',['src/editor/po/fr/minicomputer.po']);
 

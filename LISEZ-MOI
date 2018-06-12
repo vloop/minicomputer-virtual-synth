@@ -2,8 +2,8 @@ Minicomputer v. 1.41
 Synthétiseur Digital de qualité industrielle
 
 par Malte Steiner
-
 email: steiner@block4.com
+
 pour cette version
 email: marc.perilleux@laposte.net
 
@@ -22,7 +22,6 @@ Minicomputer est un logiciel libre, gratuit et open source sous licence GPL3.
 ----------------------------- installation pour Linux Mint et ubuntu ------------------------
 Si vous utilisez debian, vous pouvez tester l'installation du package comme suit:
     su -c"dpkg -i minicomputer_1.5.0-1_amd64.deb"
-    ./installpresets.sh
 
 Sinon, il vous faut compiler à partir des sources.
 Les étapes ci-dessous ont été testées sur une installation vierge de linuxmint-18.3-xfce-64bit,
@@ -99,24 +98,21 @@ De même pour la désinstallation:
 
 scons -c install
 
-Actuellement le répertoire cible est en dur dans le fichier SConstruct, dans les deux dernières lignes.
-Les données se trouvent dans le sous-répertoire .miniComputer/ de votre dossier personnel.
-Pour démarrer il est recommandé d'utiliser le script installpresets.sh avec votre propre nom d'utilisateur.
-Ceci écrasera toute version antérieure des multis et des sons, après en avoir créé une sauvegarde de sécurité.
+Les répertoires cible sont définis dans le fichier SConstruct, dans les dernières lignes.
+Les exécutables seront normalement copiés dans /usr/bin et les données dans des sous-dossiers de /usr/share.
+Les données utilisateur seront copiées au premier lancement dans le sous-répertoire .miniComputer/ de votre dossier personnel.
+Vous povez obtenir le même résultat manuellement en lancant le script installpresets.sh sous votre propre nom d'utilisateur.
+Ceci remplacera toute version antérieure des multis et des sons, après en avoir créé une sauvegarde de sécurité.
 
 Le build reconnait les paramètres suivants qui permettent d'optimiser selon l'architecture:
 – 64bit=1
 force le build en 64 bits au moyen de l'option ­m64 option
-– k7=1
-optimisation pour les processeurs AMD Athlon­XP
-– k8=1
-optimisation pour les processeurs AMD K8 cpus, via les options  ­march=k8 ­mtune=k8.
 – native=1
 optimisation pour le système actuel (recommandé)
 
-Par exemple, le build 64 bits pour un K8 sera
+Par exemple, le build 64 bits sera
 
-scons 64bit=1 k8=1
+scons 64bit=1
 
 D'autres optimisations peuvent être activées dans common.h mais il s'agit d'expérimentations, le résultat peut varier.
 
@@ -124,10 +120,10 @@ D'autres optimisations peuvent être activées dans common.h mais il s'agit d'ex
 
 « j'ai installé la bibliothèque xyz mais scons ne la trouve pas »
 Vérifiez que vous avez bien installé aussi la version de développement, qui aura habituellement un nom du genre libxyz.dev.
-scons émet parfois des messages concernant les bibliothèques pour des raisons sans rapport, comme des options de compilation erronées.
+Scons émet parfois des messages concernant les bibliothèques pour des raisons sans rapport, comme des options de compilation erronées.
 
 -----------------------------Crédits -----------------------------
-Sons supplémentaires par jmechmech
+Un grand merci à jmechmech pour ses nombreux tests et pour la création de sons supplémentaires!
 
 ----------------------------- Un mot à l'intention des créateurs de paquetages -----------------------------
 

@@ -71,14 +71,14 @@ void MiniKnob::draw() {
 		int col = _bgcolor; // parent()->color();
 		fl_color(col);
 		fl_rectf(ox,oy,side,side);
-		
+
 		// Draw the shadow first
 		Fl::get_color((Fl_Color)col,rr,gg,bb);
 		shadow(-60,rr,gg,bb);
 		// fl_pie(ox+(3*m)/2,oy+(3*m)/2,side-2*m,side-2*m,0,360);
 		// fl_pie(ox+2*m,oy+2*m,side-2*m,side-2*m,0,360);
 		fl_pie(ox+m+s,oy+m+s,side-2*m,side-2*m,0,360);
-		
+
 		draw_scale(ox,oy,side);
 		
 		col = color();

@@ -706,10 +706,9 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		// glide[currentvoice]*=param[116];
 		glide[currentvoice]*=glide_a*param[116]+glide_b;
 		glide[currentvoice]+=copysign(anti_denormal, glide[currentvoice]); // Not needed with sse2 ??
-		tfo1_1 = param[1]; // Fixed frequency
-		tfo1_1 *=param[2]; // Fixed frequency enable, 0 or 1
+		tfo1_1 = param[1] * param[2]; // Fixed frequency * fixed switch (0 or 1)
 
-		// osc1 ampmods 1 and 2
+		// osc1 amp mods 1 and 2
 		// modulators must be in range 0..1 for multiplication
 		// param[9] ([10] for mod 2) is  Amount -1..1
 		// Final multiply by a negative number is not an issue:
@@ -873,8 +872,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 
 // ------------------------ calculate oscillator 2 ---------------------
 		// first the modulations and frequencies
-		tfo2_1 = param[16];
-		tfo2_1 *=param[17];
+		tfo2_1 = param[16]*param[17]; // Fixed frequency * fixed switch (0 or 1)
 		
 		// osc2 first amp mod for mix output only
 		// ta2 = param[24];
@@ -926,7 +924,6 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 
 		
 		// param[28] is fm output vol for osc 2 (values 0..1)
-		// mod[4] = (param[28]+param[28]*(1.0f-ta3)); // osc2 fm out coeff
 		mod[4] = param[28]*ta3; // osc2 fm out coeff
 
 		// then generate the actual phase:

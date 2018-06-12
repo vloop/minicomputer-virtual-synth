@@ -20,6 +20,7 @@
 
 #include "syntheditor.h"
 
+// Set default widgets look and behaviour
 short MiniKnob::_defaultdragtype=MiniKnob::VERTICAL;
 int MiniKnob::_defaultmargin=3;
 int MiniKnob::_defaultbevel=3;
@@ -27,6 +28,12 @@ int MiniKnob::_defaultshadow=2;
 int MiniKnob::_defaultbgcolor=_BGCOLOR;
 int MiniKnob::_defaultcolor=0xB0B0B000;
 int MiniKnob::_defaultselectioncolor=0xD0D0D000;
+
+int MiniButton::_defaultbevel=3;
+int MiniButton::_defaultshadow=0;
+int MiniButton::_defaultbgcolor=_BGCOLOR;
+int MiniButton::_defaultcolor=0xB0B0B000;
+int MiniButton::_defaultselectioncolor=0xC1A3D000; // 0xD0D0D000;
 
 bool alwaysSave = true;
 
@@ -52,9 +59,6 @@ Fl_Tabs* tabs;
 static const char *voiceName[_MULTITEMP]={"1", "2", "3", "4", "5", "6", "7", "8"};
 static const char *noteNames[12]={"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
-// Fl_Menu_Item menu_amod[29]; // UserInterface::
-// Fl_Menu_Item menu_fmod[29]; // UserInterface::
-// Fl_Menu_Item menu_wave[19]; // UserInterface::
 /**
  * predefined menu with all modulation sources
  */
@@ -631,7 +635,7 @@ static void parmSet(Fl_Widget* o, void*) {
 		float val;
 		if(is_button[currentParameter]){
 			if(currentParameter==2){ // Fixed frequency button Osc 1
-				if (((Fl_Light_Button *)o)->value())
+				if (((Fl_Button *)o)->value())
 				{
 					knobs[currentVoice][1]->show();
 					knobs[currentVoice][3]->hide();
@@ -646,7 +650,7 @@ static void parmSet(Fl_Widget* o, void*) {
 					miniInput[currentVoice][1]->show();
 				}
 			}else if(currentParameter==17){ // Fixed frequency button Osc 2
-				if (((Fl_Light_Button *)o)->value())
+				if (((Fl_Button *)o)->value())
 				{
 					knobs[currentVoice][16]->show();
 					knobs[currentVoice][18]->hide();
@@ -675,13 +679,13 @@ static void parmSet(Fl_Widget* o, void*) {
 				knobs[currentVoice][148]->redraw();
 			}
 			if(currentParameter==4 || currentParameter==19){ // Boost buttons, transmit 1 or 100
-				val=((Fl_Valuator*)o)->value()?100.0f:1.0f;
+				val=((Fl_Button*)o)->value()?100.0f:1.0f;
 			}else { // Regular buttons, transmit plain value as float
-				val=((Fl_Valuator*)o)->value()?1.0f:0.0f;
+				val=((Fl_Button*)o)->value()?1.0f:0.0f;
 			}
 			if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, currentParameter, val);
 #ifdef _DEBUG
-			printf("parmSet button %li : %f\n", currentParameter, val);
+			printf("parmSet button %i : %f --> %f\n", currentParameter, ((Fl_Button*)o)->value(), val);
 #endif
 		}else{ // Not a button
 			char knob_tooltip_template[]="%f"; // May override below
@@ -912,6 +916,7 @@ static void parmCallback(Fl_Widget* o, void*) {
 			parmInput->labelcolor(FL_YELLOW);
 			Fl::add_timeout(0.5, parmInput_flash, 0);
 			parmInput->show();
+			// printf("parm %u value %u\n", currentParameter, parmInput->value());
 		}else{
 			// if (Fl::focus() != parmInput)
 			if (Fl::focus() && (Fl_Widget*)Fl::focus()->argument() != parmInput) // Don't ask why
@@ -1386,7 +1391,7 @@ static void do_exportsound(int soundnum)
 }
 static void do_exportmulti(const unsigned int multinum)
 {
-	if(multi_changed && (fl_choice(_("Refresh multi %u before export?"), _("Yes"), _("No"), 0, multinum)==0))
+	if(multi_changed && (minichoice(_("Refresh multi %u before export?"), _("Yes"), _("No"), 0, _("Confirm"), multinum)==1))
 		multistore(multinum);
 	char warn[1024], path[1024], name[_NAMESIZE];
 	strnrtrim(name, Speicher.getMultiName(multinum).c_str(), _NAMESIZE);
@@ -1466,7 +1471,7 @@ static void do_importsound(int soundnum)
 {
 	// printf("About to import into sound %d\n", soundnum);
 	if(strlen(Speicher.getSoundName(soundnum).c_str())
-		&& fl_choice("Overwrite sound #%u %s?", _("Yes"), _("No"), 0, soundnum, Speicher.getSoundName(soundnum).c_str()))
+		&& minichoice("Overwrite sound #%u %s?", _("Yes"), _("No"), 0, _("Confirm"), soundnum, Speicher.getSoundName(soundnum).c_str())!=1)
 		return;
 
 	char warn[256], path[1024];
@@ -1495,14 +1500,14 @@ static void do_importsound(int soundnum)
 			}
 		}
 		// If sound is in use, propose to apply imported version
-		if(found && fl_choice(_("Load the imported sound #%u in voice(s) using that sound number?"), _("Yes"), _("No"), 0, soundnum)==0){
+		if(found && minichoice(_("Load the imported sound #%u in voice(s) using that sound number?"), _("Yes"), _("No"), 0, _("Confirm"), soundnum)==1){
 			for(int i=0; i<_MULTITEMP; i++){
 				// printf("voice %u sound %s\n", i, soundNoInput[i]->value());
 				if(atoi(soundNoInput[i]->value())==soundnum)
 					sound_recall(i, soundnum);
 			}
 		}
-		if(alwaysSave || fl_choice(_("Save all sounds (including #%u)?"), _("Yes"), _("No"), 0, soundnum)==0)
+		if(alwaysSave || minichoice(_("Save all sounds (including #%u)?"), _("Yes"), _("No"), 0, _("Confirm"), soundnum)==1)
 			Speicher.saveSounds();
 //		fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 //		Fl::check();
@@ -2009,7 +2014,7 @@ static void multistoreCallback(Fl_Widget*, void*)
 	multistore(currentMulti);
 
 	// write to disk
-	if(alwaysSave || fl_choice("Save all multis (including #%u) to disk?", _("Yes"), _("No"), 0, currentMulti)==0)
+	if(alwaysSave || minichoice("Save all multis (including #%u) to disk?", _("Yes"), _("No"), 0, _("Confirm"), currentMulti)==1)
 		Speicher.saveMultis();
 //	fl_cursor(FL_CURSOR_DEFAULT, FL_WHITE, FL_BLACK);
 //	Fl::check();
@@ -2191,7 +2196,7 @@ void SoundTable::event_callback2()
 #ifdef _DEBUG
 			printf("SoundTable::event_callback2 event FL_KEYDOWN key %u\n", Fl::event_key());
 #endif
-			if (Fl::event_key()==FL_Delete && (fl_choice(_("Delete sound %u?"), _("Yes"), _("No"), 0, m)==0))
+			if (Fl::event_key()==FL_Delete && (minichoice(_("Delete sound %u?"), _("Yes"), _("No"), 0, _("Confirm"), m)==1))
 				soundclearmnuCallback(0, this);
 			else if (Fl::event_key()=='v' && Fl::event_ctrl())
 				soundpastemnuCallback(0, this);
@@ -2251,7 +2256,7 @@ void soundrenamemnuCallback(Fl_Widget*, void*T) {
 	if(dest<0 || dest>=_SOUNDS) return;
 	char old_name[_NAMESIZE];
 	strnrtrim(old_name, Speicher.getSoundName(dest).c_str(), _NAMESIZE);
-	const char *new_name=fl_input("New name?", old_name);
+	const char *new_name=miniinput(_("New name?"), old_name, _("Rename"));
 	if(new_name){
 		printf("rename sound %d %s\n", dest, new_name);
 		soundNameDisplay->value(new_name);
@@ -2344,7 +2349,7 @@ void multirenamemnuCallback(Fl_Widget*, void*T) {
 	printf("rename %d\n", dest);
 	char old_name[_NAMESIZE];
 	strnrtrim(old_name, Speicher.getMultiName(dest).c_str(), _NAMESIZE);
-	const char *new_name=fl_input("New name?", old_name);
+	const char *new_name=miniinput(_("New name?"), old_name, _("Rename"));
 	if(new_name){
 		multiNameDisplay->value(new_name);
 		Speicher.setMultiName(dest, new_name);
@@ -2362,7 +2367,7 @@ void do_importmulti(int multinum)
 {
 	// printf("About to import into multi %d\n", multinum);
 	if( strlen(Speicher.getMultiName(multinum).c_str())
-		&& fl_choice("Overwrite multi #%u %s?", _("Yes"), _("No"), 0, multinum, Speicher.getMultiName(multinum).c_str()))
+		&& minichoice("Overwrite multi #%u %s?", _("Yes"), _("No"), 0, _("Confirm"), multinum, Speicher.getMultiName(multinum).c_str())!=1)
 		return;
 	char warn[256], path[1024];
 	bool with_sounds=false;
@@ -2377,15 +2382,15 @@ void do_importmulti(int multinum)
 //		Fl::lock();
 //		fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
 //		Fl::check();
-		with_sounds=fl_choice(_("Do you want to import embedded sounds, overwriting existing sounds?"), _("Yes"), _("No"), 0)==0;
+		with_sounds=minichoice(_("Do you want to import embedded sounds, overwriting existing sounds?"), _("Yes"), _("No"), 0, _("Confirm"))==1;
 		Speicher.importMulti(fc->value(), multinum, with_sounds);
 		// ok, now we have a new multi loaded
 		// but not applied?!
 		updatemultiNameInput(multinum, Speicher.getMultiName(multinum).c_str());
-		if(fl_choice(_("Use the imported multi as current?"), _("Yes"), _("No"), 0)==0) loadmulti(multinum);
+		if(minichoice(_("Use the imported multi as current?"), _("Yes"), _("No"), 0, _("Confirm"))==1) loadmulti(multinum);
 		// now the new multi is in RAM but need to be saved to the main file
-		if(alwaysSave || fl_choice(_("Save all multis?"), _("Yes"), _("No"), 0)==0) Speicher.saveMultis();
-		if(with_sounds && (alwaysSave || fl_choice(_("Save all sounds?"), _("Yes"), _("No"), 0)==0)) Speicher.saveSounds();
+		if(alwaysSave || minichoice(_("Save all multis?"), _("Yes"), _("No"), 0, _("Confirm"))==1) Speicher.saveMultis();
+		if(with_sounds && (alwaysSave || minichoice(_("Save all sounds?"), _("Yes"), _("No"), 0, _("Confirm"))==1)) Speicher.saveSounds();
 
 //		fl_cursor(FL_CURSOR_DEFAULT,FL_WHITE, FL_BLACK);
 //		Fl::check();
@@ -2529,7 +2534,7 @@ void MultiTable::event_callback2()
 			m=selected_index();
 			// printf("MultiTable::event_callback2(%u) FL_KEYDOWN %u at %u %u %u\n", Fl::event(), Fl::event_key(), R, C, m);
 			if (Fl::event_key()==FL_Enter) loadmulti(m);
-			else if (Fl::event_key()==FL_Delete && (fl_choice(_("Delete multi %u?"), _("Yes"), _("No"), 0, m)==0))
+			else if (Fl::event_key()==FL_Delete && (minichoice(_("Delete multi %u?"), _("Yes"), _("No"), 0, _("Confirm"), m)==1))
 				multiclearmnuCallback(0, this); // Speicher.clearMulti(m);
 			else if (Fl::event_key()=='v' && Fl::event_ctrl())
 				multipastemnuCallback(0, this);
@@ -2966,8 +2971,8 @@ void do_close(Fl_Widget * o, void *){
 	for(int i=0; i<_MULTITEMP && !changed; i++)
 		changed|=sound_changed[i];
 	if(changed){
-		switch (fl_choice(_("What do you want to do?"), _("Save and exit"), _("Don't exit"), _("Abandon changes and exit"))){
-			case 0:
+		switch (minichoice(_("What do you want to do?"), _("Save and exit"), _("Don't exit"), _("Abandon changes and exit"), _("Exit"))){
+			case 1:
 				multistoreCallback((Fl_Widget*)0, (void*)0);
 				// loop for voices and soundstoreCallback(Fl_Widget*, void*) ??
 				for(int i=0; i<_MULTITEMP; i++)
@@ -2975,14 +2980,14 @@ void do_close(Fl_Widget * o, void *){
 				Speicher.saveSounds();
 				Speicher.saveMultis();
 				// Fall through next case
-			case 2:
+			case 3:
 				Fl::first_window()->hide();
 				break;
 			default: // Don't exit
 				break;
 		}
 	}else{
-		if(fl_choice(_("Do you really want to exit?"), _("Yes"), _("No"), 0)==0)
+		if(minichoice(_("Do you really want to exit?"), _("Yes"), _("No"), 0, _("Exit"))==1)
 			Fl::first_window()->hide();
 	}
 }
@@ -3011,6 +3016,10 @@ Fenster* UserInterface::make_window(const char* title) {
 	// gettext minicomputer "Voice " --> "Voix "
 	// printf("none -> %s\n", _("none")); --> aucune
 // #define _DEBUG
+	// Ugly hack - these should come from minichoice.cxx
+	_("OK");
+	_("Cancel");
+
 	for(unsigned int i=0; i<sizeof(menu_amod)/sizeof(menu_amod[0]); i++){
 #ifdef _DEBUG
 		printf("label amp. modulator #%u: %s %s\n", i, menu_amod[i].label(), _(menu_amod[i].label()));
@@ -3387,8 +3396,10 @@ Fenster* UserInterface::make_window(const char* title) {
 		knobs[i][o->argument()] = o;
 	  }
 	  { Fl_Button* o = new Fl_Button(490, 430, 85, 15, _("clear state"));
+	  // { MiniButton* o = new MiniButton(490, 430, 85, 15, _("clear state"));
 		o->tooltip(_("reset the filter and delay"));
 		o->box(FL_BORDER_BOX);
+		// o->box(FL_RSHADOW_BOX); // Ugly
 		o->labelsize(_TEXT_SIZE);
 		o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
 		o->argument(0);
@@ -3533,14 +3544,15 @@ Fenster* UserInterface::make_window(const char* title) {
 		  o->labelsize(_TEXT_SIZE);
 		  o->argument(139);
 		  o->callback((Fl_Callback*)parmCallback);
+		  o->tooltip(_("Don't restart envelope if previous note is still held"));
 		  knobs[i][o->argument()] = o;
 	}
-	  { MiniKnob* o = new MiniKnob(904, 52, 20, 20, "una corda");
+	{ MiniKnob* o = new MiniKnob(904, 52, 20, 20, "una corda");
 		o->labelsize(_TEXT_SIZE);
 		o->argument(156);
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
-	  }
+	}
 	// amplitude envelope
 	{ MiniKnob* o = new MiniKnob(844, 83, 25, 25, "A");
 		o->labelsize(_TEXT_SIZE);

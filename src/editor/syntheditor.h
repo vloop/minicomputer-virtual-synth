@@ -67,6 +67,8 @@
 #include "MiniTable.H"
 #include "MiniKnob.H"
 #include "MiniPositioner.H"
+#include "MiniButton.H"
+#include "minichoice.H"
 
 #include "../common.h"
 #include "Memory.h"

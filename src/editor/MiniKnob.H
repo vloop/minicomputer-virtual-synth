@@ -20,6 +20,7 @@
 
 #ifndef MiniKnob_H
 #define MiniKnob_H
+
 #include <FL/Fl.H>
 #include <Fl/Fl_Valuator.H>
 
