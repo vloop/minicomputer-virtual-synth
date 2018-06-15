@@ -1,11 +1,9 @@
 bonap@deb8:/media/bonap/wd2tbk2p1/ins_linux/minicomputer-1.5.0$
 scons -c
 cd /media/bonap/wd2tbk2p1/ins_linux/minicomputer-1.5.0/
-tar --exclude='./.git' --exclude='./.sconf_temp' --exclude='./scache.conf' --exclude='./.sconsign.dblite' --exclude='*.deb' -cvzf ../minicomputer-1.5.0.tar.gz .
-rm -rf  ~/packaging/minicomputer/*
-cp ../minicomputer-1.5.0.tar.gz ~/packaging/minicomputer
-cd ~/packaging/minicomputer
-mkdir minicomputer-1.5.0 && cd minicomputer-1.5.0
+tar --exclude='./.git' --exclude='./html' --exclude='./latex' --exclude='./.sconf_temp' --exclude='./scache.conf' --exclude='./.sconsign.dblite' --exclude='*.deb' --exclude='*.db' -cvzf ../minicomputer-1.5.0.tar.gz .
+rm -rf  ~/packaging/minicomputer/* && cp ../minicomputer-1.5.0.tar.gz ~/packaging/minicomputer
+cd ~/packaging/minicomputer && mkdir minicomputer-1.5.0 && cd minicomputer-1.5.0
 tar zxvf ../minicomputer-1.5.0.tar.gz
 mv ../minicomputer-1.5.0.tar.gz ../minicomputer_1.5.0.orig.tar.gz
 # debuild -k869C0CB46EAD097A -S -sa --lintian-opts -i
@@ -17,3 +15,5 @@ cd ~/packaging/minicomputer
 su -c"dpkg -i minicomputer_1.5.0-1_amd64.deb"
 
 cp ~/packaging/minicomputer/minicomputer_1.5.0-1_amd64.deb /media/bonap/wd2tbk2p1/ins_linux/minicomputer-1.5.0
+cd /media/bonap/wd2tbk2p1/ins_linux/minicomputer-1.5.0/
+gitk &
