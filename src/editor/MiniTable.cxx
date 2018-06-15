@@ -1,12 +1,17 @@
-/** Minicomputer
- * industrial grade digital synthesizer
- *
- * Copyright Marc Périlleux 2018
+/*! \file minitable.cxx
+ *  \brief custom tables based on Fl_Table
+ * 
  * This file is part of Minicomputer, which is free software:
  * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ */
+/* Minicomputer
+ * industrial grade digital synthesizer
+ *
+ * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,40 +23,30 @@
  */
 #include "MiniTable.H"
 
-int MiniTable::selected_row(){return _selected_row;}
-int MiniTable::selected_col(){return _selected_col;}
-int MiniTable::copied_cell(){return _copied_cell;}
-void MiniTable::copied_cell(int c){_copied_cell=c;}
-void MiniTable::set_cell_is_cut(){_cell_is_cut=true;}
-void MiniTable::clear_cell_is_cut(){_cell_is_cut=false;}
-bool MiniTable::cell_is_cut(){return _cell_is_cut;}
-int MiniTable::selected_cell(){return _cols_first ? _selected_col*rows()+_selected_row : _selected_row*cols()+_selected_col;}
-int MiniTable::copied_row(){return _cols_first ? _copied_cell % rows() : _copied_cell / cols();}
-int MiniTable::copied_col(){return _cols_first ? _copied_cell / rows() : _copied_cell % cols();}
 int MiniTable::index(const unsigned int R, const unsigned int C){
 	return _odd_cols_only ?
 		(_cols_first ? R+rows()*(C/2) : R*cols()+(C/2))
 		:selected_cell();
 }
-int MiniTable::selected_index(){
-	return index(_selected_row, _selected_col);
-/*
-	return _odd_cols_only ?
-		(_cols_first ? _selected_row+rows()*(_selected_col/2) : _selected_row*cols()+(_selected_col/2))
-		:selected_cell();
-		*/
-}
-int MiniTable::copied_index(){
-	return index(copied_row(), copied_col());
-	/*
-	return _odd_cols_only ?
-		(_cols_first ?
-			_copied_cell % rows() + rows() * ((_copied_cell / rows()) / 2) : 
-			(_copied_cell / cols()) * cols() + ((_copied_cell % cols()) / 2)
-		):
-		_copied_cell;
-		*/
-}
+int MiniTable::selected_row() const {return _selected_row;}
+int MiniTable::selected_col() const {return _selected_col;}
+// void MiniTable::copied_cell(int c){_copied_cell=c;}
+void MiniTable::set_cell_is_cut(){_cell_is_cut=true;}
+void MiniTable::clear_cell_is_cut(){_cell_is_cut=false;}
+bool MiniTable::cell_is_cut() const {return _cell_is_cut;}
+int MiniTable::selected_cell(){return _cols_first ? _selected_col*rows()+_selected_row : _selected_row*cols()+_selected_col;}
+int MiniTable::selected_index(){return index(_selected_row, _selected_col);}
+
+// int MiniTable::copied_row(){return _cols_first ? _copied_cell % rows() : _copied_cell / cols();}
+int MiniTable::copied_row() const {return _copied_row;}
+int MiniTable::copied_col() const {return _copied_col;}
+int MiniTable::copied_cell(){return _cols_first ? _copied_col*rows()+_copied_row : _copied_row*cols()+_copied_col;}
+// void MiniTable::copied_cell(int c){_copied_cell=c;}
+void MiniTable::copied_cell(int c){
+	_copied_row = _cols_first ? c % rows() : c / cols();
+	_copied_col = _cols_first ? c / rows() : c % cols();
+	}
+int MiniTable::copied_index(){return index(copied_row(), copied_col());}
 void MiniTable::copy() {
 	int cell=selected_cell();
 	printf("copy from cell %d\n", cell);
@@ -64,8 +59,6 @@ void MiniTable::cut() {
 	copied_cell(cell);
 	set_cell_is_cut();
 }
-
-
 
 // Keyboard and mouse events
 int MiniTable::handle(int e) {

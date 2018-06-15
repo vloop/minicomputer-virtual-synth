@@ -1,12 +1,17 @@
-/** Minicomputer
+/*! \file minicomputerCPU.c
+ *  \brief sound engine core
+ * 
+ * This file is part of Minicomputer, which is free software:
+ * you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+/* Minicomputer
  * industrial grade digital synthesizer
  *
  * Copyright 2007,2008 Malte Steiner
  * Changes by Marc Périlleux 2018
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -29,6 +34,8 @@
 #include <alsa/asoundlib.h>
 #include <pthread.h>
 #include <float.h>
+
+#include "minicomputerCPU.h"
 // #include <limits.h>
 // This works only for c++
 // #include <cmath.h>
@@ -51,20 +58,26 @@
 
 // defines
 #define _MODCOUNT 32
+/*!< Number of available modulation sources */
 #define _WAVECOUNT 32
+/*!< Number of available waveforms */
 #define _USE_FMODF 1
 #define _UPDATE_GUI 1
+/*!< Enable the sound engine to send data to the gui */
+
 // #define _CHECK_DENORM 1
 
 // Table size must be a power of 2 so that we can use & instead of %
-#define TableSize 4096
-#define samples_per_degree (TableSize/360.0)
-#define tabM 4095
+#define _TABLE_SIZE 4096
+/*!< Number of samples in a waveform, must be a power of two */
+#define samples_per_degree (_TABLE_SIZE/360.0)
+#define _TABLE_MASK 4095
 #define tabF 4096.f
 
 //#define _DEBUG
 
-#define scale127 0.007874f
+#define _SCALE_7BIT 0.007874f
+/*!< Scale factor from 0..127 to 0.0f..1.0f */
 
 // variables
 int first_time=1;
@@ -74,6 +87,7 @@ float *delayBuffer[_MULTITEMP] __attribute__((aligned (16)));
 float parameter[_MULTITEMP][_PARACOUNT] __attribute__((aligned (16)));
 float modulator[_MULTITEMP][_MODCOUNT] __attribute__((aligned (16)));
 float modwheel[_MULTITEMP] __attribute__((aligned (16)));
+
 // Bias and scale ensure modulator range is 0..1
 // This is useful when adding modulations
 float modulator_bias[_MODCOUNT] __attribute__((aligned (16)))={
@@ -199,13 +213,13 @@ jack_port_t *port[_MULTITEMP + 4]; // _multitemp * ports + 2 mix and 2 aux
 jack_port_t *_jack_midipt;
 lo_address t;
 
-float table [_WAVECOUNT][TableSize] __attribute__((aligned (16)));
+float table [_WAVECOUNT][_TABLE_SIZE] __attribute__((aligned (16)));
 float midi2freq0 [128]; // Base value A=440Hz
 float midi2freq [128]; // Values after applying detune
 
-char jackName[64]="Minicomputer";// signifier for audio and midiconnections, to be filled with OSC port number
+char jackName[64]="Minicomputer"; // signifier for audio and midiconnections, to be filled with OSC port number
 char jackPortName[128]; // For jack_connect
-snd_seq_t *open_seq();
+
 snd_seq_t *seq_handle;
 int npfd;
 struct pollfd *pfd;
@@ -237,6 +251,8 @@ static const float anti_denormal = 1e-20; // magic number to get rid of denormal
 #endif
 
 /** \brief function to create Alsa Midiport
+ * 
+ * should probably be renamed
  *
  * \return handle on alsa seq
  */
@@ -291,26 +307,13 @@ snd_seq_t *open_seq() {
 	return(seq_handle);
 }
 
-// some forward declarations
-static inline void error(int num, const char *m, const char *path); 
-static inline int generic_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data); 
-static inline int foo_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data); 
-static inline int quit_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
-static inline int midi_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
-static inline int multiparm_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
-static inline int audition_handler(const char *path, const char *types, lo_arg **argv, int argc, void *data, void *user_data);
-static inline void doNoteOn(int voice, int note, int velocity);
-static inline void doNoteOff(int voice, int note, int velocity);
-static void doMidi(int t, int n, int v);
-void doReset(unsigned int voice);
-
 /**
- * start the envelope generator
+ * \brief start the specified envelope generator
+ *
  * called by a note on event for that voice
- * @param the voice number
- * @param the number of envelope generator
+ * @param voice the voice number
+ * @param number the number of envelope generator
  */
-
 static inline void egStart (const unsigned int voice,const unsigned int number)
 {
 	EGtrigger[voice][number]=1;
@@ -323,11 +326,13 @@ static inline void egStart (const unsigned int voice,const unsigned int number)
 	lo_send(t, "/Minicomputer/EG", "iii", voice, number, 1);
 #endif
 }
+
 /**
- * set the envelope to release mode
- * should be called by a related noteoff event
- * @param the voice number
- * @param the number of envelope generator
+ * \brief set the envelope to release mode
+ *
+ * should be called by a related note off event
+ * @param voice the voice number
+ * @param number the number of envelope generator
  */
 static inline void egStop (const unsigned int voice,const unsigned int number)
 {
@@ -342,6 +347,11 @@ static inline void egStop (const unsigned int voice,const unsigned int number)
 #endif
 }
 
+/**
+ * \brief Turn off the sound instantly
+ *
+ * @param voice the voice number
+ */
 static inline void egOff (const unsigned int voice)
 {
 	// Shut down main envelope (number 0) immediately
@@ -354,10 +364,12 @@ static inline void egOff (const unsigned int voice)
 }
 
 /**
- * calculate the envelope, done in audiorate to avoide zippernoise
- * @param the voice number
- * @param the number of envelope generator
- * @param the master voice in poly mode
+ * \brief calculate the envelope
+ * 
+ * done in audiorate to avoide zippernoise
+ * @param voice the voice number
+ * @param number the number of envelope generator
+ * @param master the master voice in poly mode
 */
 static inline float egCalc (const unsigned int voice, const unsigned int number, const unsigned int master)
 {
@@ -480,7 +492,7 @@ static inline float egCalc (const unsigned int voice, const unsigned int number,
  * jack provides us with a buffer for every output port, 
  * which we can happily write into.
  *
- * @param nframes
+ * @param nframes number of frames to process
  * @param *arg pointer to additional arguments
  * @return integer 0 when everything is ok
  */
@@ -515,7 +527,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 	INTORFLOAT bias; // the magic number
 	bias.i = (23 +127) << 23;// generating the magic number
 
-	// Integer phase for each oscillator, 0..tabM
+	// Integer phase for each oscillator, 0.._TABLE_MASK
 	int iP1=0, iP2=0 ,iP3=0, iPsub=0;
 
 	#ifdef _VECTOR
@@ -646,12 +658,12 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		P1.i -= bias.i;
 		P2.i -= bias.i;
 		P3.i -= bias.i;
-		// tabM is a power of 2 minus one
+		// _TABLE_MASK is a power of 2 minus one
 		// We can use bitwise & instead of modulus  
-		iPsub=Psub.i&tabM;
-		iP1=P1.i&tabM;
-		iP2=P2.i&tabM;
-		iP3=P3.i&tabM;
+		iPsub=Psub.i&_TABLE_MASK;
+		iP1=P1.i&_TABLE_MASK;
+		iP2=P2.i&_TABLE_MASK;
+		iP3=P3.i&_TABLE_MASK;
 		/*
 		int iP1 = (int) current_phase[1];// float to int, cost some cycles
 		int iP2 = (int) current_phase[2];// hopefully this got optimized by compiler
@@ -660,10 +672,10 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 
 		// Can this ever happen??
 		/*
-		if (iP1<0) iP1=tabM;
-		if (iP2<0) iP2=tabM;
-		if (iP3<0) iP3=tabM;
-		if (iPsub<0) iPsub=tabM;
+		if (iP1<0) iP1=_TABLE_MASK;
+		if (iP2<0) iP2=_TABLE_MASK;
+		if (iP3<0) iP3=_TABLE_MASK;
+		if (iPsub<0) iPsub=_TABLE_MASK;
 		*/
 // --------------- create the next oscillator phase step for osc 3
 // Handle osc 3 first so that it is available as modulation for osc 1 & 2
@@ -802,7 +814,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 // --------------- generate phase of oscillator 1
 		current_phase[1]+= tabX * tfo1_1;
 
-		// iPsub=subMSB[currentvoice]+(iP1>>1); // 0..tabM
+		// iPsub=subMSB[currentvoice]+(iP1>>1); // 0.._TABLE_MASK
 		// sub[currentvoice]=(4.f*iPsub/tabF)-1.0f; // Ramp up -1..+1 (beware of int to float)
 #ifdef _USE_FMODF
 		if(current_phase[1] >= tabF)
@@ -1394,22 +1406,23 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 	__asm("fstsw %0" : "=r" (fpu_status_ptr));
 	if(fpu_status & 0x0002) printf("Denormal!\n");
 #endif
-	return 0;// thanks to Sean Bolton who was the first pointing to a bug when I returned 1
-}// end of process function
+	return 0; // thanks to Sean Bolton who was the first pointing to a bug when I returned 1
+} // end of process function
 
 
 
 /** @brief the signal handler 
  *
- * its used here only for quitting
- * @param the signal
+ * it's used here only for quitting
+ * @param signal the signal
  */
 void signalled(int signal) {
 	quit = 1;
 }
+
 /** @brief initialization
  *
- * preparing for instance the waveforms
+ * prepares the waveforms and initial tuning
  */
 void init ()
 {
@@ -1457,28 +1470,28 @@ void init ()
 	}
 
 	float PI=3.14159265359;
-	float increment = (float)(PI*2) / (float)TableSize;
+	float increment = (float)(PI*2) / (float)_TABLE_SIZE;
 	float x = 0.0f;
 	float tri = -0.9f;
 	// calculate wavetables (values between -1.0 and 1.0)
-	for (i=0; i<TableSize; i++)
+	for (i=0; i<_TABLE_SIZE; i++)
 	{
 		x = i*increment;
 		table[0][i] = sin(x);
 		table[1][i] = (float)i/tabF*2.f-1.0f;// ramp up
 			
-		table[2][i] = (float)(TableSize-i-1)/tabF*2.f-1.0f; //ramp down
+		table[2][i] = (float)(_TABLE_SIZE-i-1)/tabF*2.f-1.0f; //ramp down
 		// 0.9f-(i/tabF*1.8f-0.5f);// tabF-((float)i/tabF*2.f-1.0f);
 			
-		if (i<TableSize/2) 
+		if (i<_TABLE_SIZE/2) 
 		{ 
-			tri+=(float)1.0f/TableSize*3.f; 
+			tri+=(float)1.0f/_TABLE_SIZE*3.f; 
 			table[3][i] = tri;
 			table[4][i]=0.9f;
 		}
 		else
 		{
-			 tri-=(float)1.0f/TableSize*3.f;
+			 tri-=(float)1.0f/_TABLE_SIZE*3.f;
 			 table[3][i] = tri;
 			 table[4][i]=-0.9f;
 		}
@@ -1511,8 +1524,8 @@ void init ()
 			((float)sin(x*15.f+((float)2.0f*(float)PI)))*0.5f
 			) / 8.0f;
 
-		table[10][i]=(float)(sin((double)i/(double)TableSize+(sin((double)i*4))/2))*0.5;
-		table[11][i]=(float)(sin((double)i/(double)TableSize*(sin((double)i*6)/4)))*2.;
+		table[10][i]=(float)(sin((double)i/(double)_TABLE_SIZE+(sin((double)i*4))/2))*0.5;
+		table[11][i]=(float)(sin((double)i/(double)_TABLE_SIZE*(sin((double)i*6)/4)))*2.;
 		table[12][i]=(float)(sin((double)i*(sin((double)i*1.3)/50)));
 		table[13][i]=(float)(sin((double)i*(sin((double)i*1.3)/5)));
 		table[14][i]=(float)sin((double)i*0.5*(cos((double)i*4)/50));
@@ -1555,53 +1568,59 @@ void init ()
 
 } // end of initialization
 
+/**
+ * \brief handle control change MIDI messages
+ * 
+ * @param voice voice number (not channel)
+ * @param n controller number
+ * @param v controller value
+ */
 void doControlChange(int voice, int n, int v){
-	// voice is voice number (not channel)
 	// Implement with a controller lookup table would be faster??
 	if  (voice <_MULTITEMP)
 	{
 		switch(n){ // Controller number
 			// MIDI Controller  0 = Bank Select MSB (Most Significant Byte) - ignored
 			case 1:{ // Modulation wheel
-				// modulator[voice][16]=v*scale127;
-				modwheel[voice]=v*scale127;
+				// modulator[voice][16]=v*_SCALE_7BIT;
+				modwheel[voice]=v*_SCALE_7BIT;
 				// printf("Modulation wheel %f\n", modulator[voice][16]);
 				break;
 			}
 			case 12:{ // Effect controller 1
-				modulator[voice][17]=v*scale127;
+				modulator[voice][17]=v*_SCALE_7BIT;
 				break;
 			}
 			case 2:{ // Breath controller
-				modulator[voice][20]=v*scale127;
+				modulator[voice][20]=v*_SCALE_7BIT;
 				break;
 			}
 			case 3:{ // Undefined
-				modulator[voice][21]=v*scale127;
+				modulator[voice][21]=v*_SCALE_7BIT;
 				break;
 			}
 			case 4:{ // Foot controller
-				modulator[voice][22]=v*scale127;
+				modulator[voice][22]=v*_SCALE_7BIT;
 				break;
 			}
 			case 5:{ // Portamento time
-				modulator[voice][23]=v*scale127;
+				modulator[voice][23]=v*_SCALE_7BIT;
 				break;
 			}
 			case 14:{ // Undefined
-				modulator[voice][24]=v*scale127;
+				modulator[voice][24]=v*_SCALE_7BIT;
 				break;
 			}
 			case 15:{ // Undefined
-				modulator[voice][25]=v*scale127;
+				modulator[voice][25]=v*_SCALE_7BIT;
 				break;
 			}
 			case 16:{ // General purpose
-				modulator[voice][26]=v*scale127;
+				modulator[voice][26]=v*_SCALE_7BIT;
 				break;
 			}
 			case 17:{ // General purpose
-				modulator[voice][27]=v*scale127;
+				modulator[voice][27]=v*_SCALE_7BIT;
 				break;
 			}
 			case 32:{ // Bank Select LSB (Least Significant Byte)
@@ -1618,7 +1637,7 @@ void doControlChange(int voice, int n, int v){
 				break;
 			}
 			case 64:{ // Hold
-				modulator[voice][28]=v*scale127;
+				modulator[voice][28]=v*_SCALE_7BIT;
 				if(v>63){ // Hold on
 					hold[voice]=1;
 				}else{ // Hold off
@@ -1654,6 +1673,14 @@ void doControlChange(int voice, int n, int v){
 	}
 }
 
+/**
+ * @brief handle all 3-byte MIDI messages
+ * 
+ * @param status midi status byte
+ * @param n midi 2nd byte (note or controller number)
+ * @param v midi 3rd byte (note velocity or controller value)
+ * 
+ */
 void doMidi(int status, int n, int v){
 	int c = status & 0x0F;
 	int voice;
@@ -1671,7 +1698,7 @@ void doMidi(int status, int n, int v){
 					doNoteOff(voice, n, v);
 					break;
 				}
-				case 0xC0:{ // Program change ?? TODO apply to slaves
+				case 0xC0:{ // Program change ?? TODO apply to slaves... or not
 #ifdef _DEBUG
 					printf("doMidi: Program change channel %u voice %u program %u\n", c, voice, n);
 #endif
@@ -1707,6 +1734,13 @@ void doMidi(int status, int n, int v){
 	}
 }
 
+/**
+ * \brief handle note off MIDI messages
+ * 
+ * @param voice the voice number (not the midi channel!)
+ * @param note the midi note number, 0..127
+ * @param velocity the midi velocity, 0..127
+ */
 static inline void doNoteOff(int voice, int note, int velocity){
 	// Velocity currently ignored
 	if (voice <_MULTITEMP){ // Should always be true
@@ -1733,6 +1767,12 @@ static inline void doNoteOff(int voice, int note, int velocity){
 	}
 }
 
+/**
+ * \brief handle note off MIDI messages
+ * @param voice the voice number (not the midi channel!)
+ * @param note the midi note number, 0..127
+ * @param velocity the midi velocity, 0..127
+ */
 static inline void doNoteOn(int voice, int note, int velocity){
 	if (voice <_MULTITEMP){ // Should always be true
 		if ((note>=note_min[voice]) && (note<=note_max[voice])){
@@ -1806,6 +1846,11 @@ static inline void doNoteOn(int voice, int note, int velocity){
 	}
 }
 
+/**
+ * \brief clears the filter data and the delay line
+ * 
+ * @param voice the voice number (not the midi channel!)
+ */
 void doReset(unsigned int voice){
 	if (voice <_MULTITEMP){
 		low[voice][0] = 0.f;
@@ -1830,9 +1875,10 @@ void doReset(unsigned int voice){
 #endif
 }
 
-/** @brief handling the midi messages in an extra thread
+/**
+ * @brief an extra thread for handling the alsa midi messages
  *
- * @param pointer/handle of alsa midi
+ * @param handle of alsa midi
  */
 static void *alsaMidiProcess(void *handle) {
 	struct sched_param param;
@@ -1988,6 +2034,8 @@ static void *alsaMidiProcess(void *handle) {
 return 0;// its insisited on this although it should be a void function
 }// end of alsaMidiProcess
 
+/** @brief display command-line parameters summary
+ */
 void usage(){
 	printf(
 		"Usage:\n"
@@ -2000,9 +2048,9 @@ void usage(){
 
 /** @brief the classic c main function
  *
- * @param argc the amount of arguments we get from the commandline
- * @param pointer to array of the arguments
- * @return int the final_mix, should be 0 if program terminates nicely
+ * @param argc argument count
+ * @param argv pointer to array of the arguments
+ * @return int should be 0 if the program terminates nicely
  */
 int main(int argc, char **argv) {
 printf("minicomputer core version %s\n",_VERSION);
@@ -2080,21 +2128,21 @@ int i;
 
 // ------------------------ OSC Init ------------------------------------   
 	/* start a new server on port defined where oport points to */
-	lo_server_thread st = lo_server_thread_new(oport, error);
+	lo_server_thread st = lo_server_thread_new(oport, osc_error_handler);
 
 	/* add method that will match /Minicomputer/choice with three integers */
-	lo_server_thread_add_method(st, "/Minicomputer/choice", "iii", generic_handler, NULL);
+	lo_server_thread_add_method(st, "/Minicomputer/choice", "iii", osc_choice_handler, NULL);
 
 	/* add method that will match the path /Minicomputer, with three numbers, int (voicenumber), int (parameter) and float (value) 
 	 */
-	lo_server_thread_add_method(st, "/Minicomputer", "iif", foo_handler, NULL);
+	lo_server_thread_add_method(st, "/Minicomputer", "iif", osc_param_handler, NULL);
 
 	/* add method that will match the path Minicomputer/quit with one integer */
-	lo_server_thread_add_method(st, "/Minicomputer/quit", "i", quit_handler, NULL);
+	lo_server_thread_add_method(st, "/Minicomputer/quit", "i", osc_quit_handler, NULL);
 	
-	lo_server_thread_add_method(st, "/Minicomputer/midi", "iiii", midi_handler, NULL); // DSSI-like
-	lo_server_thread_add_method(st, "/Minicomputer/audition", "iiii", audition_handler, NULL); // On/off voice note velocity
-	lo_server_thread_add_method(st, "/Minicomputer/multiparm", "if", multiparm_handler, NULL);
+	lo_server_thread_add_method(st, "/Minicomputer/midi", "iiii", osc_midi_handler, NULL); // DSSI-like
+	lo_server_thread_add_method(st, "/Minicomputer/audition", "iiii", osc_audition_handler, NULL); // On/off voice note velocity
+	lo_server_thread_add_method(st, "/Minicomputer/multiparm", "if", osc_multiparm_handler, NULL);
 
 	lo_server_thread_start(st);
 
@@ -2148,10 +2196,11 @@ int i;
 		fprintf (stderr, "Error: can't create the 'Midi/in' jack port\n");
 		exit (1);
 	}
-	//inbuf = jack_port_register(client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
+	// inbuf = jack_port_register(client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
 	/* jack is callback based. That means we register 
 	 * a callback function (see process() above)
-	 * which will then get called by jack once per process cycle */
+	 * which will then get called by jack once per process cycle
+	 */
 	jack_set_process_callback(client, jackProcess, 0);
 	bufsize = jack_get_buffer_size(client);
 
@@ -2212,7 +2261,7 @@ int i;
 	/* shutdown cont. */
 	jack_client_close(client);
 #ifndef _MIDIBLOCK
-	printf("wait for midithread\n");	
+	printf("wait for midithread\n");
 	fflush(stdout);
 	/* waiting for the midi thread to shutdown carefully */
 	pthread_join(midithread,NULL);
@@ -2225,50 +2274,72 @@ int i;
 	fflush(stdout);
 	return 0;
 }
-// ******************************************** OSC handling for editors ***********************
-//!\name OSC routines
-//!{ 
+
+// ******************************************** OSC handling ***********************
+// / / ! \ n a m e OSC routines
+// / / / @ {
+// Can't get the above to work
+
 /** @brief OSC error handler 
  *
  * @param num errornumber
- * @param pointer msg errormessage
- * @param pointer path where it occured
+ * @param msg errormessage
+ * @param path where it occured
  */
-static inline void error(int num, const char *msg, const char *path)
+static void osc_error_handler(int num, const char *msg, const char *path)
 {
 	printf("liblo server error %d in path %s: %s\n", num, path, msg);
 	fflush(stdout);
 }
 
-/** catch any incoming messages and display them. returning 1 means that the
- * message has not been fully handled and the server should try other methods 
+/**
+ * @brief catch any incoming osc "choice" message
+ * 
+ * Expects to 3 integer arguments: choice id, voice, value
+ * Returning 1 means that the message has not been fully handled
+ * and the server should try other methods 
  *
- * @param pointer path osc path
- * @param pointer types
+ * @param path osc path
+ * @param types osc data types string
  * @param argv pointer to array of arguments 
- * @param argc amount of arguments
- * @param pointer data
- * @param pointer user_data
+ * @param argc arguments count
+ * @param data
+ * @param user_data
  * @return int 0 if everything is ok, 1 means message is not fully handled
  * */
-static inline int generic_handler(const char *path, const char *types, lo_arg **argv,
+static int osc_choice_handler(const char *path, const char *types, lo_arg **argv,
 			int argc, void *data, void *user_data)
 {
 	if ( (argv[0]->i < _MULTITEMP) && (argv[1]->i < _CHOICECOUNT) )
   	{
-		// printf("generic_handler %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
+		// printf("osc_choice_handler %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
 		choice[argv[0]->i][argv[1]->i]=argv[2]->i;
 		return 0;
 	}
 	else
 	{
-		fprintf(stderr, "WARNING: unhandled generic_handler %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
+		fprintf(stderr, "WARNING: unhandled osc_choice_handler %u %u %u\n", argv[0]->i, argv[1]->i, argv[2]->i);
 		return 1;
 	}
 }
 
 float multiparm[_MULTIPARMS];
-static inline int multiparm_handler(const char *path, const char *types, lo_arg **argv,
+
+/** @brief catch any incoming osc "multiparm" message.
+ * 
+ * Expects an integer argument for the parameter id and a float for the value
+ * Returning 1 means that the message has not been fully handled
+ * and the server should try other methods 
+ *
+ * @param path osc path
+ * @param types osc data types string
+ * @param argv pointer to array of arguments 
+ * @param argc arguments count
+ * @param data
+ * @param user_data
+ * @return int 0 if everything is ok, 1 means message is not fully handled
+ * */
+static int osc_multiparm_handler(const char *path, const char *types, lo_arg **argv,
 			int argc, void *data, void *user_data)
 {
 	int parmnum=argv[0]->i;
@@ -2277,7 +2348,7 @@ static inline int multiparm_handler(const char *path, const char *types, lo_arg 
 	if(parmnum<_MULTIPARMS) multiparm[parmnum]=parmval;
 	if(parmnum<12){ // 0..11 is individual detune
 		// middle C note is represented by the value of 60
-// printf("multiparm_handler: note %i detune %f --> %f\n", parmnum, parmval, 1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*parmval);
+// printf("osc_multiparm_handler: note %i detune %f --> %f\n", parmnum, parmval, 1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*parmval);
 		for(note=parmnum; note<128; note+=12){
 			midi2freq[note] = midi2freq0[note]
 				* (1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*parmval )
@@ -2290,7 +2361,7 @@ static inline int multiparm_handler(const char *path, const char *types, lo_arg 
 				midif[voice]=midi2freq[lastnote[voice]];
 		}
 	}else if (parmnum==12){ // Master tune
-// printf("multiparm_handler: master tune %f --> %f\n", parmval, 1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*parmval);
+// printf("osc_multiparm_handler: master tune %f --> %f\n", parmval, 1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*parmval);
 		for(note=0; note<128; note++){
 			midi2freq[note] = midi2freq0[note]
 				* (1.0f+ (pow(2.0f, 1.0f/12.0f)-1.0f)*multiparm[note%12] )
@@ -2302,11 +2373,25 @@ static inline int multiparm_handler(const char *path, const char *types, lo_arg 
 				midif[voice]=midi2freq[lastnote[voice]];
 		}
 	}else{
-		fprintf(stderr, "WARNING: multiparm_handler - unhandled parameter number %i\n", parmnum);
+		fprintf(stderr, "WARNING: osc_multiparm_handler - unhandled parameter number %i\n", parmnum);
 	}
 }
 
-static inline int audition_handler(const char *path, const char *types, lo_arg **argv,
+/** @brief catch any incoming osc "audition" message.
+ * 
+ * Expects 4 integers: type, voice, note, velocity
+ * Returning 1 means that the message has not been fully handled
+ * and the server should try other methods 
+ *
+ * @param path osc path
+ * @param types osc data types string
+ * @param argv pointer to array of arguments 
+ * @param argc arguments count
+ * @param data
+ * @param user_data
+ * @return int 0 if everything is ok, 1 means message is not fully handled
+ * */
+static int osc_audition_handler(const char *path, const char *types, lo_arg **argv,
 			int argc, void *data, void *user_data)
 {
 	if(argv[0]->i){ // Note on
@@ -2316,13 +2401,27 @@ static inline int audition_handler(const char *path, const char *types, lo_arg *
 	}
 }
 
-static inline int midi_handler(const char *path, const char *types, lo_arg **argv,
+/** @brief catch any incoming osc "midi" message.
+ * 
+ * Expects up to 4 integers, unused leading ints are set to 0
+ * Returning 1 means that the message has not been fully handled
+ * and the server should try other methods 
+ *
+ * @param path osc path
+ * @param types osc data types string
+ * @param argv pointer to array of arguments 
+ * @param argc arguments count
+ * @param data
+ * @param user_data
+ * @return int 0 if everything is ok, 1 means message is not fully handled
+ * */
+static int osc_midi_handler(const char *path, const char *types, lo_arg **argv,
 			int argc, void *data, void *user_data)
 {
 	int i, c;
 	// first byte argv[0] is 0 for 3-byte messages such as note on/off
 #ifdef _DEBUG
-	printf("midi_handler %u %u %u %u \n", argv[0]->i, argv[1]->i, argv[2]->i, argv[3]->i);
+	printf("osc_midi_handler %u %u %u %u \n", argv[0]->i, argv[1]->i, argv[2]->i, argv[3]->i);
 #endif
 	if (argv[0]->i == 0){ // At most 3 bytes follow
 		if(argv[1]->i == 0){ // At most 2 bytes follow
@@ -2392,18 +2491,19 @@ static inline int midi_handler(const char *path, const char *types, lo_arg **arg
 	return 0;
 }
 
-/** specific message handler for iif messages
- * expects voice number, parameter number, parameter value
+/** @brief specific message handler for float parameter messages
  *
- * @param pointer path osc path
- * @param pointer types
+ * expects arguments voice number, parameter number, parameter value
+ *
+ * @param path osc path
+ * @param types osc data types string
  * @param argv pointer to array of arguments 
  * @param argc amount of arguments
- * @param pointer data
- * @param pointer user_data
+ * @param data
+ * @param user_data
  * @return int 0 if everything is ok, 1 means message is not fully handled
  */
-static inline int foo_handler(const char *path, const char *types, lo_arg **argv, int argc,
+static int osc_param_handler(const char *path, const char *types, lo_arg **argv, int argc,
 		 void *data, void *user_data)
 {
 	/* pull the argument values out of the argv array */
@@ -2413,7 +2513,7 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 	{
 		parameter[voice][i]=argv[2]->f;
 #ifdef _DEBUG
-		printf("foo_handler set voice %i, parameter %i = %f \n", voice, i, argv[2]->f);
+		printf("osc_param_handler set voice %i, parameter %i = %f \n", voice, i, argv[2]->f);
 #endif   
 
 	}
@@ -2509,22 +2609,23 @@ static inline int foo_handler(const char *path, const char *types, lo_arg **argv
 	 }
 	}
 #ifdef _DEBUG
-	printf("foo_handler %i %i %f \n",voice,i,argv[2]->f);
+	printf("osc_param_handler %i %i %f \n",voice,i,argv[2]->f);
 #endif   
 	return 0;
 }
 
-/** message handler for quit messages
+/** message handler for osc quit messages
  *
- * @param pointer path osc path
- * @param pointer types
+ * Doesn't expect any argument
+ * @param path osc path
+ * @param types osc data types string
  * @param argv pointer to array of arguments 
  * @param argc amount of arguments
- * @param pointer data
- * @param pointer user_data
+ * @param data
+ * @param user_data
  * @return int 0 if everything is ok, 1 means message is not fully handled
  */
-static inline int quit_handler(const char *path, const char *types, lo_arg **argv, int argc,
+static int osc_quit_handler(const char *path, const char *types, lo_arg **argv, int argc,
 		 void *data, void *user_data)
 {
 	done = 1;
@@ -2533,4 +2634,5 @@ static inline int quit_handler(const char *path, const char *types, lo_arg **arg
 	fflush(stdout);
 	return 0;
 }
-//!}
+// / / / @ }
+

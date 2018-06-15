@@ -1,13 +1,18 @@
 // Adapted from http://membres-timc.imag.fr/Yves.Usson/personnel/mysofts.html
-/** Minicomputer
- * industrial grade digital synthesizer
- *
- * Copyright  Marc Périlleux 2018
+/*! \file MiniButton.cxx
+ *  \brief a rounded button class, intended for dialog boxes
+ * 
  * This file is part of Minicomputer, which is free software:
  * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ */
+/* Minicomputer
+ * industrial grade digital synthesizer
+ *
+ * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -111,7 +116,9 @@ void MiniButton::draw() {
 	*/
 }
 
-// draw_focus is not virtual, cannot override here
+// draw_focus is not virtual, cannot override here, only reimplement
+// Anyway focus handling now part of draw
+/*
 void MiniButton::draw_focus(Fl_Boxtype B, int X, int Y, int W, int H) const {
   if (!Fl::visible_focus()) return;
   printf("draw focus\n");
@@ -135,7 +142,7 @@ void MiniButton::draw_focus(Fl_Boxtype B, int X, int Y, int W, int H) const {
           W - Fl::box_dw(B) - 5, H - Fl::box_dh(B) - 5);
 
 }
-
+*/
 int MiniButton::handle(int event) {
   int newval;
   switch (event) {

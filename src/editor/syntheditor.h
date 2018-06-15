@@ -71,6 +71,7 @@
 #include "minichoice.H"
 
 #include "../common.h"
+#include "strnutil.h"
 #include "Memory.h"
 
 extern lo_address t;
@@ -113,17 +114,17 @@ class Fl_SteinerKnob:public Fl_Dial
 	int altx;
 };
 */
-/** custom class for window, derieved from Fl_Double_Window
+/** custom class for window, derived from Fl_Double_Window
  *
  * \callgraph
  * \callergraph
  */
-class Fenster:public Fl_Double_Window
+class MiniWindow:public Fl_Double_Window
 {
 	public:
-	Fenster(int w, int h, const char* t);
-	Fenster(int w, int h);
-	~Fenster();
+	MiniWindow(int w, int h, const char* t);
+	MiniWindow(int w, int h);
+	~MiniWindow();
 	int handle (int event);
 	void resize (int x, int y, int w, int h);
 	private:
@@ -132,7 +133,7 @@ class Fenster:public Fl_Double_Window
 
 class UserInterface {
 public:
-  Fenster* make_window(const char *title);
+  MiniWindow* make_window(const char *title);
   void changeMulti(int pgm);
   void changeSound(int voice, int pgm);
   /*
@@ -241,8 +242,6 @@ void soundexportmnuCallback(Fl_Widget*, void*);
 int EG_draw(unsigned int voice, unsigned int EGnum, unsigned int stage);
 void EG_draw_all();
 void replace_color (unsigned char * bits, unsigned int pixcount, unsigned char r1, unsigned char g1, unsigned char b1, unsigned char r2, unsigned char g2, unsigned char b2);
-
-char *strnrtrim(char *dest, const char*source, size_t len);
 
 extern Fl_Roller *multiRoller;
 extern Fl_Int_Input *multiNoInput;

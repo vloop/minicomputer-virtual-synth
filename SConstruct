@@ -155,7 +155,8 @@ env.Program('minicomputerCPU','src/cpu/minicomputerCPU.c');
 print""
 print"-                     building the editor:"
 
-sources = ['src/editor/main.cpp',
+sources = ['src/editor/minicomputer.cpp',
+  'src/editor/strnutil.cpp',
   'src/editor/Memory.cpp',
   'src/editor/syntheditor.cxx',
   'src/editor/MiniKnob.cxx',

@@ -31,13 +31,14 @@
 #include <cstdio>
 #include <cstdlib>
 
-    #include <unistd.h>
+#include <unistd.h>
 #include <cerrno> 
 #include "../common.h"
+
 using namespace std;
-//#include "patch.h"
+// #include "patch.h"
 /**
- * the struct of an single sound setting
+ * the struct of a single sound setting
  */
 typedef struct
 {
@@ -47,7 +48,7 @@ typedef struct
 	int choice[_CHOICECOUNT];
 } patch;
 /**
- * the struct of a multitemperal setup
+ * the struct of a multitimbral setup
  */
 typedef struct
 {
@@ -58,7 +59,7 @@ typedef struct
 } multi;
 
 /**
- * the class for the whole memory
+ * the class for the whole memory (sounds and multis)
  * see Memory.cpp for more documentation
  */
 class Memory
@@ -86,6 +87,7 @@ public:
 	int readPatch(ifstream& File, patch *p);
 	int importPatch(string filename, patch *p); // import single sound to patch
 	void importMulti(string filename, unsigned int current, bool with_sounds); // import a single multi
+	void writeMulti(ofstream& File, unsigned int multi);
 	void exportMulti(string filename, unsigned int current); // export a single multi
 
 	patch initSound;
@@ -96,12 +98,12 @@ public:
 	virtual ~Memory();
 	patch sounds[512];
 	multi multis[128];
-	int setChoice(unsigned int voice,unsigned int i);
-	unsigned int getChoice(unsigned int voice);
+	int setSoundNo(unsigned int voice, unsigned int i);
+	unsigned int getSoundNo(unsigned int voice);
 	string getHomeFolder(){return _homeFolder;}
 
 private:
-	unsigned int choice[_MULTITEMP];
+	unsigned int soundNo[_MULTITEMP];
 	bool parseNumbers(string &str,int &iParameter,int &i2Parameter,float &fValue);
 	char folder[1024]; // the directory to write configuration stuff in
 	string _homeFolder; // the default directory for import/export

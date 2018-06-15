@@ -1,15 +1,19 @@
-/** Minicomputer
- * industrial grade digital synthesizer
- * editor software
- * Copyright 2007, 2008 Malte Steiner
- * Changes by Marc Périlleux 2018
+/*! \file syntheditor.cxx
+ *  \brief synth GUI editor
+ * 
  * This file is part of Minicomputer, which is free software:
  * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ */
+/* Minicomputer
+ * industrial grade digital synthesizer
  *
- * Minicomputer is distributed in the hope that it will be useful,
+ * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
+ *
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -275,19 +279,6 @@ void copy_frame(unsigned char * dest, int dest_w, int dest_h, const unsigned cha
 	}
 }
 
-// This function probably belongs somewhere else
-char *strnrtrim(char *dest, const char*source, size_t len){
-	int last_letter=-1;
-	for(unsigned int i=0; i<len && source[i]!=0; i++){
-		if(!isspace(source[i])) last_letter=i;
-		dest[i]=source[i];
-	}
-	// Beware terminating 0 is not added past end!
-	if (unsigned(last_letter+1) < len)
-		dest[last_letter+1]=0; // Should fill with zeros to the end?
-	return dest;
-}
-
 // These functions may belong somewhere else
 int noteNo(const char *noteName){
 	char c;
@@ -526,9 +517,8 @@ static void clearstateCallback(Fl_Widget* o, void* )
 	lo_send(t, "/Minicomputer", "iif", currentVoice, 0, 0.0f);
 }
 /**
- * Callback when another tab is chosen
- * @param Fl_Widget the calling widget
- * @param defined by FLTK but not used
+ * Callback when a tab is chosen
+ * @param o the calling widget
  */
 static void tabCallback(Fl_Widget* o, void* )
 {
@@ -619,11 +609,11 @@ static void parmInput_flash(void *userdata){
 
 /**
  * parmSet, quick set and send parameter value
+ *
  * used by parmCallback
  * will *not* set changed or parmInput
  * Beware! This refers to current voice
- * @param Fl_Widget the calling widget
- * @param defined by FLTK but not used
+ * @param o the calling widget
  */
 static void parmSet(Fl_Widget* o, void*) {
 	if (o){
@@ -877,9 +867,8 @@ static void parmSet(Fl_Widget* o, void*) {
 } // end of parmSet
 
 /**
- * main parmCallback, called whenever a parameter has changed
- * @param Fl_Widget the calling widget
- * @param defined by FLTK but not used
+ * main parameter callback, called whenever a parameter has changed
+ * @param o the calling widget
  */
 static void parmCallback(Fl_Widget* o, void*) {
 	if (o){
@@ -993,10 +982,9 @@ static void setNoteCallback(Fl_Widget* o, void*) {
     }
 }
 
-/**
+/* *
  * copybutton parmCallback, called whenever the user wants to copy filterparameters
- * @param Fl_Widget the calling widget
- * @param defined by FLTK but not used
+ * @param o the calling widget
  */
 /*
 static void copyparmCallback(Fl_Widget* o, void*) {
@@ -1016,11 +1004,11 @@ static void copyparmCallback(Fl_Widget* o, void*) {
 	}
 	break;
 	}
-}*/
+} */
+
 /**
  * parmCallback for finetuning the current parameter
- * @param Fl_Widget the calling widget
- * @param defined by FLTK but not used
+ * @param o the calling widget
  */
 static void parminputCallback(Fl_Widget* o, void*)
 {
@@ -1077,8 +1065,7 @@ static void parminputCallback(Fl_Widget* o, void*)
 /** parmCallback when a cutoff has changed
  * the following two parmCallbacks are specialized
  * for the Positioner widget which is 2 dimensional
- * @param Fl_Widget the calling widget
- * @param defined by FLTK but not used
+ * @param o the calling widget
  */
 static void cutoffCallback(Fl_Widget* o, void*)
 {
@@ -1099,10 +1086,9 @@ static void cutoffCallback(Fl_Widget* o, void*)
 	// Fl::unlock();
 }
 /** parmCallback for frequency positioners in the oscillators
- * which are to be treated a bit different
+ * which are to be treated a bit differently
  *
- * @param Fl_Widget the calling widget
- * @param defined by FLTK but not used
+ * @param o the calling widget
  */
 static void tuneCallback(Fl_Widget* o, void*)
 {
@@ -1190,8 +1176,7 @@ static void BPMtimeCallback(Fl_Widget* o, void*)
 
 /**
  * multiParmInputCallback for global and per note fine tuning
- * @param Fl_Widget the calling widget
- * @param defined by FLTK but not used
+ * @param o the calling widget
  */
 static void multiParmInputCallback(Fl_Widget* o, void*)
 {
@@ -1335,9 +1320,9 @@ static void multistore(const unsigned int multinum)
 	// Get the knobs of the mix and midi settings for each voice
 	for (i=0;i<_MULTITEMP;++i)
 	{
-		Speicher.multis[multinum].sound[i]=Speicher.getChoice(i);
+		Speicher.multis[multinum].sound[i]=Speicher.getSoundNo(i);
 #ifdef _DEBUG
-		printf("sound slot: %d = %d\n",i,Speicher.getChoice(i));
+		printf("sound slot: %d = %d\n",i,Speicher.getSoundNo(i));
 #endif
 		// Indices must match those in loadmultiCallback
 		Speicher.multis[multinum].settings[i][0]=((Fl_Valuator*)knobs[i][101])->value();
@@ -1471,7 +1456,7 @@ static void do_importsound(int soundnum)
 {
 	// printf("About to import into sound %d\n", soundnum);
 	if(strlen(Speicher.getSoundName(soundnum).c_str())
-		&& minichoice("Overwrite sound #%u %s?", _("Yes"), _("No"), 0, _("Confirm"), soundnum, Speicher.getSoundName(soundnum).c_str())!=1)
+		&& minichoice(_("Overwrite sound #%u %s?"), _("Yes"), _("No"), 0, _("Confirm"), soundnum, Speicher.getSoundName(soundnum).c_str())!=1)
 		return;
 
 	char warn[256], path[1024];
@@ -1657,9 +1642,8 @@ static void soundstore(unsigned int srcVoice, patch *destpatch)
 //	Fl::awake();
 //	Fl::unlock();
 }
-/** parmCallback when the storebutton is pressed
- * @param Fl_Widget the calling widget
- * @param defined by FLTK but not used
+/** parmCallback when the store button on the voice tab is pressed
+ * relies on currentVoice
  */
 static void soundstoreCallback(Fl_Widget*, void*)
 {
@@ -1793,7 +1777,7 @@ static void sound_recall0(unsigned int destvoice, patch *srcpatch)
 			choices[destvoice][i]->value(srcpatch->choice[i]);
 			choiceSet(choices[destvoice][i], NULL); // Beware this relies on currentVoice
 #ifdef _DEBUG 
-			printf("sound_recall0 voice %i choice # %i : %i\n", destvoice, i, Speicher.sounds[Speicher.getChoice(destvoice)].choice[i]);
+			printf("sound_recall0 voice %i choice # %i : %i\n", destvoice, i, Speicher.sounds[Speicher.getSoundNo(destvoice)].choice[i]);
 		}else{
 			printf("sound_recall0 voice %i choice %i : null or multi\n", destvoice, i);
 #endif
@@ -1827,7 +1811,7 @@ void sound_recall(int voice, unsigned int sound)
 	printf("sound_recall: voice %u sound %u\n", voice, sound);
 	fflush(stdout);
 // #endif
-	Speicher.setChoice(voice, sound);
+	Speicher.setSoundNo(voice, sound);
 	// Update display
 	char s[]="####";
 	snprintf(s, 4, "%d", sound);
@@ -1862,10 +1846,8 @@ static void do_compare(Fl_Widget* o, void* ){
 	}
 }
 /**
- * parmCallback when the load button is pressed
- * @param pointer to the calling widget
- * @param optional data, this time the entry id of which the sound 
- * should be loaded
+ * parmCallback when the load button on voice tab is pressed
+ * @param o the calling widget
  */
 // Load button on voice tab - based on soundNoInput
 static void soundLoadBtn1Callback(Fl_Widget* o, void* )
@@ -1976,10 +1958,7 @@ static void loadmultibtn2Callback(Fl_Widget*, void*)
 }
 /**
  * parmCallback when the load multi button is pressed
- * recall a multitemperal setup
- * @param pointer to the calling widget
- * @param optional data, this time the entry id of which the sound 
- * should be loaded
+ * recall a multitimbral setup
  */
 static void loadmultiCallback(Fl_Widget*, void*)
 {
@@ -1988,8 +1967,8 @@ static void loadmultiCallback(Fl_Widget*, void*)
 
 /**
  * parmCallback when the store multi button is pressed
- * store a multitemperal setup
- * @param pointer to the calling widget
+ * 
+ * store a multitimbral setup in memory and optionally to disk
  */
 static void multistoreCallback(Fl_Widget*, void*)
 {
@@ -2145,9 +2124,9 @@ void SoundTable::event_callback2()
 //	printf("Row=%d Col=%d Context=%d Event=%d sound %d InteractiveResize? %d\n",
 //		R, C, (int)context, (int)Fl::event(), m, (int)is_interactive_resize());
 	Fl_Menu_Item menu_rclick[] = {
-		{ _("Copy"), 0, soundcopymnuCallback, (void*)this },
-		{ _("Cut"), 0, soundcutmnuCallback, (void*)this },
-		{ _("Paste"), 0, soundpastemnuCallback, (void*)this },
+		{ _("&Copy"), 0, soundcopymnuCallback, (void*)this },
+		{ _("Cu&t"), 0, soundcutmnuCallback, (void*)this },
+		{ _("&Paste"), 0, soundpastemnuCallback, (void*)this },
 		{ _("Rename"), 0, soundrenamemnuCallback, (void*)this },
 		{ _("Clear"), 0, soundclearmnuCallback, (void*)this },
 		{ _("Import"), 0, soundimportmnuCallback, (void*)this },
@@ -2200,6 +2179,13 @@ void SoundTable::event_callback2()
 				soundclearmnuCallback(0, this);
 			else if (Fl::event_key()=='v' && Fl::event_ctrl())
 				soundpastemnuCallback(0, this);
+			else if (Fl::event_key()==FL_Menu){
+					int X, Y, W, H;
+					find_cell (CONTEXT_CELL, selected_row(), selected_col(), X, Y, W, H);
+					// const Fl_Menu_Item *m = menu_rclick->popup(Fl::event_x(), Fl::event_y(), 0, 0, 0);
+					const Fl_Menu_Item *m = menu_rclick->popup(X+W/2, Y+H/2, 0, 0, 0);
+					if ( m ) m->do_callback(0, m->user_data());
+			}
 			// We cannot trust R and C due to our special selection handling
 			soundNameDisplay->value(Speicher.getSoundName(m).c_str());
 			redraw();
@@ -2247,6 +2233,7 @@ void soundpastemnuCallback(Fl_Widget*, void*T) {
 	if(((SoundTable *)T)->cell_is_cut()){
 		printf("clear sound %d\n", src);
 		((SoundTable *)T)->clear_cell_is_cut();
+		((MiniTable *)T)->copy(); // Previous has been cleared !!
 		Speicher.copyPatch(&Speicher.initSound, &Speicher.sounds[src]);
 		Speicher.setSoundName(src, "");
 	}
@@ -2263,7 +2250,6 @@ void soundrenamemnuCallback(Fl_Widget*, void*T) {
 		Speicher.setSoundName(dest, new_name);
 		updatesoundNameInput(dest, new_name);
 		((SoundTable *)T)->clear_cell_is_cut();
-		((MiniTable*)T)->copy(); // Previous has been cleared
 	}
 }
 void soundinitmnuCallback(Fl_Widget*, void*T) { // Is this still needed??
@@ -2484,9 +2470,9 @@ void MultiTable::event_callback2()
 //		R, C, (int)context, (int)Fl::event(), (int)is_interactive_resize());
 	Fl_Menu_Item menu_rclick[] = {
 		{_("Load"), 0, multiloadmnuCallback, (void*)this },
-		{_("Copy"), 0, multicopymnuCallback, (void*)this },
-		{_("Cut"), 0, multicutmnuCallback, (void*)this },
-		{_("Paste"), 0, multipastemnuCallback, (void*)this },
+		{_("&Copy"), 0, multicopymnuCallback, (void*)this },
+		{_("Cu&t"), 0, multicutmnuCallback, (void*)this },
+		{_("&Paste"), 0, multipastemnuCallback, (void*)this },
 		{_("Rename"), 0, multirenamemnuCallback, (void*)this },
 		{_("Clear"), 0, multiclearmnuCallback, (void*)this },
 		{_("Import"), 0, multiimportCallback, (void*)this },
@@ -2538,6 +2524,13 @@ void MultiTable::event_callback2()
 				multiclearmnuCallback(0, this); // Speicher.clearMulti(m);
 			else if (Fl::event_key()=='v' && Fl::event_ctrl())
 				multipastemnuCallback(0, this);
+			else if (Fl::event_key()==FL_Menu){
+					int X, Y, W, H;
+					find_cell (CONTEXT_CELL, selected_row(), selected_col(), X, Y, W, H);
+					// const Fl_Menu_Item *m = menu_rclick->popup(Fl::event_x(), Fl::event_y(), 0, 0, 0);
+					const Fl_Menu_Item *m = menu_rclick->popup(X+W/2, Y+H/2, 0, 0, 0);
+					if ( m ) m->do_callback(0, m->user_data());
+			}
 			multiNameDisplay->value(Speicher.getMultiName(m).c_str());
 			redraw();
 			break;
@@ -2546,7 +2539,7 @@ void MultiTable::event_callback2()
 
 /**
  * change the multisetup, should be called from a Midi Program Change event on Channel 9
- * @param int the Program number between 0 and 127
+ * @param pgm the Program number between 0 and 127
  */
 void UserInterface::changeMulti(int pgm)
 {
@@ -2574,8 +2567,8 @@ void UserInterface::changeMulti(int pgm)
 
 /**
  * change the sound for a certain voice, should be called from a Midi Program Change event on Channel 1 - 8
- * @param int the voice between 0 and 7 (it is not clear if the first Midi channel is 1 (which is usually the case in the hardware world) or 0)
- * @param int the Program number between 0 and 127
+ * @param voice the voice between 0 and 7 (it is not clear if the first Midi channel is 1 (which is usually the case in the hardware world) or 0)
+ * @param pgm the Program number between 0 and 127
  */
 void UserInterface::changeSound(int voice, int pgm)
 {
@@ -2614,6 +2607,7 @@ void UserInterface::changeSound(int voice, int pgm)
 	}
 	*/
 }
+
 // ---------------------------------------------------------------
 // -------------------- screen initialization --------------------
 // ---------------------------------------------------------------
@@ -2684,9 +2678,12 @@ void UserInterface::make_EG(int voice, int EG_base, int x, int y, const char* EG
 }
 
 void make_labeltip(Fl_Widget* o, const char* tip){
-// measure_label gives inconsistent results if this is not called right before o->end ??
-	int wl, hl, x, y, a;
-	// o->align(); // Or measure will sometimes err - don't ask why
+// measure_label gives inconsistent results
+// possibly depending on previous widget font
+// ok if called right before o->end
+// Should set font and size anyway??
+// fl_font(o->labelfont(), o->labelsize());
+	int wl=0, hl=0, x, y, a;
 	a=o->align();
 	o->measure_label(wl, hl);
 	x=o->x()+(o->w()-wl)/2; // Todo handle X alignment ??
@@ -2992,7 +2989,7 @@ void do_close(Fl_Widget * o, void *){
 	}
 }
 
-Fenster* UserInterface::make_window(const char* title) {
+MiniWindow* UserInterface::make_window(const char* title) {
 
 	// Internationalization
 	// see http://www.labri.fr/perso/fleury/posts/programming/a-quick-gettext-tutorial.html
@@ -3137,7 +3134,7 @@ Fenster* UserInterface::make_window(const char* title) {
 
 	transmit=true;
 
-	Fenster* o = new Fenster(_INIT_WIDTH, _INIT_HEIGHT, title);
+	MiniWindow* o = new MiniWindow(_INIT_WIDTH, _INIT_HEIGHT, title);
 	o->color((Fl_Color)_BGCOLOR);
 	o->user_data((void*)(this));
 	// o->default_callback((Fl_Window *) o, (void *)do_close); // Not working
@@ -4564,21 +4561,21 @@ Fenster* UserInterface::make_window(const char* title) {
  * constructor
  * calling straight the super class constructor
  */
-Fenster::Fenster(int w, int h, const char* t): Fl_Double_Window(w,h,t)
+MiniWindow::MiniWindow(int w, int h, const char* t): Fl_Double_Window(w,h,t)
 {
 }
 /**
  * constructor
  * calling straight the super class constructor
  */
-Fenster::Fenster(int w, int h): Fl_Double_Window(w,h)
+MiniWindow::MiniWindow(int w, int h): Fl_Double_Window(w,h)
 {
 	current_text_size = _TEXT_SIZE;
 }
 /**
  * using the destructor to shutdown synthcore
  */
-Fenster::~Fenster()
+MiniWindow::~MiniWindow()
 {
 	printf(_("gui quit\n"));
 	fflush(stdout);
@@ -4588,10 +4585,13 @@ Fenster::~Fenster()
 
 /**
  * overload the resize method
- * @param event
- * @return 1 when all is right
+ * @param x
+ * @param y
+ * @param w width
+ * @param h height
+ * 
  */
-void Fenster::resize (int x, int y, int w, int h)
+void MiniWindow::resize (int x, int y, int w, int h)
 {
 	Fl_Double_Window::resize(x, y, w, h);
 	// Logo - re-align with bottom
@@ -4699,7 +4699,7 @@ void Fenster::resize (int x, int y, int w, int h)
  * @param event
  * @return 1 when all is right
  */
-int Fenster::handle (int event)
+int MiniWindow::handle (int event)
 {
 #ifdef _DEBUG
 	printf("event %u %s\n", event, fl_eventnames[event]);

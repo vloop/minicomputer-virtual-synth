@@ -27,7 +27,9 @@ class MiniTable : public Fl_Table_Row
 protected:
 	int _selected_row;
 	int _selected_col;
-	int _copied_cell;
+	int _copied_row;
+	int _copied_col;
+	// int _copied_cell;
 	bool _cell_is_cut;
 	bool _odd_cols_only;
 	bool _cols_first;
@@ -41,23 +43,25 @@ public:
 		_cols_first=true; // Cell numbering is vertical first TODO accessor; False not tested
 		_selected_row=0;
 		_selected_col=_odd_cols_only?1:0;
-		_copied_cell=-2; // Still negative after halving means none
+		// _copied_cell=-2; // Still negative after halving means none
+		_copied_row=-1;
+		_copied_col=-1;
 		_cell_is_cut=false;
 		end(); // Fl_Table derives from Fl_Group, so end() it
 	}
 	~MiniTable() { }
 	int handle(int e);
 	void resize_cols(int W); // To be defined in GUI
-	int selected_row();
-	int selected_col();
+	int selected_row() const ;
+	int selected_col() const ;
 	int copied_cell();
 	void copied_cell(int c);
 	void set_cell_is_cut();
 	void clear_cell_is_cut();
-	bool cell_is_cut();
+	bool cell_is_cut() const;
 	int selected_cell();
-	int copied_row();
-	int copied_col();
+	int copied_row() const ;
+	int copied_col() const ;
 	int index(const unsigned int R, const unsigned int C);
 	int selected_index();
 	int copied_index();

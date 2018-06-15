@@ -1,12 +1,17 @@
-/** Minicomputer
- * industrial grade digital synthesizer
- *
- * Copyright  Marc Périlleux 2018
+/*! \file minichoice.cxx
+ *  \brief replacement for fl_choice and fl_input
+ * 
  * This file is part of Minicomputer, which is free software:
  * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ */
+/* Minicomputer
+ * industrial grade digital synthesizer
+ *
+ * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -77,7 +82,7 @@ static Fl_Window *makeform() {
  (input = new Fl_Input(60, 37, 340, 23))->hide();
  {Fl_Box* o = iconBox = new Fl_Box(10, 10, 50, 50);
   o->box(FL_THIN_UP_BOX);
-  o->labelfont(FL_TIMES_BOLD);
+  o->labelfont(FL_HELVETICA_BOLD); // FL_TIMES_BOLD);
   o->labelsize(34);
   o->color(FL_WHITE);
   o->labelcolor(FL_BLUE);
@@ -157,8 +162,10 @@ static void resizeform() {
   max_w = message_w + 10 + icon_size;
   w     = button_w[0] + button_w[1] + button_w[2] - 10;
 
-  if (w > max_w)
+  if (w > max_w){
     max_w = w;
+    text_height+=20; // Separate buttons from icon
+  }
 
   message_w = max_w - 10 - icon_size;
 
@@ -220,13 +227,16 @@ static int innards(const char* fmt, va_list ap,
 
   resizeform();
 
-  if(button[1]->visible() && input->visible())
-    button[1]->shortcut(FL_Enter); // Button still sees it first !!
-
-  if (button[1]->visible() && !input->visible())
-    button[1]->take_focus();
-  if (enableHotspot)
-    messageWindow->hotspot(button[0]);
+  if(button[1]->visible()){
+    if (input->visible()){
+      button[1]->shortcut(FL_Enter); // Button still sees it first !!
+    }else{
+	  button[1]->shortcut(0);
+      button[1]->take_focus();
+	}
+    if (enableHotspot)
+      messageWindow->hotspot(button[1]);
+  }
   /*
   if (b0 && Fl_Widget::label_shortcut(b0))
     button[0]->shortcut(0);
