@@ -37,7 +37,7 @@
 
 
 // debug output
-//#define _DEBUG
+// #define _DEBUG
 
 // prefetch support with intrinsics
 //#define _PREFETCH
@@ -64,7 +64,7 @@
 /*!< Number of per-voice parameters in multi */
 
 // Global (common to all sounds) settings in multi
-#define _MULTIPARMS 13
+#define _MULTIPARMS 22
 /*!< Number of global parameters in multi */
 
 // Available memory slots for sounds and multis

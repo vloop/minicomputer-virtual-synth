@@ -1,14 +1,19 @@
 #ifndef MiniPositioner_H
 #define MiniPositioner_H
-/** Minicomputer
- * industrial grade digital synthesizer
- *
- * Copyright Marc Périlleux 2018
+/*! \file MiniPositioner.H
+ *  \brief MiniPositioner class declaration
+ * 
  * This file is part of Minicomputer, which is free software:
  * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ */
+/* Minicomputer
+ * industrial grade digital synthesizer
+ *
+ * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -22,6 +27,11 @@
 #include <Fl/fl_draw.H>
 #include <FL/Fl_Positioner.H>
 
+/**
+ * \brief a replacement for Fl_Positioner
+ * 
+ * A version of Fl_Positioner with focus and keyboard events handling
+ */
 class MiniPositioner : public Fl_Positioner
 {
 protected:

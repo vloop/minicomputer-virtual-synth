@@ -1,13 +1,19 @@
-// Adapted from http://membres-timc.imag.fr/Yves.Usson/personnel/mysofts.html
-/** Minicomputer
- * industrial grade digital synthesizer
+
+/*! \file MiniKnob.H
+ *  \brief MiniKnob class declaration
  *
- * Copyright Marc Périlleux 2018
+ * Adapted from http://membres-timc.imag.fr/Yves.Usson/personnel/mysofts.html 
  * This file is part of Minicomputer, which is free software:
  * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ */
+/* Minicomputer
+ * industrial grade digital synthesizer
+ *
+ * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,12 +24,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #ifndef MiniKnob_H
 #define MiniKnob_H
 
 #include <FL/Fl.H>
 #include <Fl/Fl_Valuator.H>
 
+/**
+ * \brief a replacement for Fl_Dial
+ * 
+ * Adapted from http://membres-timc.imag.fr/Yves.Usson/personnel/mysofts.html
+ * can take focus and handle keyboard events
+ */
 class MiniKnob : public Fl_Valuator {
 public:
   enum MiniKnobtype {DOTLIN=0,DOTLOG_1,DOTLOG_2,DOTLOG_3,LINELIN,LINELOG_1,LINELOG_2,LINELOG_3};

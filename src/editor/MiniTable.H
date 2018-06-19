@@ -1,14 +1,19 @@
 #ifndef MiniTable_H
 #define MiniTable_H
-/** Minicomputer
- * industrial grade digital synthesizer
- *
- * Copyright Marc Périlleux 2018
+/*! \file MiniTable.H
+ *  \brief MiniTable class declaration
+ * 
  * This file is part of Minicomputer, which is free software:
  * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ */
+/* Minicomputer
+ * industrial grade digital synthesizer
+ *
+ * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -22,6 +27,12 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Table_Row.H>
 
+/**
+ * \brief the base class for the sounds and multis librarian tables
+ * 
+ * useful as a basis for more specific child classes,
+ * not intended for direct instanciation.
+ */
 class MiniTable : public Fl_Table_Row
 {
 protected:

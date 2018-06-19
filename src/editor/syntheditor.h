@@ -1,15 +1,19 @@
-/** Minicomputer
- * industrial grade digital synthesizer
- * editor software
- * Copyright 2007 Malte Steiner
- * Changes by Marc Périlleux 2018
+/*! \file syntheditor.h
+ *  \brief classes, defines and other items used throughout the editor
+ * 
  * This file is part of Minicomputer, which is free software:
  * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ */
+/* Minicomputer
+ * industrial grade digital synthesizer
  *
- * Minicomputer is distributed in the hope that it will be useful,
+ * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
+ *
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -17,6 +21,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 
 #ifndef syntheditor_h
 #define syntheditor_h
@@ -63,6 +68,7 @@
 #include <libintl.h>
 #include <locale.h>
 #define _(STRING) gettext(STRING)
+/*!< Retrieve translation if available */
 
 #include "MiniTable.H"
 #include "MiniKnob.H"
@@ -104,17 +110,10 @@ extern Memory Speicher;
 // Minidisplays
 #define _MINICOUNT 13
 
-/*
-class Fl_SteinerKnob:public Fl_Dial
-{
-	public:
-	Fl_SteinerKnob(int x, int y, int w, int h, const char *label);//:Fl_Dial(x, y, w, h, label);
-	int handle(int event);
-	private:
-	int altx;
-};
-*/
-/** custom class for window, derived from Fl_Double_Window
+/**
+ * \brief custom class for the main window
+ * 
+ * handles global shortcuts and text resizing
  *
  * \callgraph
  * \callergraph
@@ -131,33 +130,16 @@ class MiniWindow:public Fl_Double_Window
 	int current_text_size;
 };
 
+/**
+ * \brief custom class for the user interface
+ * 
+ * handles GUI controls creation
+ */
 class UserInterface {
 public:
   MiniWindow* make_window(const char *title);
   void changeMulti(int pgm);
   void changeSound(int voice, int pgm);
-  /*
-  static Fl_Menu_Item menu_pitch[];
-  static Fl_Menu_Item menu_pitch1[];
-  Fl_Dial *f1cut1;
-  Fl_Dial *f1q1;
-  Fl_Dial *f1vol1;
-  Fl_Dial *f1cut2;
-  Fl_Dial *f1q2;
-  Fl_Dial *f1vol2;
-  Fl_Dial *f2cut1;
-  Fl_Dial *f2q1;
-  Fl_Dial *f2vol1;
-  Fl_Dial *f2cut2;
-  Fl_Dial *f2q2;
-  Fl_Dial *f2vol2;
-  Fl_Dial *f3cut1;
-  Fl_Dial *f3q1;
-  Fl_Dial *f3vol1;
-  Fl_Dial *f3cut2;
-  Fl_Dial *f3q2;
-  Fl_Dial *f3vol2;
-  */
   // static Fl_Menu_Item menu_morph[];
   // static Fl_Menu_Item menu_amod[]; // Moved to global for resize
   // static Fl_Menu_Item menu_fmod[]; // Moved to global for resize
@@ -169,32 +151,30 @@ private:
   void make_osc(int voice, int osc_base, int minidisplay_base, int choice_base, int x, int y, const char* osc_label, const char* mod_label);
   void make_filter(int voice, int filter_base, int minidisplay, int x, int y);
   string tablabel[_TABCOUNT];
-  // unsigned char idata_miniMini2[191*99*3];
-  // Fl_RGB_Image image_miniMini2(idata_miniMini2, 191, 99, 3, 0);
 
 };
 
+
+/**
+ * \brief Ad hoc class for parameter fine tune
+ * 
+ */
 class MiniValue_Input : public Fl_Value_Input
 {
 protected:
-/*
-	static void event_callback(Fl_Widget*, void*);
-	void event_callback2();	// callback for table events
-*/
 private:
-//	void draw(int X, int Y, int W, int H);
-//	void draw();
 
 	int handle(int event);
 public:
 	MiniValue_Input(int x, int y, int w, int h, const char *l=0) : Fl_Value_Input(x,y,w,h,l)
 	{
-//		callback(&event_callback, (void*)this);
 	}
 	~MiniValue_Input() { }
 };
 
-
+/** 
+ * \brief Gui for sound librarian
+ */
 class SoundTable : public MiniTable
 {
 protected:
@@ -212,6 +192,9 @@ public:
 	~SoundTable() { }
 };
 
+/**
+ * \brief Gui for multi librarian
+ */
 class MultiTable : public MiniTable
 {
 protected:
@@ -230,6 +213,7 @@ public:
 };
 
 void sound_recall(int voice, unsigned int sound);
+
 void soundcopymnuCallback(Fl_Widget*, void*);
 void soundcutmnuCallback(Fl_Widget*, void*);
 void soundpastemnuCallback(Fl_Widget*, void*);
@@ -245,9 +229,10 @@ void replace_color (unsigned char * bits, unsigned int pixcount, unsigned char r
 
 extern Fl_Roller *multiRoller;
 extern Fl_Int_Input *multiNoInput;
-extern Fl_Input* Multichoice;
-extern char *oport;
-extern char *oport2;
+// extern Fl_Input* Multichoice;
+
+extern char *oscPort1;
+extern char *oscPort2;
 extern bool alwaysSave;
 extern bool noEscape;
 

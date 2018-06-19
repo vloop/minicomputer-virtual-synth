@@ -70,9 +70,9 @@
 // Table size must be a power of 2 so that we can use & instead of %
 #define _TABLE_SIZE 4096
 /*!< Number of samples in a waveform, must be a power of two */
-#define samples_per_degree (_TABLE_SIZE/360.0)
+#define _SAMPLES_PER_DEGREE (_TABLE_SIZE/360.0)
 #define _TABLE_MASK 4095
-#define tabF 4096.f
+#define _TABLE_SIZE_FLOAT 4096.f
 
 //#define _DEBUG
 
@@ -80,13 +80,14 @@
 /*!< Scale factor from 0..127 to 0.0f..1.0f */
 
 // variables
-int first_time=1;
+int firstTime=1;
 // Should define a struct for voice (and for EG)
 // float delayBuffer[_MULTITEMP][96000] __attribute__((aligned (16)));
 float *delayBuffer[_MULTITEMP] __attribute__((aligned (16)));
 float parameter[_MULTITEMP][_PARACOUNT] __attribute__((aligned (16)));
 float modulator[_MULTITEMP][_MODCOUNT] __attribute__((aligned (16)));
 float modwheel[_MULTITEMP] __attribute__((aligned (16)));
+int cc[9]; // MIDI controller numbers
 
 // Bias and scale ensure modulator range is 0..1
 // This is useful when adding modulations
@@ -210,7 +211,7 @@ int transpose[_MULTITEMP];
 int bank[_MULTITEMP];
 
 jack_port_t *port[_MULTITEMP + 4]; // _multitemp * ports + 2 mix and 2 aux
-jack_port_t *_jack_midipt;
+jack_port_t *jackMidiPort;
 lo_address t;
 
 float table [_WAVECOUNT][_TABLE_SIZE] __attribute__((aligned (16)));
@@ -231,14 +232,14 @@ jack_client_t *client;
 
 float to_filter=0.f,lfo;
 float sampleRate=48000.0f; // only default, going to be overriden by the actual, taken from jack
-float tabX = tabF / 48000.0f;
+float tabX = _TABLE_SIZE_FLOAT / 48000.0f;
 float srate = 3.145f/ 48000.f; // ??
 float srDivisor = 1.0f / 48000.f*100000.f; // Sample rate divisor
 float glide_a, glide_b;
 int i,delayBufferSize=0,maxDelayBufferSize=0,maxDelayTime=0;
 jack_nframes_t bufsize;
 int done = 0;
-static const float anti_denormal = 1e-20; // magic number to get rid of denormalizing
+static const float antiDenormal = 1e-20; // magic number to get rid of denormalizing
 
 // An experience with optimization
 #ifdef _VECTOR  
@@ -550,8 +551,8 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 	// JACK Midi handling
 	void* buf;
 	jack_midi_event_t ev;
-	buf = jack_port_get_buffer(_jack_midipt, nframes);
-//    jack_nframes_t evcount = jack_midi_get_event_count(_jack_midipt); // Always 0 ??
+	buf = jack_port_get_buffer(jackMidiPort, nframes);
+//    jack_nframes_t evcount = jack_midi_get_event_count(jackMidiPort); // Always 0 ??
 //        jack_midi_port_info_t* info;
 //		info = jack_midi_port_get_info(buf, bufsize);
 	int index1=0;
@@ -694,17 +695,17 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		// Not sure what the perf cost of fmodf could be
 		// What about remainder? https://www.gnu.org/software/libc/manual/html_node/Remainder-Functions.html
 #ifdef _USE_FMODF
-		current_phase[3]=fmodf(current_phase[3], tabF);
+		current_phase[3]=fmodf(current_phase[3], _TABLE_SIZE_FLOAT);
 #else
-		if(current_phase[3] >= tabF)
+		if(current_phase[3] >= _TABLE_SIZE_FLOAT)
 		{
-			current_phase[3]-= tabF;
+			current_phase[3]-= _TABLE_SIZE_FLOAT;
 		}
 		// This cannot happen in the absence of modulation
 	#ifdef _DEBUG
 		if(current_phase[3] < 0.f)
 		{
-			current_phase[3]+= tabF;
+			current_phase[3]+= _TABLE_SIZE_FLOAT;
 			fprintf(stderr, "Negative phase glitch on osc 3!\n");
 		}
 	#endif
@@ -717,7 +718,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		// Should use T as parameter ?
 		// glide[currentvoice]*=param[116];
 		glide[currentvoice]*=glide_a*param[116]+glide_b;
-		glide[currentvoice]+=copysign(anti_denormal, glide[currentvoice]); // Not needed with sse2 ??
+		glide[currentvoice]+=copysign(antiDenormal, glide[currentvoice]); // Not needed with sse2 ??
 		tfo1_1 = param[1] * param[2]; // Fixed frequency * fixed switch (0 or 1)
 
 		// osc1 amp mods 1 and 2
@@ -738,7 +739,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 				// case mult1 mult2
 				//   vol = mod1'*mod2'
 #ifdef _DEBUG
-				if(first_time && index==0)
+				if(firstTime && index==0)
 					printf("ta1 %u %f %f %f %f %f\n", choi[3], modulator_bias[choi[3]], modulator_scale[choi[3]], ta1_1, ta1_2, ta1_1*ta1_2);
 #endif
 				ta1_2=ta1_1*ta1_2; // -1..1
@@ -815,32 +816,32 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		current_phase[1]+= tabX * tfo1_1;
 
 		// iPsub=subMSB[currentvoice]+(iP1>>1); // 0.._TABLE_MASK
-		// sub[currentvoice]=(4.f*iPsub/tabF)-1.0f; // Ramp up -1..+1 (beware of int to float)
+		// sub[currentvoice]=(4.f*iPsub/_TABLE_SIZE_FLOAT)-1.0f; // Ramp up -1..+1 (beware of int to float)
 #ifdef _USE_FMODF
-		if(current_phase[1] >= tabF)
-			current_phase[2]+= (param[134]*samples_per_degree-current_phase[2])*param[115];
-		current_phase[1]=fmodf(current_phase[1], tabF);
+		if(current_phase[1] >= _TABLE_SIZE_FLOAT)
+			current_phase[2]+= (param[134]*_SAMPLES_PER_DEGREE-current_phase[2])*param[115];
+		current_phase[1]=fmodf(current_phase[1], _TABLE_SIZE_FLOAT);
 #else
-		if(current_phase[1] >= tabF)
+		if(current_phase[1] >= _TABLE_SIZE_FLOAT)
 		{
-			current_phase[1]-= tabF;
+			current_phase[1]-= _TABLE_SIZE_FLOAT;
 			// branchless sync osc2 to osc1 (param[115] is 0 or 1):
-			current_phase[2]+= (param[134]*samples_per_degree-current_phase[2])*param[115];
+			current_phase[2]+= (param[134]*_SAMPLES_PER_DEGREE-current_phase[2])*param[115];
 			// sub[currentvoice]=-sub[currentvoice]; // Square
-			// sub[currentvoice]=(4.f*subMSB[currentvoice]/tabF)-1.0f; // Alt square, OK
+			// sub[currentvoice]=(4.f*subMSB[currentvoice]/_TABLE_SIZE_FLOAT)-1.0f; // Alt square, OK
 			// Mostly works but some regular glitches at phase 0
-			// subMSB[currentvoice]^=itabF>>1; // Halfway through table
+			// subMSB[currentvoice]^=i_TABLE_SIZE_FLOAT>>1; // Halfway through table
 #ifdef _DEBUG
-			if (current_phase[1]>=tabF){ //just in case of extreme fm
+			if (current_phase[1]>=_TABLE_SIZE_FLOAT){ //just in case of extreme fm
 				fprintf(stderr, "Positive phase glitch on osc 1!\n");
 				current_phase[1] = 0;
 			}
 #endif
 		}else if(current_phase[1]< 0.f)
 		{
-			current_phase[1]+= tabF;
-			// subMSB[currentvoice]^=itabF>>1; // Halfway through table
-			//	if(*phase < 0.f) *phase = tabF-1;
+			current_phase[1]+= _TABLE_SIZE_FLOAT;
+			// subMSB[currentvoice]^=i_TABLE_SIZE_FLOAT>>1; // Halfway through table
+			//	if(*phase < 0.f) *phase = _TABLE_SIZE_FLOAT-1;
 #ifdef _DEBUG
 			fprintf(stderr, "Negative phase glitch on osc 1!\n");
 #endif
@@ -868,13 +869,13 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 // --------------- generate sub
 		current_phase[0]+= tabX * tfo1_1 / 2.0f;
 #ifdef _USE_FMODF
-		current_phase[0]=fmodf(current_phase[0], tabF);
+		current_phase[0]=fmodf(current_phase[0], _TABLE_SIZE_FLOAT);
 #else
-		if(current_phase[0] >= tabF)
-			current_phase[0]-= tabF;
+		if(current_phase[0] >= _TABLE_SIZE_FLOAT)
+			current_phase[0]-= _TABLE_SIZE_FLOAT;
 		if(current_phase[0] < 0.f)
 		{
-			current_phase[0]+= tabF;
+			current_phase[0]+= _TABLE_SIZE_FLOAT;
 #ifdef _DEBUG
 			fprintf(stderr, "Negative phase glitch on sub!\n");
 #endif
@@ -941,13 +942,13 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		// then generate the actual phase:
 		current_phase[2]+= tabX * tfo2_1;
 #ifdef _USE_FMODF
-		current_phase[2]=fmodf(current_phase[2], tabF);
+		current_phase[2]=fmodf(current_phase[2], _TABLE_SIZE_FLOAT);
 #else
-		if(current_phase[2] >= tabF)
+		if(current_phase[2] >= _TABLE_SIZE_FLOAT)
 		{
-			current_phase[2]-= tabF;
+			current_phase[2]-= _TABLE_SIZE_FLOAT;
 	#ifdef _DEBUG
-			if (current_phase[2]>=tabF){
+			if (current_phase[2]>=_TABLE_SIZE_FLOAT){
 				fprintf(stderr, "Positive phase glitch on osc 2!\n");
 				current_phase[2] = 0;
 			}
@@ -955,7 +956,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		}
 		if(current_phase[2]< 0.f)
 		{
-			current_phase[2]+= tabF;
+			current_phase[2]+= _TABLE_SIZE_FLOAT;
 	#ifdef _DEBUG
 			fprintf(stderr, "Negative phase glitch on osc 2!\n");
 	#endif
@@ -967,10 +968,10 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		pwmMod=param[146]+mod[choi[18]]*param[147];
 		if (pwmMod<.05) pwmMod=.05;
 		if (pwmMod>.95) pwmMod=.95;
-		pwm = current_phase[2]<pwmMod*tabF?.05f/pwmMod:.05f/(pwmMod-1.0f); // Make sure there is no DC offset
+		pwm = current_phase[2]<pwmMod*_TABLE_SIZE_FLOAT?.05f/pwmMod:.05f/(pwmMod-1.0f); // Make sure there is no DC offset
 		// .05f * (1/p) * p + .05f * (1/(p-1))*(1-p) = .05f *(1 + -1) = 0
 #ifdef _DEBUG
-		if(first_time && index==0 && currentvoice==0)
+		if(firstTime && index==0 && currentvoice==0)
 			printf("phase osc 2 voice %u %f index %u result %f\n", currentvoice, current_phase[2], iP2, osc2);
 #endif
 
@@ -991,7 +992,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		to_filter+=osc1*osc2*param[138];
 		to_filter+=pwm*param[148];
 		to_filter*=0.2f; // get the volume of the sum into a normal range	
-		to_filter+=copysign(anti_denormal, to_filter); // Absorb denormals
+		to_filter+=copysign(antiDenormal, to_filter); // Absorb denormals
 
 // ------------- calculate the filter settings ------------------------------
 		if (param[137]){ // Filter bypass
@@ -1027,7 +1028,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 				}
 			}else{ // 2nd modulator is none
 				mf = mf1 * param[38] * 0.25f; // -0.5..0.5
-				// if(first_time && currentvoice==0 && index==0) printf("mod factor %f\n", mf); // -1..1 ok
+				// if(firstTime && currentvoice==0 && index==0) printf("mod factor %f\n", mf); // -1..1 ok
 				modmax = 0.25f*fabs(param[38]); // 0..0.5
 			}
 			
@@ -1037,7 +1038,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			if (morph1<modmax) mf*=morph1/modmax;
 			if (1-morph1<modmax) mf*=(1-morph1)/modmax;
 #ifdef _DEBUG
-			if(first_time && currentvoice==0 && index==0)
+			if(firstTime && currentvoice==0 && index==0)
 				printf("param[38] %f mod[choi[5]] %f param[48] %f mod[choi[11] %f morph1 %f mf %f modmax %f\n", param[38], mod[choi[5]], param[48], mod[choi[11]], morph1, mf, modmax);
 #endif
 			morph1+=mf; // 0..1
@@ -1216,7 +1217,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 				v[currentvoice][1] += param[45]*morph1;
 				v[currentvoice][2] += param[55]*morph1;
 #ifdef _DEBUG
-	if(first_time && currentvoice==0 && index==0)
+	if(firstTime && currentvoice==0 && index==0)
 		printf("tf1 %f = param[30] %f * morph2 %f + param[33] %f * morph1 %f\n", tf1, param[30], morph2, param[33], morph1);
 #endif
 				// Apply filter tracking
@@ -1242,7 +1243,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 				f[currentvoice][1] -= (tf2*tf2*tf2) * 0.1472725f;
 				f[currentvoice][2] -= (tf3*tf3*tf3) * 0.1472725f;
 */
-// if(first_time && currentvoice==0 && index==0)
+// if(firstTime && currentvoice==0 && index==0)
 //	printf("f[currentvoice][0] %f\n", f[currentvoice][0]);
 			#endif
 			// morph1 and morph2 not used past this point
@@ -1371,7 +1372,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			// param[114] is "to delay" knob 0..1
 			// param[112] is "feedback" knob 0..1
 			tdelay = final_mix * param[114] + (delayBuffer[currentvoice] [ delayJ[currentvoice] ] * param[112] );
-			tdelay += copysign(anti_denormal, tdelay);
+			tdelay += copysign(antiDenormal, tdelay);
 			delayBuffer[currentvoice] [delayI[currentvoice] ] = tdelay;
 			/*
 			if (delayI[currentvoice]>95000)
@@ -1397,7 +1398,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			bufferMixRight[index] += final_mix * pan;
 			}
 		}
-	first_time=0;
+	firstTime=0;
 #ifdef _CHECK_DENORM
 	// Retrieve FPU status word
 	// Not sure this actually works ??
@@ -1478,10 +1479,10 @@ void init ()
 	{
 		x = i*increment;
 		table[0][i] = sin(x);
-		table[1][i] = (float)i/tabF*2.f-1.0f;// ramp up
+		table[1][i] = (float)i/_TABLE_SIZE_FLOAT*2.f-1.0f;// ramp up
 			
-		table[2][i] = (float)(_TABLE_SIZE-i-1)/tabF*2.f-1.0f; //ramp down
-		// 0.9f-(i/tabF*1.8f-0.5f);// tabF-((float)i/tabF*2.f-1.0f);
+		table[2][i] = (float)(_TABLE_SIZE-i-1)/_TABLE_SIZE_FLOAT*2.f-1.0f; //ramp down
+		// 0.9f-(i/_TABLE_SIZE_FLOAT*1.8f-0.5f);// _TABLE_SIZE_FLOAT-((float)i/_TABLE_SIZE_FLOAT*2.f-1.0f);
 			
 		if (i<_TABLE_SIZE/2) 
 		{ 
@@ -1587,42 +1588,6 @@ void doControlChange(int voice, int n, int v){
 				// printf("Modulation wheel %f\n", modulator[voice][16]);
 				break;
 			}
-			case 12:{ // Effect controller 1
-				modulator[voice][17]=v*_SCALE_7BIT;
-				break;
-			}
-			case 2:{ // Breath controller
-				modulator[voice][20]=v*_SCALE_7BIT;
-				break;
-			}
-			case 3:{ // Undefined
-				modulator[voice][21]=v*_SCALE_7BIT;
-				break;
-			}
-			case 4:{ // Foot controller
-				modulator[voice][22]=v*_SCALE_7BIT;
-				break;
-			}
-			case 5:{ // Portamento time
-				modulator[voice][23]=v*_SCALE_7BIT;
-				break;
-			}
-			case 14:{ // Undefined
-				modulator[voice][24]=v*_SCALE_7BIT;
-				break;
-			}
-			case 15:{ // Undefined
-				modulator[voice][25]=v*_SCALE_7BIT;
-				break;
-			}
-			case 16:{ // General purpose
-				modulator[voice][26]=v*_SCALE_7BIT;
-				break;
-			}
-			case 17:{ // General purpose
-				modulator[voice][27]=v*_SCALE_7BIT;
-				break;
-			}
 			case 32:{ // Bank Select LSB (Least Significant Byte)
 				bank[voice]=v;
 				break;
@@ -1668,6 +1633,29 @@ void doControlChange(int voice, int n, int v){
 			case 67:{ // una corda (soft pedal)
 				unacorda[voice]=(v>63); // Could be a modulator ??
 				break;
+			}
+			default:{
+				// 9 custom controllers
+				// Should renumber modulators here and in editor ??
+				if(n == cc[0])
+					modulator[voice][19]=v*_SCALE_7BIT;
+				else if(n == cc[1])
+					modulator[voice][20]=v*_SCALE_7BIT;
+				else if(n == cc[2])
+					modulator[voice][21]=v*_SCALE_7BIT;
+				else if(n == cc[3])
+					modulator[voice][22]=v*_SCALE_7BIT;
+				else if(n == cc[4])
+					modulator[voice][23]=v*_SCALE_7BIT;
+				else if(n == cc[5])
+					modulator[voice][24]=v*_SCALE_7BIT;
+				else if(n == cc[6])
+					modulator[voice][25]=v*_SCALE_7BIT;
+				else if(n == cc[7])
+					modulator[voice][26]=v*_SCALE_7BIT;
+				else if(n == cc[8])
+					modulator[voice][27]=v*_SCALE_7BIT;
+				// else just ignore controller message
 			}
 		}
 	}
@@ -1796,20 +1784,20 @@ static inline void doNoteOn(int voice, int note, int velocity){
 					}
 					// Reset phase if needed
 					if(parameter[voice][120]){
-						phase[voice][1]=parameter[voice][119]*samples_per_degree;
-						phase[voice][0]=parameter[voice][119]*samples_per_degree*0.5; // sub-osc
+						phase[voice][1]=parameter[voice][119]*_SAMPLES_PER_DEGREE;
+						phase[voice][0]=parameter[voice][119]*_SAMPLES_PER_DEGREE*0.5; // sub-osc
 	#ifdef _DEBUG
 						printf("Osc 1 voice %u phase set to %f\n", voice, parameter[voice][119]);
 	#endif
 					}
 					if(parameter[voice][135]){
-						phase[voice][2]=parameter[voice][134]*samples_per_degree;
+						phase[voice][2]=parameter[voice][134]*_SAMPLES_PER_DEGREE;
 	#ifdef _DEBUG
 						printf("Osc 2 voice %u phase set to %f\n", voice, parameter[voice][134]);
 	#endif
 					}
 					if(parameter[voice][154]){
-						phase[voice][3]=parameter[voice][153]*samples_per_degree;
+						phase[voice][3]=parameter[voice][153]*_SAMPLES_PER_DEGREE;
 	#ifdef _DEBUG
 						printf("Osc 3 voice %u phase set to %f\n", voice, parameter[voice][153]);
 	#endif
@@ -1817,7 +1805,7 @@ static inline void doNoteOn(int voice, int note, int velocity){
 
 					midif[voice]=midi2freq[note];// lookup the frequency
 					// 1/127=0,007874015748...
-					modulator[voice][19]=note*0.007874f;// fill the value in as normalized modulator
+					modulator[voice][17]=note*0.007874f;// fill the value in as normalized modulator
 					modulator[voice][1]=(float)1.0f-(velocity*0.007874f);// fill in the velocity as modulator
 					// why is velocity inverted??
 					// Parameter 139 is legato, don't retrigger unless released (0) or idle (4)
@@ -1869,7 +1857,7 @@ void doReset(unsigned int voice){
 
 		memset(delayBuffer[voice],0,sizeof(delayBuffer[voice]));
 	}
-	first_time=1; // Helps with debugging
+	firstTime=1; // Helps with debugging
 #ifdef _DEBUG
 	printf("doReset: voice %u filters and delay buffer reset\n", voice);
 #endif
@@ -1967,9 +1955,9 @@ static void *alsaMidiProcess(void *handle) {
 			{   
 				c = ev->data.note.channel;
 #ifdef _DEBUG      
-				fprint("Note On event on Channel %2d: %5d       \r",
+				printf("Note On event on Channel %2d: %5d       \r",
 				c, ev->data.note.note);
-				fprint("Note On event %u \r",EGstate[c][0]);
+				printf("Note On event %u \r", EGstate[c][0]);
 #endif
 				for(voice=0; voice<_MULTITEMP; voice++){
 					if(channel[voice]==c && !polySlave[voice]){
@@ -2056,8 +2044,8 @@ int main(int argc, char **argv) {
 printf("minicomputer core version %s\n",_VERSION);
 // ------------------------ decide the oscport number -------------------------
 char OscPort[] = _OSCPORT; // default value for OSC port
-char *oport = OscPort;// pointer of the OSC port string
-char *oport2;
+char *oscPort1 = OscPort; // pointer to the OSC port string
+char *oscPort2;
 int has_port2=0;
 int do_connect=1;
 
@@ -2070,7 +2058,7 @@ int i;
 			if (i<argc) {
 				int tport = atoi(argv[i]);
 				if (tport > 0){
-					oport = argv[i]; // overwrite the default for the OSCPort
+					oscPort1 = argv[i]; // overwrite the default for the OSCPort
 				}else{
 					fprintf(stderr, "Invalid port %s\n", argv[i]);
 					usage();
@@ -2086,7 +2074,7 @@ int i;
 			if (i<argc){
 				int tport2 = atoi(argv[i]);
 				if (tport2 > 0){
-					oport2 = argv[i]; // overwrite the default for the OSCPort
+					oscPort2 = argv[i]; // overwrite the default for the OSCPort
 					has_port2 = 1;
 				}else{
 					fprintf(stderr, "Invalid port %s\n", argv[i]);
@@ -2110,8 +2098,8 @@ int i;
 		}
 	}
 
-	printf("Server OSC input port: %s\n", oport);
-	sprintf(jackName, "Minicomputer%s", oport);// store globally a unique name
+	printf("Server OSC input port: %s\n", oscPort1);
+	sprintf(jackName, "Minicomputer%s", oscPort1);// store globally a unique name
 
 // ------------------------ ALSA midi init ---------------------------------
 	pthread_t midithread;
@@ -2127,8 +2115,8 @@ int i;
  
 
 // ------------------------ OSC Init ------------------------------------   
-	/* start a new server on port defined where oport points to */
-	lo_server_thread st = lo_server_thread_new(oport, osc_error_handler);
+	/* start a new server on port defined where oscPort1 points to */
+	lo_server_thread st = lo_server_thread_new(oscPort1, osc_error_handler);
 
 	/* add method that will match /Minicomputer/choice with three integers */
 	lo_server_thread_add_method(st, "/Minicomputer/choice", "iii", osc_choice_handler, NULL);
@@ -2148,11 +2136,11 @@ int i;
 
 	// init for output
 	if(has_port2==0){
-		oport2=(char *)malloc(80);
-		snprintf(oport2, 80, "%d", atoi(oport)+1);
+		oscPort2=(char *)malloc(80);
+		snprintf(oscPort2, 80, "%d", atoi(oscPort1)+1);
 	}
-	printf("Server OSC output port: %s\n", oport2);
-	t = lo_address_new(NULL, oport2);
+	printf("Server OSC output port: %s\n", oscPort2);
+	t = lo_address_new(NULL, oscPort2);
 
 	/* setup our signal handler signalled() above, so 
 	 * we can exit cleanly (see end of main()) */
@@ -2190,8 +2178,8 @@ int i;
 	port[8] = jack_port_register(client, "mix out left", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput|JackPortIsTerminal, 0);
 	port[9] = jack_port_register(client, "mix out right", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput|JackPortIsTerminal, 0);
 
-	_jack_midipt = jack_port_register (client, "Midi/in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
-	if (!_jack_midipt)
+	jackMidiPort = jack_port_register (client, "Midi/in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
+	if (!jackMidiPort)
 	{
 		fprintf (stderr, "Error: can't create the 'Midi/in' jack port\n");
 		exit (1);
@@ -2206,7 +2194,7 @@ int i;
 
 	// handling the sampling frequency
 	sampleRate = (float) jack_get_sample_rate (client); 
-	tabX = tabF / sampleRate;
+	tabX = _TABLE_SIZE_FLOAT / sampleRate;
 	srate = 3.145f/ sampleRate;
 	srDivisor = 1.0f / sampleRate * 100000.f;
     // printf("srDivisor: %f\n", srDivisor);
@@ -2372,6 +2360,8 @@ static int osc_multiparm_handler(const char *path, const char *types, lo_arg **a
 			// if(lastnote[voice]>=0)
 				midif[voice]=midi2freq[lastnote[voice]];
 		}
+	}else if (parmnum<22){ // 13..21 Custom midi control codes
+		cc[parmnum-13]=(int)parmval;
 	}else{
 		fprintf(stderr, "WARNING: osc_multiparm_handler - unhandled parameter number %i\n", parmnum);
 	}
@@ -2379,7 +2369,7 @@ static int osc_multiparm_handler(const char *path, const char *types, lo_arg **a
 
 /** @brief catch any incoming osc "audition" message.
  * 
- * Expects 4 integers: type, voice, note, velocity
+ * Expects 4 integers: type (note on/off), voice, note, velocity
  * Returning 1 means that the message has not been fully handled
  * and the server should try other methods 
  *
@@ -2394,6 +2384,7 @@ static int osc_multiparm_handler(const char *path, const char *types, lo_arg **a
 static int osc_audition_handler(const char *path, const char *types, lo_arg **argv,
 			int argc, void *data, void *user_data)
 {
+	// printf("osc_audition_handler: %d %d %d %d\n", argv[0]->i, argv[1]->i, argv[2]->i, argv[3]->i);
 	if(argv[0]->i){ // Note on
 		doNoteOn(argv[1]->i, argv[2]->i, argv[3]->i);
 	}else{ // Note off

@@ -75,23 +75,29 @@ Memory::~Memory()
 }
 
 /**
- * retrieve name of a certain patch
- * @param sound the sound number
+ * retrieve the name of a certain sound
+ * @param soundNo the sound number
  * @return the name as a string
  */
-string Memory::getSoundName(unsigned int sound)
+string Memory::getSoundName(unsigned int soundNo)
 {
-	if(sound<_SOUNDS) return sounds[sound].name;
+	if(soundNo<_SOUNDS) return sounds[soundNo].name;
 	return(NULL);
 }
 
-string Memory::getMultiName(unsigned int multinum)
+/**
+ * retrieve the name of a certain multi
+ * @param multiNo the multi number
+ * @return the name as a string
+ */
+string Memory::getMultiName(unsigned int multiNo)
 {
-	if(multinum<_MULTIS) return multis[multinum].name;
+	if(multiNo<_MULTIS) return multis[multiNo].name;
 	return(NULL);
 }
+
 /**
- * set the soundnumber to a certain voice
+ * set the sound number for a certain voice
  * @param voice number
  * @param sound number
  */
@@ -108,6 +114,7 @@ int Memory::setSoundNo(unsigned int voice, unsigned int sound)
 		return(-1);
 	}
 }
+
 void Memory::setSoundName(unsigned int dest, const char *new_name){
 	strncpy(sounds[dest].name, new_name, _NAMESIZE);
 }

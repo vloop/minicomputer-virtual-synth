@@ -217,8 +217,8 @@ void usage() {
  * @param pointer to array with arguments
  * @return integer, 0 when terminated correctly
  */
-char *oport;
-char *oport2;
+char *oscPort1;
+char *oscPort2;
 bool noEscape;
 int main(int argc, char **argv) {
   printf("minicomputer editor version %s\n", _VERSION);
@@ -229,8 +229,8 @@ int main(int argc, char **argv) {
   bool needcolor = true; // true means user didnt give some so I need to take care myself
   int i;
   char OscPort[] = _OSCPORT; // default value for OSC port
-  oport = OscPort;
-  oport2 = (char *)malloc(_NAMESIZE);
+  oscPort1 = OscPort;
+  oscPort2 = (char *)malloc(_NAMESIZE);
   bool no_connect = false;
   bool no_launch = false;
   bool launched = false;
@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
 			if (i < argc) {
 				int tport = atoi(argv[i]);
 				if (tport > 0) {
-					oport = argv[i]; // overwrite the default for the OSCPort
+					oscPort1 = argv[i]; // overwrite the default for the OSCPort
 				} else {
 					fprintf(stderr, "Invalid port %s\n", argv[i]);
 					usage();
@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
 			if (i < argc) {
 				int tport2 = atoi(argv[i]);
 				if (tport2 > 0) {
-					oport2 = argv[i]; // overwrite the default for the OSCPort
+					oscPort2 = argv[i]; // overwrite the default for the OSCPort
 					has_port2 = true;
 				} else {
 					fprintf(stderr, "Invalid port %s\n", argv[i]);
@@ -293,13 +293,13 @@ int main(int argc, char **argv) {
 	}
 
 	if (!has_port2) // Port not specified, use default
-		snprintf(oport2, _NAMESIZE, "%d", atoi(oport)+1);
+		snprintf(oscPort2, _NAMESIZE, "%d", atoi(oscPort1)+1);
 
 // ------------------------ create gui --------------
 	char temp_name[_NAMESIZE];
 	int fileerrors=0;
 	strncpy(temp_name, "minicomputer ", _NAMESIZE);
-	strncpy(temp_name+13, oport, _NAMESIZE-13);
+	strncpy(temp_name+13, oscPort1, _NAMESIZE-13);
 	MiniWindow* w = Schaltbrett.make_window(temp_name);
 	if(Speicher.loadSounds()){
 		fileerrors++;
@@ -319,14 +319,14 @@ int main(int argc, char **argv) {
 
 // ------------------------ OSC init ---------------------------------
 	// init for output
-	t = lo_address_new(NULL, oport);
-	printf("\nGUI OSC output port: \"%s\"\n", oport);
-	snprintf(midiName, _NAMESIZE, "miniEditor%s", oport); // store globally a unique name
+	t = lo_address_new(NULL, oscPort1);
+	printf("\nGUI OSC output port: \"%s\"\n", oscPort1);
+	snprintf(midiName, _NAMESIZE, "miniEditor%s", oscPort1); // store globally a unique name
 
 	// init for input
-	printf("GUI OSC input port: \"%s\"\n", oport2);
-	/* start a new server on port defined where oport2 points to */
-	lo_server_thread st = lo_server_thread_new(oport2, error);
+	printf("GUI OSC input port: \"%s\"\n", oscPort2);
+	/* start a new server on port defined where oscPort2 points to */
+	lo_server_thread st = lo_server_thread_new(oscPort2, error);
 	/* add methods that will match /Minicomputer/... messages*/
 	if (!lo_error) lo_server_thread_add_method(st, "/Minicomputer/EG", "iii", eg_handler, NULL);
 	if (!lo_error) lo_server_thread_add_method(st, "/Minicomputer/sense", "", sense_handler, NULL);
@@ -350,9 +350,9 @@ int main(int argc, char **argv) {
 	if(!sense && !no_launch) { // Don't start it if already done
 		char engineName[_NAMESIZE]; // the name of the core program + given port, if any.
 		if(no_connect)
-			snprintf(engineName, _NAMESIZE, "minicomputerCPU -no-connect -port %s -port2 %s &", oport, oport2);
+			snprintf(engineName, _NAMESIZE, "minicomputerCPU -no-connect -port %s -port2 %s &", oscPort1, oscPort2);
 		else
-			snprintf(engineName, _NAMESIZE, "minicomputerCPU -port %s -port2 %s &", oport, oport2);
+			snprintf(engineName, _NAMESIZE, "minicomputerCPU -port %s -port2 %s &", oscPort1, oscPort2);
 		printf("Launching %s\n", engineName);
 		system(engineName); // actual start
 		launched = true;

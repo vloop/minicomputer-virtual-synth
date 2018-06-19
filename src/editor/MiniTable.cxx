@@ -1,4 +1,4 @@
-/*! \file minitable.cxx
+/*! \file MiniTable.cxx
  *  \brief custom tables based on Fl_Table
  * 
  * This file is part of Minicomputer, which is free software:

@@ -1,12 +1,17 @@
-/** Minicomputer
- * industrial grade digital synthesizer
- *
- * Copyright Marc Périlleux 2018
+/*! \file minichoice.H
+ *  \brief function declarations for minichoice and miniinput
+ * 
  * This file is part of Minicomputer, which is free software:
  * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ */
+/* Minicomputer
+ * industrial grade digital synthesizer
+ *
+ * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of

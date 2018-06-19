@@ -84,17 +84,17 @@ Fl_Menu_Item menu_amod []= { // UserInterface::
  {_("modulation osc"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("touch"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("mod wheel"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 12"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("delay"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("midi note"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 2"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 4"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 5"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 6"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 14"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 15"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 16"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 17"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("delay"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #1    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #2    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #3    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #4    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #5    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #6    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #7    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #8    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #9    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("damper pedal"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {0,0,0,0,0,0,0,0,0}
 };
@@ -118,17 +118,17 @@ Fl_Menu_Item menu_fmod []= { // UserInterface::
  {_("modulation osc"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("touch"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("mod wheel"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 12"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("delay"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("midi note"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 2"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 4"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 5"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 6"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 14"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 15"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 16"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
- {_("cc 17"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("delay"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #1    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #2    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #3    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #4    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #5    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #6    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #7    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #8    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("cc #9    "), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {_("damper pedal"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
  {0,0,0,0,0,0,0,0,0}
 };
@@ -176,7 +176,7 @@ Fl_Output *soundNoDisplay[_MULTITEMP];
 char soundName[_MULTITEMP][_NAMESIZE];
 Fl_Input *noteInput[_MULTITEMP][3];
 
-int audition_state[_MULTITEMP];
+int auditionState[_MULTITEMP];
 Fl_Toggle_Button *auditionBtn;
 Fl_Button *panicBtn;
 Fl_Button *clearStateBtn[_MULTITEMP];
@@ -211,7 +211,7 @@ bool transmit;
 
 int nGroups=0;
 // Fl_Group
-Fl_Widget *groups[158];
+Fl_Widget *groups[159];
 Fl_Group *midiGroups[_MULTITEMP];
 
 patch compare_buffer;
@@ -408,7 +408,7 @@ static void do_audition(Fl_Widget* o, void*)
 		Fl::lock();
 		int note=((Fl_Valuator*)knobs[currentVoice][127])->value();
 		int velocity=((Fl_Valuator*)knobs[currentVoice][126])->value();
-		audition_state[currentVoice]=((Fl_Toggle_Button*)o)->value();
+		auditionState[currentVoice]=((Fl_Toggle_Button*)o)->value();
 		if ( ((Fl_Toggle_Button*)o)->value()){
 			lo_send(t, "/Minicomputer/audition", "iiii", 1, currentVoice, note, velocity);
 		}else{
@@ -425,7 +425,7 @@ static void do_all_off(Fl_Widget* o, void*)
 	auditionBtn->clear();
 	if (transmit) for (i=0; i<_MULTITEMP; i++){
 	  lo_send(t, "/Minicomputer/midi", "iiii", 0, 0xB0+i, 120, 0);
-	  audition_state[i]=((Fl_Toggle_Button*)auditionBtn)->value();
+	  auditionState[i]=((Fl_Toggle_Button*)auditionBtn)->value();
 	}
 }
 
@@ -441,7 +441,7 @@ int EG_draw(unsigned int voice, unsigned int EGnum, unsigned int stage){
 		EG_changed[voice]=1;
 		EG_stage[voice][EGnum]=stage;
 		if(EGnum==0 && stage == 0){
-			audition_state[voice]=0;
+			auditionState[voice]=0;
 			if(voice==currentVoice)
 				((Fl_Toggle_Button*)auditionBtn)->value(0);
 		}
@@ -571,7 +571,7 @@ static void tabCallback(Fl_Widget* o, void* )
 		if(!mc) clearmulti_changed();
 		parmInput->show();
 		auditionBtn->show();
-		((Fl_Toggle_Button*)auditionBtn)->value(audition_state[currentVoice]);
+		((Fl_Toggle_Button*)auditionBtn)->value(auditionState[currentVoice]);
 		compareBtn->show();
 #ifdef _DEBUG
 		printf("tabCallback: sound %i\n", currentVoice );
@@ -675,7 +675,7 @@ static void parmSet(Fl_Widget* o, void*) {
 			}
 			if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, currentParameter, val);
 #ifdef _DEBUG
-			printf("parmSet button %i : %f --> %f\n", currentParameter, ((Fl_Button*)o)->value(), val);
+			printf("parmSet button %i : %u --> %f\n", currentParameter, ((Fl_Button*)o)->value(), val);
 #endif
 		}else{ // Not a button
 			char knob_tooltip_template[]="%f"; // May override below
@@ -810,7 +810,7 @@ static void parmSet(Fl_Widget* o, void*) {
 				{
 					if (transmit) lo_send(t, "/Minicomputer", "iif", currentVoice, o->argument(), val);
 			#ifdef _DEBUG
-					printf("parmSet %i : %g\n", o->argument(), val);
+					printf("parmSet %li : %g\n", o->argument(), val);
 					fflush(stdout);
 			#endif
 					miniInput[currentVoice][8]->value(val);
@@ -1932,11 +1932,14 @@ static void loadmulti(unsigned int multi)
 	for (int i=0;i<_MULTITEMP;++i)
 		clearsound_changed(i);
 	for (int i=0;i<_MULTIPARMS;++i){
+		// printf("multiparm N°%d at %lu = %f\n", i, multiParmInput[i], Speicher.multis[currentMulti].parms[i]);
 		((Fl_Valuator*)multiParmInput[i])->value(Speicher.multis[currentMulti].parms[i]);
+		// printf("value set\n");
 		multiParmInputCallback(multiParmInput[i], NULL);
+		// printf("callback done\n");
 	}
 	// Restore previous state
-	 currentVoice = oldVoice;
+	currentVoice = oldVoice;
 	// tabs->value(oldtab);
 	// tabCallback(tabs,NULL);
 	// parmCallback(knobs[currentVoice][currentParameter], NULL);
@@ -4067,7 +4070,7 @@ MiniWindow* UserInterface::make_window(const char* title) {
 
 		} // End of for voice
 
-		// Global detune
+		// Global detune, multi parameter 12
 		{ Fl_Value_Input* o = new Fl_Value_Input(76, 300, 40, 14, _("Master tune"));
 			o->box(FL_ROUNDED_BOX);
 			o->labelsize(_TEXT_SIZE);
@@ -4080,7 +4083,7 @@ MiniWindow* UserInterface::make_window(const char* title) {
 			o->argument(12);
 			multiParmInput[12]=o;
 		}
-		// Note detune, common to all voices
+		// Note detune, multi parameters 0..11, common to all voices
 		{
 			int y=330;
 			Fl_Group* d = new Fl_Group(11, y, 471, 45, _("Detune"));
@@ -4121,6 +4124,33 @@ MiniWindow* UserInterface::make_window(const char* title) {
 					}
 				}
 				x++;
+			}
+			d->end();
+		}
+
+
+		// 9 custom controller numbers, multi parameters 13..21, , common to all voices
+		{
+			int y=400;
+			Fl_Group* d = new Fl_Group(11, y, 471, 24, _("Controllers"));
+			groups[nGroups++]=d;
+			d->box(FL_ROUNDED_FRAME);
+			d->color(FL_BACKGROUND2_COLOR);
+			d->labelsize(_TEXT_SIZE);
+			d->labelcolor(FL_BACKGROUND2_COLOR);
+			d->begin();
+			for(int cc=0; cc<9; cc++){
+					Fl_Value_Input* o = new Fl_Value_Input(18+52*cc, y+5, 40, 14);
+					o->box(FL_ROUNDED_BOX);
+					o->labelsize(_TEXT_SIZE);
+					o->textsize(_TEXT_SIZE);
+					o->range(0, 127);
+					o->align(FL_ALIGN_LEFT);
+					o->step(1);
+					o->value(0);
+					o->callback((Fl_Callback*)multiParmInputCallback);
+					o->argument(13+cc);
+					multiParmInput[13+cc]=o;
 			}
 			d->end();
 		}
@@ -4345,8 +4375,8 @@ MiniWindow* UserInterface::make_window(const char* title) {
 			  "</center>"
 			  "</body></html>");
 		  char *Textausgabe;
-		  Textausgabe=(char *)malloc(strlen(about)+strlen(version)+strlen(oport)+strlen(oport2));
-		  sprintf(Textausgabe, about, version, oport, oport2);
+		  Textausgabe=(char *)malloc(strlen(about)+strlen(version)+strlen(oscPort1)+strlen(oscPort2));
+		  sprintf(Textausgabe, about, version, oscPort1, oscPort2);
 		  o->value(Textausgabe);
 		}	
 		o->end(); 

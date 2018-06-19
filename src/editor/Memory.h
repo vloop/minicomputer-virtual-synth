@@ -1,15 +1,19 @@
-/** Minicomputer
- * industrial grade digital synthesizer
- *
- * Copyright 2007, 2008 Malte Steiner
- * Changes by Marc Périlleux 2018
+/*! \file Memory.h
+ *  \brief Memory class and related structures declaration
+ * 
  * This file is part of Minicomputer, which is free software:
  * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ */
+/* Minicomputer
+ * industrial grade digital synthesizer
  *
- * Minicomputer is distributed in the hope that it will be useful,
+ * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
+ *
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -17,7 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 
 #ifndef MEMORY_H_
 #define MEMORY_H_
@@ -36,9 +39,9 @@
 #include "../common.h"
 
 using namespace std;
-// #include "patch.h"
+
 /**
- * the struct of a single sound setting
+ * \brief the struct of a single sound setting
  */
 typedef struct
 {
@@ -47,8 +50,9 @@ typedef struct
 	float freq[9][2];
 	int choice[_CHOICECOUNT];
 } patch;
+
 /**
- * the struct of a multitimbral setup
+ * \brief the struct of a multitimbral setup
  */
 typedef struct
 {
@@ -59,7 +63,8 @@ typedef struct
 } multi;
 
 /**
- * the class for the whole memory (sounds and multis)
+ * \brief the class for the whole memory (sounds and multis)
+ * 
  * see Memory.cpp for more documentation
  */
 class Memory

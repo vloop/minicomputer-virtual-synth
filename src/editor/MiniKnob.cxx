@@ -1,13 +1,19 @@
-// Adapted from http://membres-timc.imag.fr/Yves.Usson/personnel/mysofts.html
-/** Minicomputer
- * industrial grade digital synthesizer
- *
- * Copyright  Marc Périlleux 2018
+/*! \file MiniKnob.cxx
+ *  \brief replacement for Fl_Dial
+ * 
+ * Adapted from http://membres-timc.imag.fr/Yves.Usson/personnel/mysofts.html
+ * 
  * This file is part of Minicomputer, which is free software:
  * you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ */
+/* Minicomputer
+ * industrial grade digital synthesizer
+ *
+ * Copyright 2007,2008 Malte Steiner
+ * Changes by Marc Périlleux 2018
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
