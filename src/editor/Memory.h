@@ -74,6 +74,8 @@ public:
 	void copySound(int src, int dest);
 	void copyPatch(const patch *src, patch *dest);
 	void copyMulti(int src, int dest);
+	void copyMultiTuning(int src, int dest);
+	void copyMultiControllers(int src, int dest);
 	void saveSounds();
 	int loadSounds();
 	int loadInit();

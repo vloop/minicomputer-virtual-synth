@@ -50,7 +50,7 @@
 /*!< Text length for sound and multi names */
 #define _PARACOUNT 157
 /*!< Number of general parameters per sound (patch) */
-#define _CHOICECOUNT 19
+#define _CHOICECOUNT 20
 /*!< Number of menu parameters per sound (patch) */
 #define _EGCOUNT 7
 /*!< Number of envelopes per sound (patch) */

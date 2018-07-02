@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: minicomputer 1.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-06-19 15:59+0200\n"
+"POT-Creation-Date: 2018-07-01 14:24+0200\n"
 "PO-Revision-Date: 2018-05-28 20:35+0200\n"
 "Last-Translator: vloop <marc.perilleux@laposte.net>\n"
 "Language-Team: French\n"
@@ -17,15 +17,19 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: src/editor/syntheditor.cxx:2130 src/editor/syntheditor.cxx:2476
+#: src/editor/syntheditor.cxx:2138 src/editor/syntheditor.cxx:2500
 msgid "&Copy"
 msgstr "&Copier"
 
-#: src/editor/syntheditor.cxx:2132 src/editor/syntheditor.cxx:2478
+#: src/editor/syntheditor.cxx:2140
 msgid "&Paste"
 msgstr "C&oller"
 
-#: src/editor/syntheditor.cxx:4360
+#: src/editor/syntheditor.cxx:2502
+msgid "&Paste all"
+msgstr "C&oller tout"
+
+#: src/editor/syntheditor.cxx:4397
 #, c-format
 msgid ""
 "<html><body><i><center>version %s</center></i><br><p><br>a standalone "
@@ -46,193 +50,193 @@ msgstr ""
 "<br><center>marc.perilleux@laposte.net<br>https://github.com/vloop/"
 "minicomputer-virtual-synth</center></body></html>"
 
-#: src/editor/syntheditor.cxx:2974
+#: src/editor/syntheditor.cxx:3000
 msgid "Abandon changes and exit"
 msgstr "Abandonner les modifications et quitter"
 
-#: src/editor/syntheditor.cxx:4338
+#: src/editor/syntheditor.cxx:4375
 msgid "About"
 msgstr "À propos"
 
-#: src/editor/syntheditor.cxx:4352
+#: src/editor/syntheditor.cxx:4389
 msgid "About Minicomputer"
 msgstr "À propos de Minicomputer"
 
-#: src/editor/syntheditor.cxx:4529
+#: src/editor/syntheditor.cxx:4566
 msgid "Audition"
 msgstr "Test"
 
-#: src/editor/syntheditor.cxx:3487 src/editor/syntheditor.cxx:3719
+#: src/editor/syntheditor.cxx:3524 src/editor/syntheditor.cxx:3756
 msgid "BPM"
 msgstr "BPM"
 
 #. set gui
-#: src/editor/syntheditor.cxx:1209 src/editor/syntheditor.cxx:1236
-#: src/editor/syntheditor.cxx:1823 src/editor/syntheditor.cxx:1907
+#: src/editor/syntheditor.cxx:1217 src/editor/syntheditor.cxx:1244
+#: src/editor/syntheditor.cxx:1831 src/editor/syntheditor.cxx:1915
 #, c-format
 msgid "Bank %u program %u"
 msgstr "Banque %u son %u"
 
-#: src/editor/syntheditor.cxx:3021
+#: src/editor/syntheditor.cxx:3047
 msgid "Cancel"
 msgstr "Annuler"
 
 #. Channel
 #. "If step() is non-zero and integral, then the range of numbers is limited to integers"
 #. range and bounds don't seem to be enforced when typing a value like 12345
-#: src/editor/syntheditor.cxx:3945
+#: src/editor/syntheditor.cxx:3982
 msgid "Channel"
 msgstr "Canal"
 
-#: src/editor/syntheditor.cxx:2134 src/editor/syntheditor.cxx:2480
+#: src/editor/syntheditor.cxx:2142 src/editor/syntheditor.cxx:2506
 msgid "Clear"
 msgstr "RàZ"
 
-#: src/editor/syntheditor.cxx:4540
+#: src/editor/syntheditor.cxx:4577
 msgid "Compare"
 msgstr "Comparer"
 
-#: src/editor/syntheditor.cxx:4541
+#: src/editor/syntheditor.cxx:4578
 msgid "Compare edited sound to original"
 msgstr "Comparer le son modifié à l'original"
 
-#: src/editor/syntheditor.cxx:1379 src/editor/syntheditor.cxx:1459
-#: src/editor/syntheditor.cxx:1488 src/editor/syntheditor.cxx:1495
-#: src/editor/syntheditor.cxx:1999 src/editor/syntheditor.cxx:2181
-#: src/editor/syntheditor.cxx:2359 src/editor/syntheditor.cxx:2374
-#: src/editor/syntheditor.cxx:2379 src/editor/syntheditor.cxx:2381
-#: src/editor/syntheditor.cxx:2382 src/editor/syntheditor.cxx:2526
+#: src/editor/syntheditor.cxx:1387 src/editor/syntheditor.cxx:1467
+#: src/editor/syntheditor.cxx:1496 src/editor/syntheditor.cxx:1503
+#: src/editor/syntheditor.cxx:2007 src/editor/syntheditor.cxx:2189
+#: src/editor/syntheditor.cxx:2383 src/editor/syntheditor.cxx:2398
+#: src/editor/syntheditor.cxx:2403 src/editor/syntheditor.cxx:2405
+#: src/editor/syntheditor.cxx:2406 src/editor/syntheditor.cxx:2552
 msgid "Confirm"
 msgstr "Confirmation"
 
-#: src/editor/syntheditor.cxx:4135
+#: src/editor/syntheditor.cxx:4172
 msgid "Controllers"
 msgstr "Contrôleurs"
 
-#: src/editor/syntheditor.cxx:2131 src/editor/syntheditor.cxx:2477
+#: src/editor/syntheditor.cxx:2139 src/editor/syntheditor.cxx:2501
 msgid "Cu&t"
 msgstr "Co&uper"
 
-#: src/editor/syntheditor.cxx:2526
+#: src/editor/syntheditor.cxx:2552
 #, c-format
 msgid "Delete multi %u?"
 msgstr "Supprimer le multi %u?"
 
-#: src/editor/syntheditor.cxx:2181
+#: src/editor/syntheditor.cxx:2189
 #, c-format
 msgid "Delete sound %u?"
 msgstr "Supprimer le son %u?"
 
-#: src/editor/syntheditor.cxx:4089
+#: src/editor/syntheditor.cxx:4126
 msgid "Detune"
 msgstr "Accord"
 
-#: src/editor/syntheditor.cxx:2990
+#: src/editor/syntheditor.cxx:3016
 msgid "Do you really want to exit?"
 msgstr "Voulez-vous vraiment quitter minicomputer?"
 
 #. Fl::lock();
 #. fl_cursor(FL_CURSOR_WAIT ,FL_WHITE, FL_BLACK);
 #. Fl::check();
-#: src/editor/syntheditor.cxx:2374
+#: src/editor/syntheditor.cxx:2398
 msgid "Do you want to import embedded sounds, overwriting existing sounds?"
 msgstr ""
 "Voulez-vous importer les sons incorporés (ceci peut écraser des sons "
 "existants)?"
 
-#: src/editor/syntheditor.cxx:2974
+#: src/editor/syntheditor.cxx:3000
 msgid "Don't exit"
 msgstr "Ne pas quitter"
 
-#: src/editor/syntheditor.cxx:3547
+#: src/editor/syntheditor.cxx:3584
 msgid "Don't restart envelope if previous note is still held"
 msgstr "Ne redémarre pas l'enveloppe si la note précédente est tenue"
 
-#: src/editor/syntheditor.cxx:4467
+#: src/editor/syntheditor.cxx:4504
 msgid "Enter the multi name here before storing it"
 msgstr "Saisissez le nom du multi avant de le stocker"
 
-#: src/editor/syntheditor.cxx:3783
+#: src/editor/syntheditor.cxx:3820
 msgid "Enter the sound name here before storing it"
 msgstr "Saisissez le nom du son avant de le stocker"
 
-#: src/editor/syntheditor.cxx:3421
+#: src/editor/syntheditor.cxx:3458
 msgid "Envelope generator 1"
 msgstr "Générateur d'enveloppe 1"
 
-#: src/editor/syntheditor.cxx:3422
+#: src/editor/syntheditor.cxx:3459
 msgid "Envelope generator 2"
 msgstr "Générateur d'enveloppe 2"
 
-#: src/editor/syntheditor.cxx:3423
+#: src/editor/syntheditor.cxx:3460
 msgid "Envelope generator 3"
 msgstr "Générateur d'enveloppe 3"
 
-#: src/editor/syntheditor.cxx:3424
+#: src/editor/syntheditor.cxx:3461
 msgid "Envelope generator 4"
 msgstr "Générateur d'enveloppe 4"
 
-#: src/editor/syntheditor.cxx:3425
+#: src/editor/syntheditor.cxx:3462
 msgid "Envelope generator 5"
 msgstr "Générateur d'enveloppe 5"
 
-#: src/editor/syntheditor.cxx:3426
+#: src/editor/syntheditor.cxx:3463
 msgid "Envelope generator 6"
 msgstr "Générateur d'enveloppe 6"
 
-#: src/editor/syntheditor.cxx:2974 src/editor/syntheditor.cxx:2990
+#: src/editor/syntheditor.cxx:3000 src/editor/syntheditor.cxx:3016
 msgid "Exit"
 msgstr "Quitter"
 
-#: src/editor/syntheditor.cxx:2136 src/editor/syntheditor.cxx:2482
+#: src/editor/syntheditor.cxx:2144 src/editor/syntheditor.cxx:2508
 msgid "Export"
 msgstr "Exporter"
 
-#: src/editor/syntheditor.cxx:4316
+#: src/editor/syntheditor.cxx:4353
 msgid "Export multi from selected location to file"
 msgstr "Exporter le multi de l'emplacement sélectionné vers un fichier"
 
-#: src/editor/syntheditor.cxx:3384
+#: src/editor/syntheditor.cxx:3421
 msgid "Filters (unless bypassed) shape the harmonic contents of the sound."
 msgstr "Les filtres (si activés) déterminent le contenu harmonique du son"
 
-#: src/editor/syntheditor.cxx:4530
+#: src/editor/syntheditor.cxx:4567
 msgid "Hear the currently loaded sound"
 msgstr "Joue le son actuellement chargé"
 
-#: src/editor/syntheditor.cxx:3476
+#: src/editor/syntheditor.cxx:3513
 msgid "Hz"
 msgstr "Hz"
 
-#: src/editor/syntheditor.cxx:2135 src/editor/syntheditor.cxx:2481
+#: src/editor/syntheditor.cxx:2143 src/editor/syntheditor.cxx:2507
 msgid "Import"
 msgstr "Importer"
 
-#: src/editor/syntheditor.cxx:4308
+#: src/editor/syntheditor.cxx:4345
 msgid "Import multi from file to selected location"
 msgstr "Importer le multi depuis un fichier vers l'emplacement sélectionné"
 
-#: src/editor/syntheditor.cxx:4552
+#: src/editor/syntheditor.cxx:4589
 msgid "Instantly stop all voices (shortcut Esc)"
 msgstr "Arrête instantanément toutes les voix (raccourci Echap)"
 
-#: src/editor/syntheditor.cxx:2475
+#: src/editor/syntheditor.cxx:2499
 msgid "Load"
 msgstr "Charger"
 
 #. If sound is in use, propose to apply imported version
-#: src/editor/syntheditor.cxx:1488
+#: src/editor/syntheditor.cxx:1496
 #, c-format
 msgid "Load the imported sound #%u in voice(s) using that sound number?"
 msgstr "Charger le son importé n°%u dans la ou les voix utilisant ce numéro?"
 
-#: src/editor/syntheditor.cxx:3916
+#: src/editor/syntheditor.cxx:3953
 msgid "MIDI"
 msgstr "MIDI"
 
 #. End of for voice
 #. Global detune, multi parameter 12
-#: src/editor/syntheditor.cxx:4074
+#: src/editor/syntheditor.cxx:4111
 msgid "Master tune"
 msgstr "Accord global"
 
@@ -268,43 +272,43 @@ msgstr "Microcomp 8"
 msgid "Microcomp 9"
 msgstr "Microcomp 9"
 
-#: src/editor/syntheditor.cxx:3512
+#: src/editor/syntheditor.cxx:3549
 msgid "Modulators allow various parameters of the sound to vary with time."
 msgstr ""
 "Les modulateurs permettent de faire varier dans le temps de nombreux "
 "paramètres du son."
 
-#: src/editor/syntheditor.cxx:3501
+#: src/editor/syntheditor.cxx:3538
 msgid "Multiply modulation oscillator by modulation wheel"
 msgstr "Multiplier le LFO par la molette de modulation"
 
-#: src/editor/syntheditor.cxx:4261
+#: src/editor/syntheditor.cxx:4298
 msgid "Multis"
 msgstr "Multis"
 
-#: src/editor/syntheditor.cxx:2249 src/editor/syntheditor.cxx:2341
+#: src/editor/syntheditor.cxx:2257 src/editor/syntheditor.cxx:2365
 msgid "New name?"
 msgstr "Nouveau nom?"
 
-#: src/editor/syntheditor.cxx:1379 src/editor/syntheditor.cxx:1459
-#: src/editor/syntheditor.cxx:1488 src/editor/syntheditor.cxx:1495
-#: src/editor/syntheditor.cxx:1999 src/editor/syntheditor.cxx:2181
-#: src/editor/syntheditor.cxx:2359 src/editor/syntheditor.cxx:2374
-#: src/editor/syntheditor.cxx:2379 src/editor/syntheditor.cxx:2381
-#: src/editor/syntheditor.cxx:2382 src/editor/syntheditor.cxx:2526
-#: src/editor/syntheditor.cxx:2990
+#: src/editor/syntheditor.cxx:1387 src/editor/syntheditor.cxx:1467
+#: src/editor/syntheditor.cxx:1496 src/editor/syntheditor.cxx:1503
+#: src/editor/syntheditor.cxx:2007 src/editor/syntheditor.cxx:2189
+#: src/editor/syntheditor.cxx:2383 src/editor/syntheditor.cxx:2398
+#: src/editor/syntheditor.cxx:2403 src/editor/syntheditor.cxx:2405
+#: src/editor/syntheditor.cxx:2406 src/editor/syntheditor.cxx:2552
+#: src/editor/syntheditor.cxx:3016
 msgid "No"
 msgstr "Non"
 
 #. Note max as number
 #. Note max as string
-#: src/editor/syntheditor.cxx:3983 src/editor/syntheditor.cxx:3997
+#: src/editor/syntheditor.cxx:4020 src/editor/syntheditor.cxx:4034
 msgid "Note max"
 msgstr "Note max"
 
 #. Note min as number
 #. Note min as string
-#: src/editor/syntheditor.cxx:3960 src/editor/syntheditor.cxx:3973
+#: src/editor/syntheditor.cxx:3997 src/editor/syntheditor.cxx:4010
 msgid "Note min"
 msgstr "Note min"
 
@@ -320,84 +324,92 @@ msgstr "Note min"
 #. printf("none -> %s\n", _("none")); --> aucune
 #. #define _DEBUG
 #. Ugly hack - these should come from minichoice.cxx
-#: src/editor/syntheditor.cxx:3020
+#: src/editor/syntheditor.cxx:3046
 msgid "OK"
 msgstr "OK"
 
-#: src/editor/syntheditor.cxx:3199 src/editor/syntheditor.cxx:3251
+#: src/editor/syntheditor.cxx:3225 src/editor/syntheditor.cxx:3277
 msgid "One of the primary sound sources. Sounds originate from here."
 msgstr "Une des sources du son. Les sons partent d'ici."
 
-#: src/editor/syntheditor.cxx:1459
+#: src/editor/syntheditor.cxx:1467
 #, c-format
 msgid "Overwrite sound #%u %s?"
 msgstr "Ecraser le son N°%u %s?"
 
-#: src/editor/syntheditor.cxx:4551
+#: src/editor/syntheditor.cxx:4588
 msgid "PANIC"
 msgstr "PANIQUE"
 
-#: src/editor/syntheditor.cxx:3898
+#: src/editor/syntheditor.cxx:2504
+msgid "Paste controllers"
+msgstr "Coller les contrôleurs"
+
+#: src/editor/syntheditor.cxx:2503
+msgid "Paste tuning"
+msgstr "Coller l'accord"
+
+#: src/editor/syntheditor.cxx:3935
 msgid "Pitch bend range (semitones)"
 msgstr "Etendue du pitch bend en demi-tons"
 
-#: src/editor/syntheditor.cxx:1379
+#: src/editor/syntheditor.cxx:1387
 #, c-format
 msgid "Refresh multi %u before export?"
 msgstr "Mettre à jour le multi %u avant de l'exporter?"
 
-#: src/editor/syntheditor.cxx:2133 src/editor/syntheditor.cxx:2249
-#: src/editor/syntheditor.cxx:2341 src/editor/syntheditor.cxx:2479
+#: src/editor/syntheditor.cxx:2141 src/editor/syntheditor.cxx:2257
+#: src/editor/syntheditor.cxx:2365 src/editor/syntheditor.cxx:2505
 msgid "Rename"
 msgstr "Renommer"
 
 #. now the new multi is in RAM but need to be saved to the main file
-#: src/editor/syntheditor.cxx:2381
+#: src/editor/syntheditor.cxx:2405
 msgid "Save all multis?"
 msgstr "Enregistrer les données de tous les multis?"
 
-#: src/editor/syntheditor.cxx:1495
+#: src/editor/syntheditor.cxx:1503
 #, c-format
 msgid "Save all sounds (including #%u)?"
 msgstr "Enregistrer tous les sons (dont le n°%u)?"
 
-#: src/editor/syntheditor.cxx:2382
+#: src/editor/syntheditor.cxx:2406
 msgid "Save all sounds?"
 msgstr "Enregistrer les données de tous les sons?"
 
-#: src/editor/syntheditor.cxx:2974
+#: src/editor/syntheditor.cxx:3000
 msgid "Save and exit"
 msgstr "Enregistrer et quitter"
 
-#: src/editor/syntheditor.cxx:4164
+#: src/editor/syntheditor.cxx:4201
 msgid "Sounds"
 msgstr "Sons"
 
-#: src/editor/syntheditor.cxx:4451
+#: src/editor/syntheditor.cxx:4488
 msgid "Target slot number in the multi memory"
 msgstr "Emplacement cible dans la mémoire des multis"
 
-#: src/editor/syntheditor.cxx:3772
+#: src/editor/syntheditor.cxx:3809
 msgid "Target slot number in the sound memory"
 msgstr "Emplacement cible dans la mémoire des sons"
 
 #. Test note as number
 #. Test note as string
-#: src/editor/syntheditor.cxx:4021 src/editor/syntheditor.cxx:4035
+#: src/editor/syntheditor.cxx:4058 src/editor/syntheditor.cxx:4072
 msgid "Test note"
 msgstr "Note test"
 
 #. Test velocity
-#: src/editor/syntheditor.cxx:4045
+#: src/editor/syntheditor.cxx:4082
 msgid "Test vel."
 msgstr "Vél. test"
 
-#: src/editor/syntheditor.cxx:3658
+#: src/editor/syntheditor.cxx:3695
 msgid ""
 "The amp section controls the global volume and pan position of the sound."
 msgstr "La section amp. contrôle le volume global et le panoramique du son."
 
-#: src/editor/syntheditor.cxx:3737
+#: src/editor/syntheditor.cxx:3774
 msgid ""
 "The delay section adds a delayed version of itself to the sound.\n"
 "It is suitable for effects ranging from slight phasing to echo."
@@ -405,7 +417,7 @@ msgstr ""
 "La ligne à retard ajoute au signal une version retardée de lui-même.\n"
 "Elle permet de générer des effets allant du phasing à l'écho."
 
-#: src/editor/syntheditor.cxx:3509
+#: src/editor/syntheditor.cxx:3546
 msgid ""
 "The modulation oscillator aka LFO applies repetitive change to the sound "
 "parameters.\n"
@@ -416,7 +428,7 @@ msgstr ""
 "Quand le bouton mod est actif, la molette de modulation contrôle l'amplitude "
 "de l'effet."
 
-#: src/editor/syntheditor.cxx:4502
+#: src/editor/syntheditor.cxx:4539
 msgid ""
 "These controls allow storing current multi parameters to the selected memory "
 "slot,\n"
@@ -429,7 +441,7 @@ msgstr ""
 "Le nom est affiché en rouge si les paramètres courants diffèrent de ceux de "
 "l'emplacement mémoire sélectionné."
 
-#: src/editor/syntheditor.cxx:3840
+#: src/editor/syntheditor.cxx:3877
 msgid ""
 "These controls allow storing current sound parameters to the selected memory "
 "slot,\n"
@@ -443,39 +455,39 @@ msgstr ""
 "l'emplacement mémoire sélectionné."
 
 #. Transpose
-#: src/editor/syntheditor.cxx:4007
+#: src/editor/syntheditor.cxx:4044
 msgid "Transpose"
 msgstr "Transp."
 
-#: src/editor/syntheditor.cxx:2379
+#: src/editor/syntheditor.cxx:2403
 msgid "Use the imported multi as current?"
 msgstr "Activer le multi importé?"
 
-#: src/editor/syntheditor.cxx:3161
+#: src/editor/syntheditor.cxx:3187
 msgid "Voice "
 msgstr "Voix "
 
-#: src/editor/syntheditor.cxx:3933
+#: src/editor/syntheditor.cxx:3970
 #, c-format
 msgid "Voice %u"
 msgstr "Voix %u"
 
-#: src/editor/syntheditor.cxx:2974
+#: src/editor/syntheditor.cxx:3000
 msgid "What do you want to do?"
 msgstr "Que souhaitez-vous faire?"
 
 #. write to disk
-#: src/editor/syntheditor.cxx:1379 src/editor/syntheditor.cxx:1459
-#: src/editor/syntheditor.cxx:1488 src/editor/syntheditor.cxx:1495
-#: src/editor/syntheditor.cxx:1999 src/editor/syntheditor.cxx:2181
-#: src/editor/syntheditor.cxx:2359 src/editor/syntheditor.cxx:2374
-#: src/editor/syntheditor.cxx:2379 src/editor/syntheditor.cxx:2381
-#: src/editor/syntheditor.cxx:2382 src/editor/syntheditor.cxx:2526
-#: src/editor/syntheditor.cxx:2990
+#: src/editor/syntheditor.cxx:1387 src/editor/syntheditor.cxx:1467
+#: src/editor/syntheditor.cxx:1496 src/editor/syntheditor.cxx:1503
+#: src/editor/syntheditor.cxx:2007 src/editor/syntheditor.cxx:2189
+#: src/editor/syntheditor.cxx:2383 src/editor/syntheditor.cxx:2398
+#: src/editor/syntheditor.cxx:2403 src/editor/syntheditor.cxx:2405
+#: src/editor/syntheditor.cxx:2406 src/editor/syntheditor.cxx:2552
+#: src/editor/syntheditor.cxx:3016
 msgid "Yes"
 msgstr "Oui"
 
-#: src/editor/syntheditor.cxx:3805
+#: src/editor/syntheditor.cxx:3842
 msgid "actually load the dialed sound"
 msgstr "charge le son sélectionné"
 
@@ -487,58 +499,66 @@ msgstr "dent de scie add."
 msgid "add Square"
 msgstr "carré additif"
 
-#: src/editor/syntheditor.cxx:2837 src/editor/syntheditor.cxx:2872
-#: src/editor/syntheditor.cxx:2899 src/editor/syntheditor.cxx:2926
-#: src/editor/syntheditor.cxx:3243 src/editor/syntheditor.cxx:3340
-#: src/editor/syntheditor.cxx:3376 src/editor/syntheditor.cxx:3535
-#: src/editor/syntheditor.cxx:3650 src/editor/syntheditor.cxx:3682
-#: src/editor/syntheditor.cxx:3707
+#: src/editor/syntheditor.cxx:2863 src/editor/syntheditor.cxx:2898
+#: src/editor/syntheditor.cxx:2925 src/editor/syntheditor.cxx:2952
+#: src/editor/syntheditor.cxx:3269 src/editor/syntheditor.cxx:3366
+#: src/editor/syntheditor.cxx:3402 src/editor/syntheditor.cxx:3572
+#: src/editor/syntheditor.cxx:3687 src/editor/syntheditor.cxx:3719
+#: src/editor/syntheditor.cxx:3744
 msgid "amount"
 msgstr "niveau"
 
 #. Amp group
-#: src/editor/syntheditor.cxx:3517
+#: src/editor/syntheditor.cxx:3554
 msgid "amp"
 msgstr "amp"
 
-#: src/editor/syntheditor.cxx:3524
+#: src/editor/syntheditor.cxx:3561
 msgid "amp modulator"
 msgstr "mod. d'amplitude"
 
-#: src/editor/syntheditor.cxx:2888
+#: src/editor/syntheditor.cxx:2914
 msgid "amp modulator 1"
 msgstr "mod. d'amplitude 1"
 
-#: src/editor/syntheditor.cxx:3186
+#: src/editor/syntheditor.cxx:3212
 msgid "amp modulator 2"
 msgstr "mod. d'amplitude 2"
 
-#: src/editor/syntheditor.cxx:3597
+#: src/editor/syntheditor.cxx:3634
 msgid "aux 1"
 msgstr "aux 1"
 
-#: src/editor/syntheditor.cxx:3607
+#: src/editor/syntheditor.cxx:3644
 msgid "aux 2"
 msgstr "aux 2"
 
-#: src/editor/syntheditor.cxx:3223
+#: src/editor/syntheditor.cxx:3249
 msgid "base width"
 msgstr "largeur"
 
-#: src/editor/syntheditor.cxx:3897
+#: src/editor/syntheditor.cxx:3934
 msgid "bender"
 msgstr "molette de pitch"
+
+#: src/editor/syntheditor.cxx:163
+msgid "bi-quad 2p"
+msgstr "bi-quad 2p"
+
+#: src/editor/syntheditor.cxx:164
+msgid "bi-quad 4p"
+msgstr "bi-quad 4p"
 
 #: src/editor/syntheditor.cxx:144
 msgid "bit"
 msgstr "bit"
 
-#: src/editor/syntheditor.cxx:2818
+#: src/editor/syntheditor.cxx:2844
 msgid "boost"
 msgstr "x100"
 
 #. The two following buttons are not really part of the filter parameters
-#: src/editor/syntheditor.cxx:3388
+#: src/editor/syntheditor.cxx:3425
 msgid "bypass filters"
 msgstr "filtres désactivés"
 
@@ -578,7 +598,7 @@ msgstr ""
 msgid "cc #9    "
 msgstr ""
 
-#: src/editor/syntheditor.cxx:3398
+#: src/editor/syntheditor.cxx:3435
 msgid "clear state"
 msgstr "ràz état"
 
@@ -586,7 +606,7 @@ msgstr "ràz état"
 msgid "comb"
 msgstr "peigne"
 
-#: src/editor/syntheditor.cxx:2711
+#: src/editor/syntheditor.cxx:2737
 msgid "cut"
 msgstr "coupure"
 
@@ -596,11 +616,11 @@ msgstr "pédale forte"
 
 #. Delay group
 #: src/editor/syntheditor.cxx:88 src/editor/syntheditor.cxx:122
-#: src/editor/syntheditor.cxx:3663
+#: src/editor/syntheditor.cxx:3700
 msgid "delay"
 msgstr "ligne à retard"
 
-#: src/editor/syntheditor.cxx:3713
+#: src/editor/syntheditor.cxx:3750
 msgid "delay time"
 msgstr "durée"
 
@@ -628,23 +648,23 @@ msgstr ""
 msgid "eg 6"
 msgstr ""
 
-#: src/editor/syntheditor.cxx:2845
+#: src/editor/syntheditor.cxx:2871
 msgid "exp."
 msgstr "exp."
 
-#: src/editor/syntheditor.cxx:4315
+#: src/editor/syntheditor.cxx:4352
 msgid "export multi"
 msgstr "exporter multi"
 
-#: src/editor/syntheditor.cxx:3830
+#: src/editor/syntheditor.cxx:3867
 msgid "export sound"
 msgstr "exporter son"
 
-#: src/editor/syntheditor.cxx:3831
+#: src/editor/syntheditor.cxx:3868
 msgid "export sound data of dialed memory slot"
 msgstr "exporte les données du son depuis l'emplacement mémoire sélectionné"
 
-#: src/editor/syntheditor.cxx:3730
+#: src/editor/syntheditor.cxx:3767
 msgid "feedback"
 msgstr "feedback"
 
@@ -652,101 +672,105 @@ msgstr "feedback"
 msgid "filter"
 msgstr "filtre"
 
-#: src/editor/syntheditor.cxx:3263
+#: src/editor/syntheditor.cxx:3289
 msgid "filter 1"
 msgstr "filtre 1"
 
-#: src/editor/syntheditor.cxx:3281
+#: src/editor/syntheditor.cxx:3307
 msgid "filter 2"
 msgstr "filtre 2"
 
-#: src/editor/syntheditor.cxx:3312
+#: src/editor/syntheditor.cxx:3338
 msgid "filter 3"
 msgstr "filtre 3"
 
+#: src/editor/syntheditor.cxx:3410
+msgid "filter type"
+msgstr "type de filtre"
+
 #. Filters
-#: src/editor/syntheditor.cxx:3256
+#: src/editor/syntheditor.cxx:3282
 msgid "filters"
 msgstr "filtres"
 
-#: src/editor/syntheditor.cxx:2810
+#: src/editor/syntheditor.cxx:2836
 msgid "fixed freq."
 msgstr "fréq. fixe"
 
-#: src/editor/syntheditor.cxx:3211
+#: src/editor/syntheditor.cxx:3237
 msgid "fm out amp modulator"
 msgstr "mod. d'amp. de la sortie fm"
 
-#: src/editor/syntheditor.cxx:2961
+#: src/editor/syntheditor.cxx:2987
 msgid "fm out vol"
 msgstr "sortie fm"
 
-#: src/editor/syntheditor.cxx:2826
+#: src/editor/syntheditor.cxx:2852
 msgid "freq modulator 1"
 msgstr "mod. de fréquence 1"
 
-#: src/editor/syntheditor.cxx:2861
+#: src/editor/syntheditor.cxx:2887
 msgid "freq modulator 2"
 msgstr "mod. de fréquence 2"
 
-#: src/editor/syntheditor.cxx:2770
+#: src/editor/syntheditor.cxx:2796
 msgid "frequency"
 msgstr "fréquence"
 
-#: src/editor/syntheditor.cxx:3884
+#: src/editor/syntheditor.cxx:3921
 msgid "from delay"
 msgstr "depuis le retard"
 
-#: src/editor/syntheditor.cxx:3891
+#: src/editor/syntheditor.cxx:3928
 msgid "glide"
 msgstr "glissando"
 
-#: src/editor/syntheditor.cxx:4610
+#: src/editor/syntheditor.cxx:4647
 #, c-format
 msgid "gui quit\n"
 msgstr "arrêt du gui\n"
 
-#: src/editor/syntheditor.cxx:3587
+#: src/editor/syntheditor.cxx:3624
 msgid "id vol"
 msgstr "indiv."
 
-#: src/editor/syntheditor.cxx:4307
+#: src/editor/syntheditor.cxx:4344
 msgid "import multi"
 msgstr "importer multi"
 
-#: src/editor/syntheditor.cxx:3822
+#: src/editor/syntheditor.cxx:3859
 msgid ""
 "import single sound to dialed memory slot, you need to load it for playing"
 msgstr ""
 "importe un son dans l'emplacement sélectionné, il faut le charger pour en "
 "jouer."
 
-#: src/editor/syntheditor.cxx:3821
+#: src/editor/syntheditor.cxx:3858
 msgid "import sound"
 msgstr "importer son"
 
-#: src/editor/syntheditor.cxx:3541
+#: src/editor/syntheditor.cxx:3578
 msgid "legato"
 msgstr "legato"
 
-#: src/editor/syntheditor.cxx:4232
+#: src/editor/syntheditor.cxx:4269
 #, c-format
 msgid "load %d"
 msgstr "ch. %d"
 
-#: src/editor/syntheditor.cxx:4300
+#: src/editor/syntheditor.cxx:4337
 msgid "load (activate) currently selected multi"
 msgstr "charge (active) le multi actuellement sélectionné."
 
-#: src/editor/syntheditor.cxx:4485
+#: src/editor/syntheditor.cxx:4522
 msgid "load (activate) selected multi"
 msgstr "charge (active) le multi actuellement sélectionné."
 
-#: src/editor/syntheditor.cxx:4299 src/editor/syntheditor.cxx:4484
+#: src/editor/syntheditor.cxx:4336 src/editor/syntheditor.cxx:4521
 msgid "load multi"
 msgstr "charger multi"
 
-#: src/editor/syntheditor.cxx:3804
+#: src/editor/syntheditor.cxx:3841
 msgid "load sound"
 msgstr "charger son"
 
@@ -754,15 +778,15 @@ msgstr "charger son"
 msgid "midi note"
 msgstr "note midi"
 
-#: src/editor/syntheditor.cxx:3627
+#: src/editor/syntheditor.cxx:3664
 msgid "mix pan"
 msgstr "mix pan"
 
-#: src/editor/syntheditor.cxx:3617
+#: src/editor/syntheditor.cxx:3654
 msgid "mix vol"
 msgstr "mix vol"
 
-#: src/editor/syntheditor.cxx:3430
+#: src/editor/syntheditor.cxx:3467
 msgid "mod osc"
 msgstr "osc. de modulation"
 
@@ -770,7 +794,7 @@ msgstr "osc. de modulation"
 msgid "mod wheel"
 msgstr "molette de mod."
 
-#: src/editor/syntheditor.cxx:3498
+#: src/editor/syntheditor.cxx:3535
 msgid "mod."
 msgstr "mod."
 
@@ -779,38 +803,38 @@ msgid "modulation osc"
 msgstr "osc. de modulation"
 
 #. Modulators
-#: src/editor/syntheditor.cxx:3412
+#: src/editor/syntheditor.cxx:3449
 msgid "modulators"
 msgstr "modulateurs"
 
-#: src/editor/syntheditor.cxx:3348
+#: src/editor/syntheditor.cxx:3374
 msgid "morph"
 msgstr "morph"
 
-#: src/editor/syntheditor.cxx:3330
+#: src/editor/syntheditor.cxx:3356
 msgid "morph mod 1"
 msgstr "mod. de morph 1"
 
-#: src/editor/syntheditor.cxx:3357
+#: src/editor/syntheditor.cxx:3383
 msgid "morph mod 2"
 msgstr "mod. de morph 2"
 
 #. Mult button morph mod 2
-#: src/editor/syntheditor.cxx:2853 src/editor/syntheditor.cxx:2880
-#: src/editor/syntheditor.cxx:2907 src/editor/syntheditor.cxx:3368
-#: src/editor/syntheditor.cxx:3688
+#: src/editor/syntheditor.cxx:2879 src/editor/syntheditor.cxx:2906
+#: src/editor/syntheditor.cxx:2933 src/editor/syntheditor.cxx:3394
+#: src/editor/syntheditor.cxx:3725
 msgid "mult."
 msgstr "mult."
 
-#: src/editor/syntheditor.cxx:4425
+#: src/editor/syntheditor.cxx:4462
 msgid "multi"
 msgstr "multi"
 
-#: src/editor/syntheditor.cxx:4441
+#: src/editor/syntheditor.cxx:4478
 msgid "multi #"
 msgstr "multi N°"
 
-#: src/editor/syntheditor.cxx:3781 src/editor/syntheditor.cxx:4462
+#: src/editor/syntheditor.cxx:3818 src/editor/syntheditor.cxx:4499
 msgid "name"
 msgstr "nom"
 
@@ -842,30 +866,30 @@ msgstr "osc 2"
 msgid "osc 2 fm out"
 msgstr "sortie fm osc 2"
 
-#: src/editor/syntheditor.cxx:3844
+#: src/editor/syntheditor.cxx:3881
 msgid "osc1 vol"
 msgstr "osc1 vol"
 
-#: src/editor/syntheditor.cxx:3858
+#: src/editor/syntheditor.cxx:3895
 msgid "osc2 vol"
 msgstr "osc2 vol"
 
 #. Oscillator 1
 #. No FL_ALIGN_WRAP!!
-#: src/editor/syntheditor.cxx:3179 src/editor/syntheditor.cxx:3186
+#: src/editor/syntheditor.cxx:3205 src/editor/syntheditor.cxx:3212
 msgid "oscillator 1"
 msgstr "oscillateur 1"
 
 #. Oscillator 2
-#: src/editor/syntheditor.cxx:3203 src/editor/syntheditor.cxx:3211
+#: src/editor/syntheditor.cxx:3229 src/editor/syntheditor.cxx:3237
 msgid "oscillator 2"
 msgstr "oscillateur 2"
 
-#: src/editor/syntheditor.cxx:4493
+#: src/editor/syntheditor.cxx:4530
 msgid "overwrite selected multi with current settings"
 msgstr "remplace le multi sélectionné par les réglages courants"
 
-#: src/editor/syntheditor.cxx:3639
+#: src/editor/syntheditor.cxx:3676
 msgid "pan modulator"
 msgstr "mod. de pan"
 
@@ -875,19 +899,19 @@ msgstr "molette de pitch"
 
 #. Poly link
 #. Last voice cannot be linked to next
-#: src/editor/syntheditor.cxx:4061
+#: src/editor/syntheditor.cxx:4098
 msgid "poly"
 msgstr "poly"
 
-#: src/editor/syntheditor.cxx:3232
+#: src/editor/syntheditor.cxx:3258
 msgid "pulse width modulator"
 msgstr "mod. de largeur d'impulsion"
 
-#: src/editor/syntheditor.cxx:3871
+#: src/editor/syntheditor.cxx:3908
 msgid "pwm vol"
 msgstr "pwm vol"
 
-#: src/editor/syntheditor.cxx:2730
+#: src/editor/syntheditor.cxx:2756
 msgid "q"
 msgstr "q"
 
@@ -900,20 +924,20 @@ msgid "ramp up"
 msgstr "rampe asc."
 
 #. Repeat
-#: src/editor/syntheditor.cxx:2671
+#: src/editor/syntheditor.cxx:2697
 msgid "repeat"
 msgstr "répét."
 
 #. { MiniButton* o = new MiniButton(490, 430, 85, 15, _("clear state"));
-#: src/editor/syntheditor.cxx:3400
+#: src/editor/syntheditor.cxx:3437
 msgid "reset the filter and delay"
 msgstr "réinitialiser le filtre et la ligne à retard"
 
-#: src/editor/syntheditor.cxx:3864
+#: src/editor/syntheditor.cxx:3901
 msgid "ring vol"
 msgstr "ring vol"
 
-#: src/editor/syntheditor.cxx:4475
+#: src/editor/syntheditor.cxx:4512
 msgid ""
 "roll the list of multis, press load button for loading or save button for "
 "storing"
@@ -921,23 +945,23 @@ msgstr ""
 "fait défiler la liste des multis, cliquez sur charger pour charger le multi "
 "et sur stocker pour le remplacer."
 
-#: src/editor/syntheditor.cxx:3795
+#: src/editor/syntheditor.cxx:3832
 msgid "roll the list of sounds"
 msgstr "fait défiler la liste des sons"
 
-#: src/editor/syntheditor.cxx:4292
+#: src/editor/syntheditor.cxx:4329
 msgid "save all multis data"
 msgstr "enregistre les données de tous les multis"
 
-#: src/editor/syntheditor.cxx:4222
+#: src/editor/syntheditor.cxx:4259
 msgid "save all sound data"
 msgstr "enregistre les données de tous les sons"
 
-#: src/editor/syntheditor.cxx:4291
+#: src/editor/syntheditor.cxx:4328
 msgid "save multis"
 msgstr "enreg. multis"
 
-#: src/editor/syntheditor.cxx:4221
+#: src/editor/syntheditor.cxx:4258
 msgid "save sounds"
 msgstr "enreg. sons"
 
@@ -949,11 +973,11 @@ msgstr "enreg. sons"
 msgid "sine"
 msgstr "sinus"
 
-#: src/editor/syntheditor.cxx:3746
+#: src/editor/syntheditor.cxx:3783
 msgid "sound"
 msgstr "son"
 
-#: src/editor/syntheditor.cxx:3761
+#: src/editor/syntheditor.cxx:3798
 msgid "sound #"
 msgstr "son N°"
 
@@ -965,45 +989,54 @@ msgstr "pointe"
 msgid "square"
 msgstr "carré"
 
-#: src/editor/syntheditor.cxx:2934 src/editor/syntheditor.cxx:3460
+#: src/editor/syntheditor.cxx:2960 src/editor/syntheditor.cxx:3497
 msgid "start phase"
 msgstr "phase initiale"
 
-#: src/editor/syntheditor.cxx:3813
+#. UserInterface::
+#: src/editor/syntheditor.cxx:161
+msgid "state variable 2p"
+msgstr "variable d'état 2p"
+
+#: src/editor/syntheditor.cxx:162
+msgid "state variable 4p"
+msgstr "variable d'état 4p"
+
+#: src/editor/syntheditor.cxx:3850
 msgid "store current sound in dialed memory"
 msgstr "stocke le son courant à l'emplacement sélectionné"
 
-#: src/editor/syntheditor.cxx:4492
+#: src/editor/syntheditor.cxx:4529
 msgid "store multi"
 msgstr "stocker multi"
 
-#: src/editor/syntheditor.cxx:3812
+#: src/editor/syntheditor.cxx:3849
 msgid "store sound"
 msgstr "stocker son"
 
-#: src/editor/syntheditor.cxx:3851
+#: src/editor/syntheditor.cxx:3888
 msgid "sub vol"
 msgstr "sub vol"
 
 #. Oscillator 1 specific setting
-#: src/editor/syntheditor.cxx:3188
+#: src/editor/syntheditor.cxx:3214
 msgid "sub waveform"
 msgstr "forme d'onde du sub-osc."
 
 #. Oscillator 2 specific settings
-#: src/editor/syntheditor.cxx:3214
+#: src/editor/syntheditor.cxx:3240
 msgid "sync to osc1"
 msgstr "sync osc1"
 
-#: src/editor/syntheditor.cxx:3671
+#: src/editor/syntheditor.cxx:3708
 msgid "time modulator 1"
 msgstr "mod. de durée 1"
 
-#: src/editor/syntheditor.cxx:3696
+#: src/editor/syntheditor.cxx:3733
 msgid "time modulator 2"
 msgstr "mod. de durée 2"
 
-#: src/editor/syntheditor.cxx:3878
+#: src/editor/syntheditor.cxx:3915
 msgid "to delay"
 msgstr "vers le retard"
 
@@ -1011,8 +1044,8 @@ msgstr "vers le retard"
 msgid "touch"
 msgstr "toucher"
 
-#: src/editor/syntheditor.cxx:3272 src/editor/syntheditor.cxx:3303
-#: src/editor/syntheditor.cxx:3321
+#: src/editor/syntheditor.cxx:3298 src/editor/syntheditor.cxx:3329
+#: src/editor/syntheditor.cxx:3347
 msgid "tracking"
 msgstr "suivi"
 
@@ -1020,7 +1053,7 @@ msgstr "suivi"
 msgid "tri"
 msgstr "triangle"
 
-#: src/editor/syntheditor.cxx:2779 src/editor/syntheditor.cxx:3436
+#: src/editor/syntheditor.cxx:2805 src/editor/syntheditor.cxx:3473
 msgid "tune"
 msgstr "accord"
 
@@ -1028,11 +1061,11 @@ msgstr "accord"
 msgid "velocity"
 msgstr "vélocité"
 
-#: src/editor/syntheditor.cxx:2739
+#: src/editor/syntheditor.cxx:2765
 msgid "vol"
 msgstr "vol"
 
-#: src/editor/syntheditor.cxx:2950 src/editor/syntheditor.cxx:3449
+#: src/editor/syntheditor.cxx:2976 src/editor/syntheditor.cxx:3486
 msgid "waveform"
 msgstr "forme d'onde"
 

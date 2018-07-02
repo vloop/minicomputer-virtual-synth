@@ -109,17 +109,17 @@ float modulator_bias[_MODCOUNT] __attribute__((aligned (16)))={
 	1.0f, // amp. modulator #14: modulation osc osc. de modulation
 	0.0f, // amp. modulator #15: touch toucher
 	0.0f, // amp. modulator #16: mod wheel molette de mod.
-	0.0f, // amp. modulator #17: cc 12 cc 12
+	0.0f, // amp. modulator #17: midi note note midi
 	1.0f, // amp. modulator #18: delay ligne à retard
-	0.0f, // amp. modulator #19: midi note note midi
-	0.0f, // amp. modulator #20: cc 2 cc 2
-	0.0f, // amp. modulator #21: cc 4 cc 4
-	0.0f, // amp. modulator #22: cc 5 cc 5
-	0.0f, // amp. modulator #23: cc 6 cc 6
-	0.0f, // amp. modulator #24: cc 14 cc 14
-	0.0f, // amp. modulator #25: cc 15 cc 15
-	0.0f, // amp. modulator #26: cc 16 cc 16
-	0.0f, // amp. modulator #27: cc 17 cc 17
+	0.0f, // amp. modulator #19: cc #1
+	0.0f, // amp. modulator #20: cc #2
+	0.0f, // amp. modulator #21: cc #3
+	0.0f, // amp. modulator #22: cc #4
+	0.0f, // amp. modulator #23: cc #5
+	0.0f, // amp. modulator #24: cc #6
+	0.0f, // amp. modulator #25: cc #7
+	0.0f, // amp. modulator #26: cc #8
+	0.0f, // amp. modulator #27: cc #9
 	0.0f, // amp. modulator #28: hold
 };
 
@@ -141,17 +141,17 @@ float modulator_scale[_MODCOUNT] __attribute__((aligned (16)))={
 	0.5f,// amp. modulator #14: modulation osc osc. de modulation
 	1.0f,// amp. modulator #15: touch toucher
 	1.0f,// amp. modulator #16: mod wheel molette de mod.
-	1.0f,// amp. modulator #17: cc 12 cc 12
+	1.0f,// amp. modulator #17: midi note note midi
 	0.5f,// amp. modulator #18: delay ligne à retard
-	1.0f,// amp. modulator #19: midi note note midi
-	1.0f,// amp. modulator #20: cc 2 cc 2
-	1.0f,// amp. modulator #21: cc 4 cc 4
-	1.0f,// amp. modulator #22: cc 5 cc 5
-	1.0f,// amp. modulator #23: cc 6 cc 6
-	1.0f,// amp. modulator #24: cc 14 cc 14
-	1.0f,// amp. modulator #25: cc 15 cc 15
-	1.0f,// amp. modulator #26: cc 16 cc 16
-	1.0f,// amp. modulator #27: cc 17 cc 17
+	1.0f,// amp. modulator #19: cc #1
+	1.0f,// amp. modulator #20: cc #2
+	1.0f,// amp. modulator #21: cc #3
+	1.0f,// amp. modulator #22: cc #4
+	1.0f,// amp. modulator #23: cc #5
+	1.0f,// amp. modulator #24: cc #6
+	1.0f,// amp. modulator #25: cc #7
+	1.0f,// amp. modulator #26: cc #8
+	1.0f,// amp. modulator #27: cc #9
 	0.0f,// amp. modulator #28: hold
 };
 float midif[_MULTITEMP] __attribute__((aligned (16)));
@@ -177,12 +177,26 @@ unsigned int choice[_MULTITEMP][_CHOICECOUNT] __attribute__((aligned (16)));
 // Filter-related variables
 // Use alignas(__mm_128i) ?
 // Only 3 of a possible 4 filters currently used
+// Allocating 4 makes 128-bit operations easier
 float high[_MULTITEMP][4] __attribute__((aligned (16)));
 float band[_MULTITEMP][4] __attribute__((aligned (16)));
 float low[_MULTITEMP][4] __attribute__((aligned (16)));
 float f[_MULTITEMP][4] __attribute__((aligned (16)));
 float q[_MULTITEMP][4] __attribute__((aligned (16)));
 float v[_MULTITEMP][4] __attribute__((aligned (16)));
+
+// http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
+float a0[_MULTITEMP][4] __attribute__((aligned (16)));
+float a1[_MULTITEMP][4] __attribute__((aligned (16)));
+float a2[_MULTITEMP][4] __attribute__((aligned (16)));
+float b1[_MULTITEMP][4] __attribute__((aligned (16)));
+float b2[_MULTITEMP][4] __attribute__((aligned (16)));
+// float Fc, Q, peakGain; // f, q, v above
+float z1[_MULTITEMP][4] __attribute__((aligned (16)));
+float z2[_MULTITEMP][4] __attribute__((aligned (16)));
+float z3[_MULTITEMP][4] __attribute__((aligned (16)));
+float z4[_MULTITEMP][4] __attribute__((aligned (16)));
+
 
 unsigned int keydown[_MULTITEMP]; // 0 or 1
 unsigned int lastnote[_MULTITEMP];
@@ -233,8 +247,9 @@ jack_client_t *client;
 float to_filter=0.f,lfo;
 float sampleRate=48000.0f; // only default, going to be overriden by the actual, taken from jack
 float tabX = _TABLE_SIZE_FLOAT / 48000.0f;
-float srate = 3.145f/ 48000.f; // ??
+float sampleCoeff = 3.14159f/ 48000.f; // Frequency normalization coefficient
 float srDivisor = 1.0f / 48000.f*100000.f; // Sample rate divisor
+float fMax=M_PI_2*.5; // A bit low but filters bug at higher normalized frequencies
 float glide_a, glide_b;
 int i,delayBufferSize=0,maxDelayBufferSize=0,maxDelayTime=0;
 jack_nframes_t bufsize;
@@ -537,8 +552,8 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		union f4vector i __attribute__((aligned (16)));
 		union f4vector j __attribute__((aligned (16)));
 		g.f[1] = 2.f; g.f[2] = 2.f; g.f[3] = 2.f; // first entry differs always
-		//g.f[1] = 2.f*srate; g.f[2] = 2.f*srate; g.f[3] = 2.f*srate; // first entry differs always
-		i.f[0]=1.0f; i.f[1] = srate; i.f[2] = srate; i.f[3] = srate; 
+		//g.f[1] = 2.f*sampleCoeff; g.f[2] = 2.f*sampleCoeff; g.f[3] = 2.f*sampleCoeff; // first entry differs always
+		i.f[0]=1.0f; i.f[1] = sampleCoeff; i.f[2] = sampleCoeff; i.f[3] = sampleCoeff; 
 		h.f[0]=1.0f; h.f[1] = 0.1472725f; h.f[2] = 0.1472725f; h.f[3] = 0.1472725f;
 	#endif
 	/* this function returns a pointer to the buffer where 
@@ -991,7 +1006,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 		to_filter+=sub[currentvoice]*param[141];
 		to_filter+=osc1*osc2*param[138];
 		to_filter+=pwm*param[148];
-		to_filter*=0.2f; // get the volume of the sum into a normal range	
+		to_filter*=0.2f; // get the volume of the sum into a normal range
 		to_filter+=copysign(antiDenormal, to_filter); // Absorb denormals
 
 // ------------- calculate the filter settings ------------------------------
@@ -1097,13 +1112,13 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			morph2 = 1.0f-morph1;
 
 			/*
-			tf= (srate * (parameter[currentvoice][30]*morph2+parameter[currentvoice][33]*morph1) );
+			tf= (sampleCoeff * (parameter[currentvoice][30]*morph2+parameter[currentvoice][33]*morph1) );
 			f[currentvoice][0] = 2.f * tf - (tf*tf*tf) * 0.1472725f;// / 6.7901358;
 
-			tf= (srate * (parameter[currentvoice][40]*morph2+parameter[currentvoice][43]*morph1) );
+			tf= (sampleCoeff * (parameter[currentvoice][40]*morph2+parameter[currentvoice][43]*morph1) );
 			f[currentvoice][1] = 2.f * tf - (tf*tf*tf)* 0.1472725f; // / 6.7901358;;
 
-			tf = (srate * (parameter[currentvoice][50]*morph2+parameter[currentvoice][53]*morph1) );
+			tf = (sampleCoeff * (parameter[currentvoice][50]*morph2+parameter[currentvoice][53]*morph1) );
 			f[currentvoice][2] = 2.f * tf - (tf*tf*tf) * 0.1472725f;// / 6.7901358; 
 			*/
 			
@@ -1192,7 +1207,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			// prepare next calculations
 				a.f[0] = param[55]; a.f[1] =tf1; a.f[2] = tf2; a.f[3] = tf3;
 				g.f[0] = morph1;// b.f[1] = 2.f; b.f[2] = 2.f; b.f[3] = 2.f;
-				j.v = a.v * i.v; // tf * srate
+				j.v = a.v * i.v; // tf * sampleCoeff
 				c.v = j.v * g.v; // tf * 2
 				//c.v = __builtin_ia32_mulps (a.v, g.v);
 
@@ -1220,15 +1235,23 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 	if(firstTime && currentvoice==0 && index==0)
 		printf("tf1 %f = param[30] %f * morph2 %f + param[33] %f * morph1 %f\n", tf1, param[30], morph2, param[33], morph1);
 #endif
+				// morph1 and morph2 not used past this point
+
 				// Apply filter tracking
-				float fpct= (tracking-440)/440;
-				tf1*=1+param[149]*fpct;
-				tf2*=1+param[150]*fpct;
-				tf3*=1+param[151]*fpct;
+				float fRel= (tracking-440)/440;
+				tf1*=1+param[150]*fRel;
+				tf2*=1+param[151]*fRel;
+				tf3*=1+param[152]*fRel;
 				
-				tf1*=srate;
-				tf2*=srate;
-				tf3*=srate;
+				tf1*=sampleCoeff;
+				tf2*=sampleCoeff;
+				tf3*=sampleCoeff;
+				
+				// Don't go too close to Nyquist frequency
+				tf1=tf1>fMax?fMax:tf1;
+				tf2=tf2>fMax?fMax:tf2;
+				tf3=tf3>fMax?fMax:tf3;
+				
 				f[currentvoice][0] = tf1;
 				f[currentvoice][1] = tf2;
 				f[currentvoice][2] = tf3; 
@@ -1246,9 +1269,99 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 // if(firstTime && currentvoice==0 && index==0)
 //	printf("f[currentvoice][0] %f\n", f[currentvoice][0]);
 			#endif
-			// morph1 and morph2 not used past this point
 	//----------------------- actual filter calculation -------------------------
+
+#ifdef _DEBUG
+if (firstTime && index==0 && currentvoice==0)
+	// printf("v %u tracking=%f fRel=%f f0=%f tan=%f\n", currentvoice, tracking, fRel, f[currentvoice][0], tan(f[currentvoice][0]));
+	printf("v %u tracking=%f fRel=%f f0=%f f1=%f f2=%f\n", currentvoice, tracking, fRel, f[currentvoice][0], f[currentvoice][1], f[currentvoice][2]);
+#endif
+
+/* Work in progress */
+// #if 1
+// 			mod[7] = to_filter; // Pass input unchanged
+// #else
+double norm[4];
+double K[4];
+if (choi[19]>1){ // Bi-quad
+	// Biquad filtering
+	// from http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
+	// tan approximation:
+	// http://allenchou.net/2014/02/game-math-faster-sine-cosine-with-polynomial-curves/
+	// ...it is not a good idea to approximate the tangent function using polynomial approximation
+	// ...You may approximate the tangent function using the trigonometric identity
+	//  tan \theta = \frac{sin \theta}{cos \theta} with sin \theta and cos \theta approximated by polynomials.
+	// q[currentvoice][i] between 0.9 and 0.01
+	// Q should be 0.5 to infinity, looks like q = 1/Q
+	// Need some protection against f0 reaching 0.5? why not 0.5 pi?
+	// Highest possible note ?? f0=0.785398 ok
+
+	// 1 - Compute coefficients a0, a1, a2, b1 and b2
+	
+	// #0 lowpass
+	K[0] = tan(f[currentvoice][0]);
+	norm[0] = 1 / (1 + K[0] * q[currentvoice][0] + K[0] * K[0]);
+#ifdef _DEBUG
+	if (firstTime && index==0 && currentvoice==0)
+		printf("K[0]=%f norm[0]=%f q=%f\n", K[0], norm[0], q[currentvoice][0]);
+#endif
+	a0[currentvoice][0] = K[0] * K[0] * norm[0];
+	a1[currentvoice][0] = 2 * a0[currentvoice][0];
+	a2[currentvoice][0] = a0[currentvoice][0];
+	b1[currentvoice][0] = 2 * (K[0] * K[0] - 1) * norm[0];
+	b2[currentvoice][0] = (1 - K[0] * q[currentvoice][0] + K[0] * K[0]) * norm[0];
+	
+	// #1 bandpass
+	K[1] = tan(f[currentvoice][1]);
+	norm[1] = 1 / (1 + K[1] * q[currentvoice][1] + K[1] * K[1]);
+	a0[currentvoice][1] = K[1] * q[currentvoice][1] * norm[1];
+	a1[currentvoice][1] = 0;
+	a2[currentvoice][1] = -a0[currentvoice][1];
+	b1[currentvoice][1] = 2 * (K[1] * K[1] - 1) * norm[1];
+	b2[currentvoice][1] = (1 - K[1] * q[currentvoice][1] + K[1] * K[1]) * norm[1];
+	
+	// #2 bandpass
+	K[2] = tan(f[currentvoice][2]);
+	norm[2] = 1 / (1 + K[2] * q[currentvoice][2] + K[2] * K[2]);
+	a0[currentvoice][2] = K[2] * q[currentvoice][2] * norm[2];
+	a1[currentvoice][2] = 0;
+	a2[currentvoice][2] = -a0[currentvoice][2];
+	b1[currentvoice][2] = 2 * (K[2] * K[2] - 1) * norm[2];
+	b2[currentvoice][2] = (1 - K[2] * q[currentvoice][2] + K[2] * K[2]) * norm[2];
+
+	// 2 - Compute values
+	// out = in * a0 + z1;
+	// z1 = in * a1 + z2 - b1 * out;
+	// z2 = in * a2 - b2 * out;
+	float from_filter[4], from_filter2[4];
+	// First bi-quad stage
+	from_filter[0] = to_filter * a0[currentvoice][0] + z1[currentvoice][0];
+	from_filter[1] = to_filter * a0[currentvoice][1] + z1[currentvoice][1];
+	from_filter[2] = to_filter * a0[currentvoice][2] + z1[currentvoice][2];
+	z1[currentvoice][0] = to_filter * a1[currentvoice][0] + z2[currentvoice][0] - b1[currentvoice][0] * from_filter[0];
+	z1[currentvoice][1] = to_filter * a1[currentvoice][1] + z2[currentvoice][1] - b1[currentvoice][1] * from_filter[1];
+	z1[currentvoice][2] = to_filter * a1[currentvoice][2] + z2[currentvoice][2] - b1[currentvoice][2] * from_filter[2];
+	z2[currentvoice][0] = to_filter * a2[currentvoice][0] - b2[currentvoice][0] * from_filter[0];
+	z2[currentvoice][1] = to_filter * a2[currentvoice][1] - b2[currentvoice][1] * from_filter[1];
+	z2[currentvoice][2] = to_filter * a2[currentvoice][2] - b2[currentvoice][2] * from_filter[2];
+	// 2nd bi-quad cascade stage for 4-pole
+	if (choi[19]==3){ // 4-pole
+		from_filter2[0] = from_filter[0] * a0[currentvoice][0] + z3[currentvoice][0];
+		from_filter2[1] = from_filter[1] * a0[currentvoice][1] + z3[currentvoice][1];
+		from_filter2[2] = from_filter[2] * a0[currentvoice][2] + z3[currentvoice][2];
+		z3[currentvoice][0] = from_filter[0] * a1[currentvoice][0] + z4[currentvoice][0] - b1[currentvoice][0] * from_filter2[0];
+		z3[currentvoice][1] = from_filter[1] * a1[currentvoice][1] + z4[currentvoice][1] - b1[currentvoice][1] * from_filter2[1];
+		z3[currentvoice][2] = from_filter[2] * a1[currentvoice][2] + z4[currentvoice][2] - b1[currentvoice][2] * from_filter2[2];
+		z4[currentvoice][0] = from_filter[0] * a2[currentvoice][0] - b2[currentvoice][0] * from_filter2[0];
+		z4[currentvoice][1] = from_filter[1] * a2[currentvoice][1] - b2[currentvoice][1] * from_filter2[1];
+		z4[currentvoice][2] = from_filter[2] * a2[currentvoice][2] - b2[currentvoice][2] * from_filter2[2];
+		mod[7] = from_filter2[0]*v[currentvoice][0]+from_filter2[1]*v[currentvoice][1]+from_filter2[2]*v[currentvoice][2];
+	}else{ // 2-pole
+		mod[7] = from_filter[0]*v[currentvoice][0]+from_filter[1]*v[currentvoice][1]+from_filter[2]*v[currentvoice][2];
+	}
+}else{ // State variable
 			// filters
+			// see http://www.earlevel.com/main/2003/03/02/the-digital-state-variable-filter/
 #ifdef __SSE2__
 			// Could compute a 4th filter without penalty
 			// Could use the same register for f4, q4 and v4 ?
@@ -1277,8 +1390,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			// Total filter modulation output
 			float from_filter[4];
 			__m128 v4 = _mm_load_ps(v[currentvoice]);
-			// No madd for float in sse2
-			// use _mm_shuffle_ps?
+			// No fma madd for float in sse2
 			// Use masking and/or
 			// Beware of endianness?
 			temp4 = (__m128) _mm_set_epi32(0, 0, 0, 0xFFFFFFFF); // Mask array item [0]
@@ -1289,7 +1401,6 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			_mm_store_ps(from_filter, band4);
 			mod[7] = from_filter[0]+from_filter[1]+from_filter[2];
 
-			// mod[7] = (low[currentvoice][0]*v[currentvoice][0])+band[currentvoice][1]*v[currentvoice][1]+band[currentvoice][2]*v[currentvoice][2];
 #else
 			low[currentvoice][0] += f[currentvoice][0] * band[currentvoice][0];
 			low[currentvoice][1] += f[currentvoice][1] * band[currentvoice][1];
@@ -1304,7 +1415,8 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			band[currentvoice][0] += f[currentvoice][0] * high[currentvoice][0];
 			band[currentvoice][1] += f[currentvoice][1] * high[currentvoice][1];
 			band[currentvoice][2] += f[currentvoice][2] * high[currentvoice][2];
-/*			// first filter
+/* The section below was reordered as a step towards SSE2 implementation
+			// first filter
 			float reso = q[currentvoice][0]; // for better scaling the volume with rising q
 			low[currentvoice][0] = low[currentvoice][0] + f[currentvoice][0] * band[currentvoice][0];
 			high[currentvoice][0] = ((reso + ((1.0f-reso)*0.1f))*to_filter) - low[currentvoice][0] - (reso*band[currentvoice][0]);
@@ -1327,12 +1439,14 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 			// Total filter modulation output
 			mod[7] = (low[currentvoice][0]*v[currentvoice][0])+band[currentvoice][1]*v[currentvoice][1]+band[currentvoice][2]*v[currentvoice][2];
 #endif
+} // End of filter type
+// #endif // End of work in progress
 		} // End of if filter bypass
 	//---------------------------------- amplitude shaping
 			final_mix = 1.0f-mod[choi[13]]*param[100];
 			final_mix *= mod[7];
 			final_mix *= egCalc(currentvoice, 0, masterVoice); // the final shaping envelope
-			final_mix *= unacordacoeff[currentvoice]; // Should be a parameter ??
+			final_mix *= unacordacoeff[currentvoice];
 
 	// --------------------------------- delay unit
 			if( delayI[currentvoice] >= delayBufferSize )
@@ -1778,7 +1892,12 @@ static inline void doNoteOn(int voice, int note, int velocity){
 					unacordacoeff[voice]=unacorda[voice]?parameter[voice][156]:1.0;
 					lastnote[voice]=note;
 					keydown[voice]=1;
-					glide[voice]+=midi2freq[note]-midif[voice]; // Span between previous and new note
+					// No poly glide, set to 0 if voice is part of a poly setup
+					if (polyMaster[voice] || polySlave[voice]){
+						glide[voice]=0;
+					}else{
+						glide[voice]+=midi2freq[note]-midif[voice]; // Span between previous and new note
+					}
 					if(EGstate[voice][0]==4){
 						glide[voice]=0; // Don't glide from finished note
 					}
@@ -1844,12 +1963,24 @@ void doReset(unsigned int voice){
 		low[voice][0] = 0.f;
 		high[voice][0] = 0.f;
 		band[voice][0] = 0.f;
+		z1[voice][0] = 0.f;
+		z2[voice][0] = 0.f;
+		z3[voice][0] = 0.f;
+		z4[voice][0] = 0.f;
 		low[voice][1] = 0.f;
 		high[voice][1] = 0.f;
 		band[voice][1] = 0.f;
+		z1[voice][1] = 0.f;
+		z2[voice][1] = 0.f;
+		z3[voice][1] = 0.f;
+		z4[voice][1] = 0.f;
 		low[voice][2] = 0.f;
 		high[voice][2] = 0.f;
 		band[voice][2] = 0.f;
+		z1[voice][2] = 0.f;
+		z2[voice][2] = 0.f;
+		z3[voice][2] = 0.f;
+		z4[voice][2] = 0.f;
 
 		phase[voice][1] = 0.f;
 		phase[voice][2] = 0.f;
@@ -2195,7 +2326,7 @@ int i;
 	// handling the sampling frequency
 	sampleRate = (float) jack_get_sample_rate (client); 
 	tabX = _TABLE_SIZE_FLOAT / sampleRate;
-	srate = 3.145f/ sampleRate;
+	sampleCoeff = 3.145f/ sampleRate;
 	srDivisor = 1.0f / sampleRate * 100000.f;
     // printf("srDivisor: %f\n", srDivisor);
 	glide_a = 48000.0f/sampleRate;

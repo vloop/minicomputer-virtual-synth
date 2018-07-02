@@ -1,82 +1,5 @@
 minicomputer editor version 1.5.0
 LANG: fr_FR.UTF-8
-label amp. modulator #0: none aucune
-label amp. modulator #1: velocity vélocité
-label amp. modulator #2: pitch bend molette de pitch
-label amp. modulator #3: osc 1 fm out sortie fm osc 1
-label amp. modulator #4: osc 2 fm out sortie fm osc 2
-label amp. modulator #5: note frequency fréquence de la note
-label amp. modulator #6: osc 2 osc 2
-label amp. modulator #7: filter filtre
-label amp. modulator #8: eg 1 eg 1
-label amp. modulator #9: eg 2 eg 2
-label amp. modulator #10: eg 3 eg 3
-label amp. modulator #11: eg 4 eg 4
-label amp. modulator #12: eg 5 eg 5
-label amp. modulator #13: eg 6 eg 6
-label amp. modulator #14: modulation osc osc. de modulation
-label amp. modulator #15: touch toucher
-label amp. modulator #16: mod wheel molette de mod.
-label amp. modulator #17: cc 12 cc 12
-label amp. modulator #18: delay ligne à retard
-label amp. modulator #19: midi note note midi
-label amp. modulator #20: cc 2 cc 2
-label amp. modulator #21: cc 4 cc 4
-label amp. modulator #22: cc 5 cc 5
-label amp. modulator #23: cc 6 cc 6
-label amp. modulator #24: cc 14 cc 14
-label amp. modulator #25: cc 15 cc 15
-label amp. modulator #26: cc 16 cc 16
-label amp. modulator #27: cc 17 cc 17
-label amp. modulator #28: (null) (null)
-label freq. modulator #0: none aucune
-label freq. modulator #1: velocity vélocité
-label freq. modulator #2: pitch bend molette de pitch
-label freq. modulator #3: osc 1 fm out sortie fm osc 1
-label freq. modulator #4: osc 2 fm out sortie fm osc 2
-label freq. modulator #5: note frequency fréquence de la note
-label freq. modulator #6: osc 2 osc 2
-label freq. modulator #7: filter filtre
-label freq. modulator #8: eg 1 eg 1
-label freq. modulator #9: eg 2 eg 2
-label freq. modulator #10: eg 3 eg 3
-label freq. modulator #11: eg 4 eg 4
-label freq. modulator #12: eg 5 eg 5
-label freq. modulator #13: eg 6 eg 6
-label freq. modulator #14: modulation osc osc. de modulation
-label freq. modulator #15: touch toucher
-label freq. modulator #16: mod wheel molette de mod.
-label freq. modulator #17: cc 12 cc 12
-label freq. modulator #18: delay ligne à retard
-label freq. modulator #19: midi note note midi
-label freq. modulator #20: cc 2 cc 2
-label freq. modulator #21: cc 4 cc 4
-label freq. modulator #22: cc 5 cc 5
-label freq. modulator #23: cc 6 cc 6
-label freq. modulator #24: cc 14 cc 14
-label freq. modulator #25: cc 15 cc 15
-label freq. modulator #26: cc 16 cc 16
-label freq. modulator #27: cc 17 cc 17
-label freq. modulator #28: (null) (null)
-label wave #0: sine sinus
-label wave #1: ramp up rampe asc.
-label wave #2: ramp down rampe desc.
-label wave #3: tri triangle
-label wave #4: square carré
-label wave #5: bit bit
-label wave #6: spike pointe
-label wave #7: comb peigne
-label wave #8: add Saw dent de scie add.
-label wave #9: add Square carré additif
-label wave #10: Microcomp 1 Microcomp 1
-label wave #11: Microcomp 8 Microcomp 8
-label wave #12: Microcomp 9 Microcomp 9
-label wave #13: Microcomp 10 Microcomp 10
-label wave #14: Microcomp 11 Microcomp 11
-label wave #15: Microcomp 12 Microcomp 12
-label wave #16: Microcomp 13 Microcomp 13
-label wave #17: Microcomp 14 Microcomp 14
-label wave #18: (null) (null)
 000 : not defined
 001 : fréquence
 002 : fréq. fixe
@@ -253,3 +176,4 @@ label wave #18: (null) (null)
 #16 : mod. de pan
 #17 : mod. de durée 2
 #18 : mod. de largeur d'impulsion
+#19 : type de filtre

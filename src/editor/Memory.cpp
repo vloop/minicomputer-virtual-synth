@@ -678,6 +678,16 @@ void Memory::copyMulti(int src, int dest)
 {
 	multis[dest]=multis[src];
 }
+void Memory::copyMultiTuning(int src, int dest)
+{
+	for(int i=0; i<13; i++)
+		multis[dest].parms[i]=multis[src].parms[i];
+}
+void Memory::copyMultiControllers(int src, int dest)
+{
+	for(int i=13; i<22; i++)
+		multis[dest].parms[i]=multis[src].parms[i];
+}
 
 /**
  * load the multitimbral setups which are stored in an extrafile

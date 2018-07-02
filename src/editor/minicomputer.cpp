@@ -202,6 +202,7 @@ void usage() {
 		"Usage:\n"
 		"	-port nnnn			sets the base OSC port\n"
 		"	-port2 nnnn			sets the secondary OSC port (default to base+1)\n"
+		"	-multi nnn			sets the multi to be loaded on startup (default 0)\n"
 		"	-no-launch			don't launch sound engine core (for example if it's remote)\n"
 		"	-no-connect			core will not attempt to autoconnect to jack audio\n"
 		"	-ask-before-save	always prompt before saving sounds or multis\n"
@@ -235,6 +236,7 @@ int main(int argc, char **argv) {
   bool no_launch = false;
   bool launched = false;
   bool has_port2 = false;
+  int multi=0;
   int ac = 1; // Argument count for FLTK
   // There is at least the command name  av[0]=argv[0])
 	for (i = 1; i < argc; ++i) {
@@ -272,6 +274,21 @@ int main(int argc, char **argv) {
 				}
 			} else {
 				fprintf(stderr, "Invalid port - end of command line reached\n");
+				usage();
+				exit(1);
+			}
+		} else if (strcmp(argv[i], "-multi") == 0) { // got a multi argument
+			++i; // looking for the next entry
+			if (i < argc) {
+				multi = atoi(argv[i]);
+				if (multi < 0 || multi>=_MULTIS) {
+					fprintf(stderr, "Invalid multi %s\n", argv[i]);
+					usage();
+					exit(1);
+				}
+// printf("multi %u\n", multi);
+			} else {
+				fprintf(stderr, "Invalid multi - end of command line reached\n");
 				usage();
 				exit(1);
 			}
@@ -379,7 +396,9 @@ int main(int argc, char **argv) {
   av[0] = argv[0];
   int j = 1;
   for (i = 1; i < argc; ++i) { // now actually copying it
-	if (strcmp(argv[i], "-port") == 0 || strcmp(argv[i], "-port2") == 0) {
+	if (strcmp(argv[i], "-port") == 0
+		|| strcmp(argv[i], "-port2") == 0
+		|| strcmp(argv[i], "-multi") == 0) {
 		i++; // skip this parameter and its argument
 		// We know this is safe because parm checking already occured above
 	} else if (strcmp(argv[i], "-no-connect") == 0
@@ -416,8 +435,8 @@ int main(int argc, char **argv) {
   }
   printf("Communication with minicomputerCPU established\n");
 
-  // Schaltbrett.changeMulti(multi); // Transmit multi data to the sound engine
-  Schaltbrett.changeMulti(0); // Transmit multi 0 data to the sound engine
+  Schaltbrett.changeMulti(multi); // Transmit multi data to the sound engine
+  // Schaltbrett.changeMulti(0); // Transmit multi 0 data to the sound engine
 
 #ifdef _DEBUG
   printf("FLTK argument count: %u\n", ac);

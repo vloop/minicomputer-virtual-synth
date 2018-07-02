@@ -157,6 +157,14 @@ Fl_Menu_Item menu_wave []= { // UserInterface::
  {0,0,0,0,0,0,0,0,0}
 };
 
+Fl_Menu_Item menu_filter []= { // UserInterface::
+ {_("state variable 2p"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("state variable 4p"), 0,  0, 0, FL_MENU_INVISIBLE, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("bi-quad 2p"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {_("bi-quad 4p"), 0,  0, 0, 0, FL_NORMAL_LABEL, 0, 8, 0},
+ {0,0,0,0,0,0,0,0,0}
+};
+
 
 Fl_Box* voiceDisplayBox[_MULTITEMP];
 Fl_Group *soundGroup;
@@ -2332,6 +2340,22 @@ void multipastemnuCallback(Fl_Widget*, void*T) {
 		((MiniTable*)T)->copy(); // Previous has been cleared
 	}
 }
+void multipastetuningmnuCallback(Fl_Widget*, void*T) {
+	int src=((MultiTable *)T)->copied_index();
+	if(src<0 || src>=_MULTIS) return;
+	int dest=((MultiTable *)T)->selected_index();
+	if(dest<0 || dest>=_MULTIS) return;
+	printf("paste multi tuning %d to %d\n", src, dest);
+	Speicher.copyMultiTuning(src, dest);
+}
+void multipastecontrollersmnuCallback(Fl_Widget*, void*T) {
+	int src=((MultiTable *)T)->copied_index();
+	if(src<0 || src>=_MULTIS) return;
+	int dest=((MultiTable *)T)->selected_index();
+	if(dest<0 || dest>=_MULTIS) return;
+	printf("paste multi controllers %d to %d\n", src, dest);
+	Speicher.copyMultiControllers(src, dest);
+}
 void multirenamemnuCallback(Fl_Widget*, void*T) {
 	int dest=((MultiTable *)T)->selected_index();
 	if(dest<0 || dest>=_MULTIS) return;
@@ -2475,7 +2499,9 @@ void MultiTable::event_callback2()
 		{_("Load"), 0, multiloadmnuCallback, (void*)this },
 		{_("&Copy"), 0, multicopymnuCallback, (void*)this },
 		{_("Cu&t"), 0, multicutmnuCallback, (void*)this },
-		{_("&Paste"), 0, multipastemnuCallback, (void*)this },
+		{_("&Paste all"), 0, multipastemnuCallback, (void*)this },
+		{_("Paste tuning"), 0, multipastetuningmnuCallback, (void*)this },
+		{_("Paste controllers"), 0, multipastecontrollersmnuCallback, (void*)this },
 		{_("Rename"), 0, multirenamemnuCallback, (void*)this },
 		{_("Clear"), 0, multiclearmnuCallback, (void*)this },
 		{_("Import"), 0, multiimportCallback, (void*)this },
@@ -2553,9 +2579,9 @@ void UserInterface::changeMulti(int pgm)
 	Fl::lock();
 	strnrtrim(temp_name, Speicher.getMultiName(pgm).c_str(), _NAMESIZE);
 	multiNameInput->value(temp_name); // multichoice
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	printf("UserInterface::changeMulti # %u: \"%s\"\n", pgm, temp_name);
-	#endif
+#endif
 	multiNameInput->redraw(); // multichoice
 	multiRoller->value(pgm);// set gui
 	multiRoller->redraw();
@@ -3038,6 +3064,12 @@ MiniWindow* UserInterface::make_window(const char* title) {
 #endif
 		menu_wave[i].label(_(menu_wave[i].label()));
 	}
+	for(unsigned int i=0; i<sizeof(menu_filter)/sizeof(menu_filter[0]); i++){
+#ifdef _DEBUG
+		printf("label filter #%u: %s %s\n", i, menu_filter[i].label(), _(menu_filter[i].label()));
+#endif
+		menu_filter[i].label(_(menu_filter[i].label()));
+	}
 
 	currentVoice=0;
 	currentMulti=0;
@@ -3327,7 +3359,7 @@ MiniWindow* UserInterface::make_window(const char* title) {
 			o->callback((Fl_Callback*)parmCallback);
 			knobs[i][o->argument()] = o;
 		}
-	  { Fl_Choice* o = new Fl_Choice(327, 366, 85, 15, _("morph mod 1"));
+	  { Fl_Choice* o = new Fl_Choice(327, 351, 80, 15, _("morph mod 1"));
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		o->textsize(_TEXT_SIZE);
@@ -3337,7 +3369,7 @@ MiniWindow* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)choiceCallback);
 		choices[i][o->argument()]=o;
 	  }
-	  { MiniKnob* o = new MiniKnob(326, 392, 25, 25, _("amount"));
+	  { MiniKnob* o = new MiniKnob(326, 377, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->minimum(-2);
 		o->maximum(2);
@@ -3345,7 +3377,7 @@ MiniWindow* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { MiniKnob* o = new MiniKnob(420, 360, 60, 57, _("morph"));
+	  { MiniKnob* o = new MiniKnob(420, 340, 60, 57, _("morph"));
 		o->type(MiniKnob::DOTLIN);
 		o->scaleticks(0);
 		o->labelsize(_TEXT_SIZE);
@@ -3354,7 +3386,7 @@ MiniWindow* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { Fl_Choice* o = new Fl_Choice(490, 366, 85, 15, _("morph mod 2"));
+	  { Fl_Choice* o = new Fl_Choice(495, 351, 80, 15, _("morph mod 2"));
 		o->down_box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		o->textsize(_TEXT_SIZE);
@@ -3365,7 +3397,7 @@ MiniWindow* UserInterface::make_window(const char* title) {
 		choices[i][o->argument()]=o;
 	  }
 	  // Mult button morph mod 2
-	  { Fl_Light_Button* o = new Fl_Light_Button(490, 397, 40, 15, _("mult."));
+	  { Fl_Light_Button* o = new Fl_Light_Button(495, 382, 40, 15, _("mult."));
 		o->box(FL_BORDER_BOX);
 		o->selection_color((Fl_Color)89);
 		o->labelsize(_TEXT_SIZE);
@@ -3373,7 +3405,7 @@ MiniWindow* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { MiniKnob* o = new MiniKnob(551, 392, 25, 25, _("amount"));
+	  { MiniKnob* o = new MiniKnob(551, 377, 25, 25, _("amount"));
 		o->labelsize(_TEXT_SIZE);
 		o->argument(48);
 		o->minimum(-2);
@@ -3381,11 +3413,22 @@ MiniWindow* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
+	  { Fl_Choice* o = new Fl_Choice(410, 420, 80, 15, _("filter type"));
+		o->down_box(FL_BORDER_BOX);
+		o->labelsize(_TEXT_SIZE);
+		o->textsize(_TEXT_SIZE);
+		o->align(FL_ALIGN_TOP_LEFT);
+		o->menu(menu_filter);
+		o->argument(19);
+		o->callback((Fl_Callback*)choiceCallback);
+		choices[i][o->argument()]=o;
+	  }
+
 	  make_labeltip(o, _("Filters (unless bypassed) shape the harmonic contents of the sound."));
 	  o->end(); // Group "filters"
 	  filtersGroup[i]=o;
 	  // The two following buttons are not really part of the filter parameters
-	  { Fl_Light_Button* o = new Fl_Light_Button(327, 430, 85, 15, _("bypass filters"));
+	  { Fl_Light_Button* o = new Fl_Light_Button(327, 420, 80, 15, _("bypass filters"));
 		o->box(FL_BORDER_BOX);
 		o->labelsize(_TEXT_SIZE);
 		// o->labelcolor((Fl_Color)_BTNLBLCOLOR1);
@@ -3395,7 +3438,7 @@ MiniWindow* UserInterface::make_window(const char* title) {
 		o->callback((Fl_Callback*)parmCallback);
 		knobs[i][o->argument()] = o;
 	  }
-	  { Fl_Button* o = new Fl_Button(490, 430, 85, 15, _("clear state"));
+	  { Fl_Button* o = new Fl_Button(495, 420, 80, 15, _("clear state"));
 	  // { MiniButton* o = new MiniButton(490, 430, 85, 15, _("clear state"));
 		o->tooltip(_("reset the filter and delay"));
 		o->box(FL_BORDER_BOX);
