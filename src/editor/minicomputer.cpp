@@ -29,14 +29,18 @@
 // #include <unistd.h>
 #include <cstring>
 #include <lo/lo.h>
-#include <alsa/asoundlib.h>
-#include <pthread.h>
+#ifdef _USE_ALSA_MIDI
+	#include <alsa/asoundlib.h>
+	#include <pthread.h>
+#endif
 #include "../common.h"
 #include "Memory.h"
 #include "syntheditor.h"
 
-snd_seq_t *open_seq();
-snd_seq_t *seq_handle;
+#ifdef _USE_ALSA_MIDI
+	snd_seq_t *open_seq();
+	snd_seq_t *seq_handle;
+#endif
 int npfd;
 struct pollfd *pfd;
 char midiName[_NAMESIZE] = "MinicomputerEditor"; // signifier for midi connections, to be filled with OSC port number
@@ -48,6 +52,8 @@ int bank[_MULTITEMP];
 // some common definitions
 Memory Speicher;
 UserInterface Schaltbrett;
+
+#ifdef _USE_ALSA_MIDI
 
 /** open an Alsa Midiport for input
  *
@@ -144,6 +150,7 @@ if (poll(pfd, npfd, 100000) > 0)
   } while (true); // doing forever, was  (snd_seq_event_input_pending(seq_handle, 0) > 0);
   return 0;
 }
+#endif // _USE_ALSA_MIDI
 
 /** @brief OSC handler for EG message from the sound engine
  *
@@ -376,6 +383,7 @@ int main(int argc, char **argv) {
 	}
 #endif
 // ------------------------ midi init ---------------------------------
+#ifdef _USE_ALSA_MIDI
   pthread_t midithread;
   seq_handle = open_seq();
   npfd = snd_seq_poll_descriptors_count(seq_handle, POLLIN);
@@ -388,6 +396,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Error %u creating MIDI thread\n", err);
 		// should exit? This is non-blocking for the GUI.
 	}
+#endif // _USE_ALSA_MIDI
 
 // ---------- Prepare command line for FLTK -----------
   if (needcolor) ac += 4; // add 2 more arguments and their values
@@ -451,9 +460,11 @@ int main(int argc, char **argv) {
   w->show(ac, av);
   int result = Fl::run();
   if (launched) lo_send(t, "/Minicomputer/quit", "i", 1);
+#ifdef _USE_ALSA_MIDI
   /* waiting for the midi thread to shutdown carefully */
   pthread_cancel(midithread);
   /* release Alsa Midi connection */
   snd_seq_close(seq_handle);
+#endif
   return result;
 }

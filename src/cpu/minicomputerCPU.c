@@ -31,8 +31,10 @@
 #include <math.h>
 #include <lo/lo.h>
 #include <string.h>
-#include <alsa/asoundlib.h>
-#include <pthread.h>
+#ifdef _USE_ALSA_MIDI
+	#include <alsa/asoundlib.h>
+	#include <pthread.h>
+#endif
 #include <float.h>
 
 #include "minicomputerCPU.h"
@@ -197,7 +199,7 @@ float z2[_MULTITEMP][4] __attribute__((aligned (16)));
 float z3[_MULTITEMP][4] __attribute__((aligned (16)));
 float z4[_MULTITEMP][4] __attribute__((aligned (16)));
 
-
+// Keyboard and pedal handling variables
 unsigned int keydown[_MULTITEMP]; // 0 or 1
 unsigned int lastnote[_MULTITEMP];
 unsigned int hold[_MULTITEMP]; // 0 or 1
@@ -235,7 +237,10 @@ float midi2freq [128]; // Values after applying detune
 char jackName[64]="Minicomputer"; // signifier for audio and midiconnections, to be filled with OSC port number
 char jackPortName[128]; // For jack_connect
 
+#ifdef _USE_ALSA_MIDI
 snd_seq_t *seq_handle;
+#endif
+
 int npfd;
 struct pollfd *pfd;
 /* a flag which will be set by our signal handler when 
@@ -266,6 +271,7 @@ static const float antiDenormal = 1e-20; // magic number to get rid of denormali
 	};
 #endif
 
+#ifdef _USE_ALSA_MIDI
 /** \brief function to create Alsa Midiport
  * 
  * should probably be renamed
@@ -322,6 +328,7 @@ snd_seq_t *open_seq() {
 	snd_seq_client_info_free(info);
 	return(seq_handle);
 }
+#endif
 
 /**
  * \brief start the specified envelope generator
@@ -1335,6 +1342,56 @@ if (choi[19]>1){ // Bi-quad
 	// z2 = in * a2 - b2 * out;
 	float from_filter[4], from_filter2[4];
 	// First bi-quad stage
+#ifdef __SSE2__
+	__m128 a04 = _mm_load_ps(a0[currentvoice]);
+	__m128 to_filter4 = _mm_load_ps1(&to_filter);
+	__m128 zz4 = _mm_load_ps(z1[currentvoice]);
+	__m128 from_filter4 = _mm_mul_ps(to_filter4, a04); // to_filter * a0
+	from_filter4 = _mm_add_ps(from_filter4, zz4); // + z1
+	
+	__m128 a14 = _mm_load_ps(a1[currentvoice]);
+	zz4 = _mm_load_ps(z2[currentvoice]);
+	__m128 temp4 = _mm_mul_ps(to_filter4, a14); // to_filter * a1
+	__m128 b4 = _mm_load_ps(b1[currentvoice]);
+	temp4 = _mm_add_ps(temp4, zz4); // + z2
+	b4 = _mm_mul_ps(b4, from_filter4); // b1 * from_filter
+	temp4 = _mm_sub_ps(temp4, b4);
+	_mm_store_ps(z1[currentvoice], temp4);
+	
+	__m128 a24 = _mm_load_ps(a2[currentvoice]);
+	b4 = _mm_load_ps(b2[currentvoice]);
+	temp4 = _mm_mul_ps(to_filter4, a24); // to_filter * a2
+	b4 = _mm_mul_ps(b4, from_filter4); // b2 * from_filter
+	__m128 v4 = _mm_load_ps(v[currentvoice]);
+	temp4 = _mm_sub_ps(temp4, b4);
+	_mm_store_ps(z2[currentvoice], temp4);
+
+	// 2nd bi-quad cascade stage for 4-pole
+	if (choi[19]==3){ // 4-pole
+		zz4 = _mm_load_ps(z3[currentvoice]);
+		__m128 from_filter24 = _mm_mul_ps(from_filter4, a04); // from_filter * a0
+		from_filter24 = _mm_add_ps(from_filter4, zz4); // + z3
+		
+		zz4 = _mm_load_ps(z4[currentvoice]);
+		b4 = _mm_load_ps(b1[currentvoice]);
+		temp4 = _mm_mul_ps(from_filter4, a14); // from_filter * a1
+		temp4 = _mm_add_ps(temp4, zz4); // + z4
+		b4 = _mm_mul_ps(b4, from_filter24); // b1 * from_filter2
+		temp4 = _mm_sub_ps(temp4, b4);
+		_mm_store_ps(z3[currentvoice], temp4);
+
+		b4 = _mm_load_ps(b2[currentvoice]);
+		temp4 = _mm_mul_ps(from_filter4, a24); // from_filter * a2
+		b4 = _mm_mul_ps(b4, from_filter24); // b2 * from_filter2
+		temp4 = _mm_sub_ps(temp4, b4);
+		_mm_store_ps(z4[currentvoice], temp4);
+
+		from_filter4 = from_filter24;
+	}
+	from_filter4 = _mm_mul_ps(from_filter4, v4); // *v
+	_mm_store_ps(from_filter, from_filter4);
+	mod[7] = from_filter[0]+from_filter[1]+from_filter[2];
+#else
 	from_filter[0] = to_filter * a0[currentvoice][0] + z1[currentvoice][0];
 	from_filter[1] = to_filter * a0[currentvoice][1] + z1[currentvoice][1];
 	from_filter[2] = to_filter * a0[currentvoice][2] + z1[currentvoice][2];
@@ -1359,6 +1416,7 @@ if (choi[19]>1){ // Bi-quad
 	}else{ // 2-pole
 		mod[7] = from_filter[0]*v[currentvoice][0]+from_filter[1]*v[currentvoice][1]+from_filter[2]*v[currentvoice][2];
 	}
+#endif
 }else{ // State variable
 			// filters
 			// see http://www.earlevel.com/main/2003/03/02/the-digital-state-variable-filter/
@@ -1994,6 +2052,7 @@ void doReset(unsigned int voice){
 #endif
 }
 
+#ifdef _USE_ALSA_MIDI
 /**
  * @brief an extra thread for handling the alsa midi messages
  *
@@ -2152,6 +2211,7 @@ static void *alsaMidiProcess(void *handle) {
  fflush(stdout);
 return 0;// its insisited on this although it should be a void function
 }// end of alsaMidiProcess
+#endif // _USE_ALSA_MIDI
 
 /** @brief display command-line parameters summary
  */
@@ -2233,6 +2293,7 @@ int i;
 	sprintf(jackName, "Minicomputer%s", oscPort1);// store globally a unique name
 
 // ------------------------ ALSA midi init ---------------------------------
+#ifdef _USE_ALSA_MIDI
 	pthread_t midithread;
 	seq_handle = open_seq();
  
@@ -2243,7 +2304,7 @@ int i;
 	// create the thread and tell it to use alsaMidiProcess as thread function
 	int err = pthread_create(&midithread, NULL, alsaMidiProcess,seq_handle);
 	// printf("start err %i\n", err);
- 
+#endif 
 
 // ------------------------ OSC Init ------------------------------------   
 	/* start a new server on port defined where oscPort1 points to */
@@ -2379,15 +2440,16 @@ int i;
 
 	/* shutdown cont. */
 	jack_client_close(client);
+#ifdef _USE_ALSA_MIDI
 #ifndef _MIDIBLOCK
 	printf("wait for midithread\n");
 	fflush(stdout);
 	/* waiting for the midi thread to shutdown carefully */
 	pthread_join(midithread,NULL);
-#endif	
+#endif
 	/* release Alsa Midi connection */
 	snd_seq_close(seq_handle);
-
+#endif
 	/* done !! */
 	printf("close minicomputer\n");	
 	fflush(stdout);

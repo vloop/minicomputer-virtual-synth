@@ -43,6 +43,8 @@ if ARGUMENTS.get('k7', 0):
 if ARGUMENTS.get('pg', 0):
 	env.Append(CCFLAGS = ['-pg'])
 	env.Append(LINKFLAGS = ['-pg'])
+if ARGUMENTS.get('S', 0):
+	env.Append(CCFLAGS = ['-S', '-fverbose-asm'])
 
 # env.Append(CCFLAGS = '  -O3 -mfpmath=sse -msse -msse2  -fverbose-asm  -ffast-math -funit-at-a-time -fpeel-loops -ftracer -funswitch-loops -Wall -fmessage-length=0')
 
@@ -60,31 +62,33 @@ if ARGUMENTS.get('pentium-m', 0):
 	#guienv.Append(CPPFLAGS = ['-march=pentium-m','-mtune=pentium-m'])
 conf = Configure(env)
 
-if not conf.CheckCXX():
-    print('!! Your compiler and/or environment is not correctly configured.')
-    Exit(1)
-if not conf.CheckFunc('printf'):
-    print('!! Your compiler and/or environment is not correctly configured.')
-    Exit(1)
-# if not conf.CheckLibWithHeader('jack', 'jack/jack.h','c'):
-#	print 'Did not find jack, exiting!'
-#	Exit(1)
-if not conf.CheckLib('libjack'):
-	print 'Did not find jack library, exiting!'
-	Exit(1)
-if not conf.CheckHeader('jack/jack.h'):
-	if not conf.CheckHeader('jack/jack.h'):
-		print 'Did not find jack development files, exiting!'
+# Special dummy build for assembler - probably not the best way
+if not ARGUMENTS.get('S', 0):
+	if not conf.CheckCXX():
+		print('!! Your compiler and/or environment is not correctly configured.')
 		Exit(1)
-if not conf.CheckLibWithHeader('lo', 'lo/lo.h','c'):
-	print 'Did not find liblo for OSC, exiting!'
-	Exit(1)
-if not conf.CheckLibWithHeader('asound', 'alsa/asoundlib.h','c'):
-	print 'Did not find alsa, exiting!'
-	Exit(1)
-if not conf.CheckLibWithHeader('pthread', 'pthread.h','c'):
-	print 'Did not find pthread library, exiting!'
-	Exit(1)
+	if not conf.CheckFunc('printf'):
+		print('!! Your compiler and/or environment is not correctly configured.')
+		Exit(1)
+	# if not conf.CheckLibWithHeader('jack', 'jack/jack.h','c'):
+	#	print 'Did not find jack, exiting!'
+	#	Exit(1)
+	if not conf.CheckLib('libjack'):
+		print 'Did not find jack library, exiting!'
+		Exit(1)
+	if not conf.CheckHeader('jack/jack.h'):
+		if not conf.CheckHeader('jack/jack.h'):
+			print 'Did not find jack development files, exiting!'
+			Exit(1)
+	if not conf.CheckLibWithHeader('lo', 'lo/lo.h','c'):
+		print 'Did not find liblo for OSC, exiting!'
+		Exit(1)
+	if not conf.CheckLibWithHeader('asound', 'alsa/asoundlib.h','c'):
+		print 'Did not find alsa, exiting!'
+		Exit(1)
+	if not conf.CheckLibWithHeader('pthread', 'pthread.h','c'):
+		print 'Did not find pthread library, exiting!'
+		Exit(1)
 
 env.Append(LIBS=['m'])
 # use the option below for profiling

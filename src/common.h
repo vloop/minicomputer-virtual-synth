@@ -32,6 +32,8 @@
 #define _BUNDLE
 /*!< Let the GUI start/stop the sound engine */
 
+#define _USE_ALSA_MIDI
+
 // try disabling this if you experience sluggish midi reaction
 //#define _MIDIBLOCK 1
 
