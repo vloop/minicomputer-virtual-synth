@@ -29,18 +29,17 @@
 // #include <unistd.h>
 #include <cstring>
 #include <lo/lo.h>
-#ifdef _USE_ALSA_MIDI
-	#include <alsa/asoundlib.h>
-	#include <pthread.h>
-#endif
 #include "../common.h"
 #include "Memory.h"
 #include "syntheditor.h"
 
 #ifdef _USE_ALSA_MIDI
+	#include <alsa/asoundlib.h>
+	#include <pthread.h>
 	snd_seq_t *open_seq();
 	snd_seq_t *seq_handle;
 #endif
+
 int npfd;
 struct pollfd *pfd;
 char midiName[_NAMESIZE] = "MinicomputerEditor"; // signifier for midi connections, to be filled with OSC port number

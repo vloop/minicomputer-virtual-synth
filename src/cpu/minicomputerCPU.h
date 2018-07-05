@@ -22,6 +22,7 @@ static inline void doNoteOn(int voice, int note, int velocity);
 static inline void doNoteOff(int voice, int note, int velocity);
 static void doMidi(int t, int n, int v);
 void doReset(unsigned int voice);
+
 #ifdef _USE_ALSA_MIDI
 snd_seq_t *open_seq();
 #endif

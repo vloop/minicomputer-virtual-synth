@@ -31,32 +31,36 @@
 #include <math.h>
 #include <lo/lo.h>
 #include <string.h>
+#include <float.h>
+
+// This must come before the USE_ALSA_MIDI _TEST
+#include "../common.h" 
+
 #ifdef _USE_ALSA_MIDI
 	#include <alsa/asoundlib.h>
 	#include <pthread.h>
+	snd_seq_t *seq_handle;
 #endif
-#include <float.h>
 
+// This must come after alsa includes
 #include "minicomputerCPU.h"
+
 // #include <limits.h>
 // This works only for c++
 // #include <cmath.h>
 // double epsilon = std::numeric_limits<float>::min();
 
-// #undefine __SSE2__
+// #undefine __SSE2__ // For perf comparison
 
 // Intrinsic declarations
 // see https://software.intel.com/sites/landingpage/IntrinsicsGuide/#
 #if defined(__SSE2__)
+#include <xmmintrin.h>
 #include <emmintrin.h>
 #endif
 #if defined(__SSE3__)
 #include <pmmintrin.h>
 #endif
-
-
-// some common definitions
-#include "../common.h" 
 
 // defines
 #define _MODCOUNT 32
@@ -237,10 +241,6 @@ float midi2freq [128]; // Values after applying detune
 char jackName[64]="Minicomputer"; // signifier for audio and midiconnections, to be filled with OSC port number
 char jackPortName[128]; // For jack_connect
 
-#ifdef _USE_ALSA_MIDI
-snd_seq_t *seq_handle;
-#endif
-
 int npfd;
 struct pollfd *pfd;
 /* a flag which will be set by our signal handler when 
@@ -254,6 +254,8 @@ float sampleRate=48000.0f; // only default, going to be overriden by the actual,
 float tabX = _TABLE_SIZE_FLOAT / 48000.0f;
 float sampleCoeff = 3.14159f/ 48000.f; // Frequency normalization coefficient
 float srDivisor = 1.0f / 48000.f*100000.f; // Sample rate divisor
+// Need some protection against f0 reaching 0.25 pi? why not 0.5 pi?
+// Highest possible filter frequancy? f0=0.785398 is ok
 float fMax=M_PI_2*.5; // A bit low but filters bug at higher normalized frequencies
 float glide_a, glide_b;
 int i,delayBufferSize=0,maxDelayBufferSize=0,maxDelayTime=0;
@@ -300,14 +302,14 @@ snd_seq_t *open_seq() {
 		exit(1);
 	}
 
-// filter out mididata which is not processed anyway, thanks to Karsten Wiese for the hint
+// filter out midi data which is not processed anyway, thanks to Karsten Wiese for the hint
 	snd_seq_client_info_t * info;
 	snd_seq_client_info_malloc(&info);
 	if ( snd_seq_get_client_info( seq_handle, info) != 0){
 		fprintf(stderr, "Error getting info for eventfiltersetup.\n");
 		exit(1);
 	}
-	// its a bit strange, you set what you want to get, not what you want filtered out...
+	// you set what you want to get, not what you want filtered out...
 	// actually Karsten told me so but I got misguided by the term filter
 
 	// snd_seq_client_info_event_filter_add	( info, SND_SEQ_EVENT_SYSEX);
@@ -1292,7 +1294,7 @@ double norm[4];
 double K[4];
 if (choi[19]>1){ // Bi-quad
 	// Biquad filtering
-	// from http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
+	// Bilinear Transform from http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
 	// tan approximation:
 	// http://allenchou.net/2014/02/game-math-faster-sine-cosine-with-polynomial-curves/
 	// ...it is not a good idea to approximate the tangent function using polynomial approximation
@@ -1300,8 +1302,20 @@ if (choi[19]>1){ // Bi-quad
 	//  tan \theta = \frac{sin \theta}{cos \theta} with sin \theta and cos \theta approximated by polynomials.
 	// q[currentvoice][i] between 0.9 and 0.01
 	// Q should be 0.5 to infinity, looks like q = 1/Q
-	// Need some protection against f0 reaching 0.5? why not 0.5 pi?
-	// Highest possible note ?? f0=0.785398 ok
+	// The bandpasses are about 20db less than SVF??
+	// The lowpass clips
+	// Probably something wrong with a0..2
+	
+	// Alternative approach:
+	// http://vicanek.de/articles/BiquadFits.pdf
+	// Beware in this article the a's and b's are swapped compared to 1st ref above
+	// q=1/(2Q); alpha=q sin(w0)
+	// with a and b swapped again to make it consistent with bilinear transform above
+	// (6)  b0=1; b1=-2 cos(w0)/(1+alpha); b2=(1-alpha)/(1+alpha)
+	// (47) lowpass: a0=(r0+r1)/2; a1=r0-a0; a2=0
+	// (51) bandpass: a1=-r1/2; a0=(r0-a1)/2; a2=-a0-a1
+	// where r0=(1+b1+b2)/(pi f0 Q)
+	// and r1=((1-b1+b2)*f0/Q)/sqrt((1-f0*f0)^2 + f0*f0/(Q*Q))
 
 	// 1 - Compute coefficients a0, a1, a2, b1 and b2
 	
@@ -1315,6 +1329,7 @@ if (choi[19]>1){ // Bi-quad
 	a0[currentvoice][0] = K[0] * K[0] * norm[0];
 	a1[currentvoice][0] = 2 * a0[currentvoice][0];
 	a2[currentvoice][0] = a0[currentvoice][0];
+	// b0 is one and is hard-coded in the formulae
 	b1[currentvoice][0] = 2 * (K[0] * K[0] - 1) * norm[0];
 	b2[currentvoice][0] = (1 - K[0] * q[currentvoice][0] + K[0] * K[0]) * norm[0];
 	
@@ -1341,57 +1356,46 @@ if (choi[19]>1){ // Bi-quad
 	// z1 = in * a1 + z2 - b1 * out;
 	// z2 = in * a2 - b2 * out;
 	float from_filter[4], from_filter2[4];
-	// First bi-quad stage
 #ifdef __SSE2__
-	__m128 a04 = _mm_load_ps(a0[currentvoice]);
+	// First bi-quad stage
+	__m128 a04 = _mm_load_ps(a0[currentvoice]); // Will reuse for 2nd stage
 	__m128 to_filter4 = _mm_load_ps1(&to_filter);
-	__m128 zz4 = _mm_load_ps(z1[currentvoice]);
-	__m128 from_filter4 = _mm_mul_ps(to_filter4, a04); // to_filter * a0
-	from_filter4 = _mm_add_ps(from_filter4, zz4); // + z1
+	__m128 from_filter14 = _mm_add_ps(_mm_mul_ps(to_filter4, a04), _mm_load_ps(z1[currentvoice])); // to_filter * a0 + z1
 	
-	__m128 a14 = _mm_load_ps(a1[currentvoice]);
-	zz4 = _mm_load_ps(z2[currentvoice]);
+	__m128 a14 = _mm_load_ps(a1[currentvoice]); // Will reuse for 2nd stage
 	__m128 temp4 = _mm_mul_ps(to_filter4, a14); // to_filter * a1
-	__m128 b4 = _mm_load_ps(b1[currentvoice]);
-	temp4 = _mm_add_ps(temp4, zz4); // + z2
-	b4 = _mm_mul_ps(b4, from_filter4); // b1 * from_filter
-	temp4 = _mm_sub_ps(temp4, b4);
+	__m128 b14 = _mm_load_ps(b1[currentvoice]); // Will reuse for 2nd stage
+	temp4 = _mm_add_ps(temp4, _mm_load_ps(z2[currentvoice])); // + z2
+	temp4 = _mm_sub_ps(temp4, _mm_mul_ps(b14, from_filter14)); // - ( b1 * from_filter )
 	_mm_store_ps(z1[currentvoice], temp4);
 	
-	__m128 a24 = _mm_load_ps(a2[currentvoice]);
-	b4 = _mm_load_ps(b2[currentvoice]);
+	__m128 a24 = _mm_load_ps(a2[currentvoice]); // Will reuse for 2nd stage
+	__m128 b24 = _mm_load_ps(b2[currentvoice]); // Will reuse for 2nd stage
 	temp4 = _mm_mul_ps(to_filter4, a24); // to_filter * a2
-	b4 = _mm_mul_ps(b4, from_filter4); // b2 * from_filter
-	__m128 v4 = _mm_load_ps(v[currentvoice]);
-	temp4 = _mm_sub_ps(temp4, b4);
+	__m128 v4 = _mm_load_ps(v[currentvoice]); // Will use after 2nd stage
+	temp4 = _mm_sub_ps(temp4, _mm_mul_ps(b24, from_filter14)); // - (b2 * from_filter )
 	_mm_store_ps(z2[currentvoice], temp4);
 
 	// 2nd bi-quad cascade stage for 4-pole
 	if (choi[19]==3){ // 4-pole
-		zz4 = _mm_load_ps(z3[currentvoice]);
-		__m128 from_filter24 = _mm_mul_ps(from_filter4, a04); // from_filter * a0
-		from_filter24 = _mm_add_ps(from_filter4, zz4); // + z3
+		__m128 from_filter24 = _mm_mul_ps(from_filter14, a04); // from_filter1 * a0
+		from_filter24 = _mm_add_ps(from_filter14, _mm_load_ps(z3[currentvoice])); // + z3
 		
-		zz4 = _mm_load_ps(z4[currentvoice]);
-		b4 = _mm_load_ps(b1[currentvoice]);
-		temp4 = _mm_mul_ps(from_filter4, a14); // from_filter * a1
-		temp4 = _mm_add_ps(temp4, zz4); // + z4
-		b4 = _mm_mul_ps(b4, from_filter24); // b1 * from_filter2
-		temp4 = _mm_sub_ps(temp4, b4);
+		temp4 = _mm_mul_ps(from_filter14, a14); // from_filter1 * a1
+		temp4 = _mm_add_ps(temp4, _mm_load_ps(z4[currentvoice])); // + z4
+		temp4 = _mm_sub_ps(temp4, _mm_mul_ps(b14, from_filter24)); // - (b1 * from_filter2)
 		_mm_store_ps(z3[currentvoice], temp4);
 
-		b4 = _mm_load_ps(b2[currentvoice]);
-		temp4 = _mm_mul_ps(from_filter4, a24); // from_filter * a2
-		b4 = _mm_mul_ps(b4, from_filter24); // b2 * from_filter2
-		temp4 = _mm_sub_ps(temp4, b4);
+		temp4 = _mm_mul_ps(from_filter14, a24); // from_filter1 * a2
+		temp4 = _mm_sub_ps(temp4, _mm_mul_ps(b24, from_filter24)); // - (b2 * from_filter2)
 		_mm_store_ps(z4[currentvoice], temp4);
 
-		from_filter4 = from_filter24;
+		from_filter14 = from_filter24; // Faster than else, no jump
 	}
-	from_filter4 = _mm_mul_ps(from_filter4, v4); // *v
-	_mm_store_ps(from_filter, from_filter4);
+	_mm_store_ps(from_filter, _mm_mul_ps(from_filter14, v4));
 	mod[7] = from_filter[0]+from_filter[1]+from_filter[2];
 #else
+	// First bi-quad stage
 	from_filter[0] = to_filter * a0[currentvoice][0] + z1[currentvoice][0];
 	from_filter[1] = to_filter * a0[currentvoice][1] + z1[currentvoice][1];
 	from_filter[2] = to_filter * a0[currentvoice][2] + z1[currentvoice][2];
