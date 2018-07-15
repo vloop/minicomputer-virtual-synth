@@ -12,8 +12,7 @@
 /* Minicomputer
  * industrial grade digital synthesizer
  *
- * Copyright 2007,2008 Malte Steiner
- * Changes by Marc Périlleux 2018
+ * Copyright Marc Périlleux 2018
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of

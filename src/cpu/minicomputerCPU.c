@@ -162,6 +162,9 @@ float modulator_scale[_MODCOUNT] __attribute__((aligned (16)))={
 };
 float midif[_MULTITEMP] __attribute__((aligned (16)));
 
+float peakPositive[_MULTITEMP] __attribute__((aligned (16)));
+float peakNegative[_MULTITEMP] __attribute__((aligned (16)));
+
 /*
 typedef struct _envelope_generator {
 	float state __attribute__((aligned (16)));
@@ -181,9 +184,9 @@ float phase[_MULTITEMP][4] __attribute__((aligned (16)));
 unsigned int choice[_MULTITEMP][_CHOICECOUNT] __attribute__((aligned (16)));
 
 // Filter-related variables
-// Use alignas(__mm_128i) ?
 // Only 3 of a possible 4 filters currently used
-// Allocating 4 makes 128-bit operations easier
+// Allocating 4 makes SSE 128-bit operations easier
+// Use alignas(__mm_128i) ?
 float high[_MULTITEMP][4] __attribute__((aligned (16)));
 float band[_MULTITEMP][4] __attribute__((aligned (16)));
 float low[_MULTITEMP][4] __attribute__((aligned (16)));
@@ -197,7 +200,7 @@ float a1[_MULTITEMP][4] __attribute__((aligned (16)));
 float a2[_MULTITEMP][4] __attribute__((aligned (16)));
 float b1[_MULTITEMP][4] __attribute__((aligned (16)));
 float b2[_MULTITEMP][4] __attribute__((aligned (16)));
-// float Fc, Q, peakGain; // f, q, v above
+// float Fc, Q, peakGain; // replaced by f, q, v above
 float z1[_MULTITEMP][4] __attribute__((aligned (16)));
 float z2[_MULTITEMP][4] __attribute__((aligned (16)));
 float z3[_MULTITEMP][4] __attribute__((aligned (16)));
@@ -252,11 +255,13 @@ jack_client_t *client;
 float to_filter=0.f,lfo;
 float sampleRate=48000.0f; // only default, going to be overriden by the actual, taken from jack
 float tabX = _TABLE_SIZE_FLOAT / 48000.0f;
-float sampleCoeff = 3.14159f/ 48000.f; // Frequency normalization coefficient
-float srDivisor = 1.0f / 48000.f*100000.f; // Sample rate divisor
+// Frequency normalization coefficient
+float sampleCoeff = 3.14159f / 48000.0f; // Convert to rad/s ?? should be 2 pi
+float srDivisor = 1.0f / 48000.0f * 100000.0f; // Sample rate divisor
 // Need some protection against f0 reaching 0.25 pi? why not 0.5 pi?
 // Highest possible filter frequancy? f0=0.785398 is ok
-float fMax=M_PI_2*.5; // A bit low but filters bug at higher normalized frequencies
+float fMax=M_PI_2*.5;
+// PI/4 gives Fs/4, maybe a bit low but filters bug at higher normalized frequencies
 float glide_a, glide_b;
 int i,delayBufferSize=0,maxDelayBufferSize=0,maxDelayTime=0;
 jack_nframes_t bufsize;
@@ -550,7 +555,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 	INTORFLOAT P3 __attribute__((aligned (16)));
 	INTORFLOAT Psub __attribute__((aligned (16)));
 	INTORFLOAT bias; // the magic number
-	bias.i = (23 +127) << 23;// generating the magic number
+	bias.i = (23 +127) << 23; // generating the magic number
 
 	// Integer phase for each oscillator, 0.._TABLE_MASK
 	int iP1=0, iP2=0 ,iP3=0, iPsub=0;
@@ -1252,11 +1257,13 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 				tf2*=1+param[151]*fRel;
 				tf3*=1+param[152]*fRel;
 				
+				// Convert to rad/s
 				tf1*=sampleCoeff;
 				tf2*=sampleCoeff;
 				tf3*=sampleCoeff;
 				
 				// Don't go too close to Nyquist frequency
+				// Should have a lower bound too, at least for bi-quad
 				tf1=tf1>fMax?fMax:tf1;
 				tf2=tf2>fMax?fMax:tf2;
 				tf3=tf3>fMax?fMax:tf3;
@@ -1292,35 +1299,84 @@ if (firstTime && index==0 && currentvoice==0)
 // #else
 double norm[4];
 double K[4];
-if (choi[19]>1){ // Bi-quad
+double phi, gainNumerator, gainDenominator, gain, gainDb;
+if (choi[19]>1){ // Bi-quad - still not OK
 	// Biquad filtering
 	// Bilinear Transform from http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
+	// Nigel Redmon:
+	// "I use a (a0, a1, a2) in the numerator (defining zeros), and b in the denominator (defining poles)."
+	// => The b's are computed the same way for lowpass and bandpass, so are K and norm
+	// b0 is one and is hard-coded in the formulae
+
 	// tan approximation:
 	// http://allenchou.net/2014/02/game-math-faster-sine-cosine-with-polynomial-curves/
 	// ...it is not a good idea to approximate the tangent function using polynomial approximation
 	// ...You may approximate the tangent function using the trigonometric identity
 	//  tan \theta = \frac{sin \theta}{cos \theta} with sin \theta and cos \theta approximated by polynomials.
-	// q[currentvoice][i] between 0.9 and 0.01
-	// Q should be 0.5 to infinity, looks like q = 1/Q
-	// The bandpasses are about 20db less than SVF??
-	// The lowpass clips
-	// Probably something wrong with a0..2
+	// => may not be worth it
+
+	// Should probably use doubles throughout
+	// Should limit frequency range lower bound to 300/48000 ?
 	
-	// Alternative approach:
+	// q[currentvoice][i] between 0.9 and 0.01
+	// Q should be 0.5 to infinity, looks like q = 1/Q => Q=1.1..100
+
+	// Alternative approach (not tested yet):
 	// http://vicanek.de/articles/BiquadFits.pdf
+	// The  poles  determine  the  characteristic frequency w0 in  radians  per sample and resonance Q
+	// whereas the zeros determine the filter type (lowpass, high-pass, bandpass, etc.)
 	// Beware in this article the a's and b's are swapped compared to 1st ref above
 	// q=1/(2Q); alpha=q sin(w0)
 	// with a and b swapped again to make it consistent with bilinear transform above
-	// (6)  b0=1; b1=-2 cos(w0)/(1+alpha); b2=(1-alpha)/(1+alpha)
+	// (6)  (for reference) bilinear: b0=1; b1=-2 cos(w0)/(1+alpha); b2=(1-alpha)/(1+alpha)
+	// (12) impulse invariance:
+	// b0=1; b1= -2 * exp(-q * w0) * (q<=1 ? cos(sqrt(1-q*q)*w0) : cosh(sqrt(q*q-1)*w0) )
+	// b2 = exp( -2 * q * w0 )
 	// (47) lowpass: a0=(r0+r1)/2; a1=r0-a0; a2=0
 	// (51) bandpass: a1=-r1/2; a0=(r0-a1)/2; a2=-a0-a1
 	// where r0=(1+b1+b2)/(pi f0 Q)
 	// and r1=((1-b1+b2)*f0/Q)/sqrt((1-f0*f0)^2 + f0*f0/(Q*Q))
 
+	// The bandpasses are about 20db less than SVF??
+	// The lowpass clips
+	// according to graphs, bandpass peaks at 0 db, lowpass at +10 db for Q=3 dbU or db?
+	// Test 20180715
+	//					LP at 1KHz, q=0.01		BP at 1KHz, q=0.01
+	//			off		svf		2p		4p		svf		2p		4p
+	// C		-10		-20		-10		-10		-18		-10		-10
+	// hdspmixer-23		-51		-23		-23		-45		-23		-23
+	//					LP at 1KHz, q=0.33		BP at 1KHz, q=0.33
+	// C		-10		-16		-10		-10		-14		-10		-10
+	// hdspmixer-23		-41		-23		-23		-35		-23		-23
+	//					LP at 1KHz, q=0.33		BP at 1KHz, q=0.33
+	// SSE		-10		-16		-10		+8		-14		-10		+12
+	// hdspmixer-23		-41		-23		ovr		-35		-23		ovr
+	
+	// what is the peak level as f(q)?
+	/* javascript code used to plot biquad level (with a loop over idx)
+	 // from http://www.earlevel.com/main/2013/10/13/biquad-calculator-v2/
+			var w;
+		if (plotType == "linear")
+			w = idx / (len - 1) * Math.PI;	// 0 to pi, linear scale
+		else
+			w = Math.exp(Math.log(1 / 0.001) * idx / (len - 1)) * 0.001 * Math.PI;	// 0.001 to 1, times pi, log scale
+
+		var phi = Math.pow(Math.sin(w/2), 2);
+		// since log(a/b)=log(a)-log(b)
+		var y = Math.log(Math.pow(a0+a1+a2, 2) - 4*(a0*a1 + 4*a0*a2 + a1*a2)*phi + 16*a0*a2*phi*phi) - Math.log(Math.pow(1+b1+b2, 2) - 4*(b1 + 4*b2 + b1*b2)*phi + 16*b2*phi*phi);
+		y = y * 10 / Math.LN10
+		if (y == -Infinity)
+			y = -200;
+	// w=0..Fs/2 maps to 0..pi
+	// the correct w (0 to pi) value is 2*tf1
+	// tf1 = F * pi / Fs, F/Fs is 0..1, tf1 0..Fs is 0..pi
+	// 2*tf1 0..Fs/2 is 0..pi
+	*/
+
 	// 1 - Compute coefficients a0, a1, a2, b1 and b2
 	
 	// #0 lowpass
-	K[0] = tan(f[currentvoice][0]);
+	K[0] = tan(f[currentvoice][0]); // Must never reach pi/2, <1 for f<pi/4 !?
 	norm[0] = 1 / (1 + K[0] * q[currentvoice][0] + K[0] * K[0]);
 #ifdef _DEBUG
 	if (firstTime && index==0 && currentvoice==0)
@@ -1329,10 +1385,37 @@ if (choi[19]>1){ // Bi-quad
 	a0[currentvoice][0] = K[0] * K[0] * norm[0];
 	a1[currentvoice][0] = 2 * a0[currentvoice][0];
 	a2[currentvoice][0] = a0[currentvoice][0];
-	// b0 is one and is hard-coded in the formulae
 	b1[currentvoice][0] = 2 * (K[0] * K[0] - 1) * norm[0];
 	b2[currentvoice][0] = (1 - K[0] * q[currentvoice][0] + K[0] * K[0]) * norm[0];
 	
+	// Gain compensation (lowpass only!)
+	// phi = pow(sin(f[currentvoice][0]/2.0f),2); // mult may be faster
+	gain = 1.0f; // default value
+	phi = sin(f[currentvoice][0]); // /2.0f
+	phi *= phi;
+	// gain is gain compensation, i.e. the reciprocal of y at f=f.res
+	// This might be simplified by rewriting as a function of K, norm and q ??
+	// filtering at tf1=440Hz (0.028798 rad/s at 48KHz) looks reasonably accurate in lingot
+	// this means tf1 is resonance and should give us the peak
+	// The values don't look right; formulae look ok
+	gainNumerator = (1.0f+b1[currentvoice][0]+b2[currentvoice][0]) * (1.0f+b1[currentvoice][0]+b2[currentvoice][0])
+		- 4.0f * (b1[currentvoice][0] + 4.0f * b2[currentvoice][0] + b1[currentvoice][0] * b2[currentvoice][0]) * phi
+		+ 16.0f * b2[currentvoice][0] * phi * phi;
+	gainDenominator = (a0[currentvoice][0]+a1[currentvoice][0]+a2[currentvoice][0]) * (a0[currentvoice][0]+a1[currentvoice][0]+a2[currentvoice][0])
+		- 4.0f * (a0[currentvoice][0]*a1[currentvoice][0] + 4.0f * a0[currentvoice][0]*a2[currentvoice][0]+ a1[currentvoice][0]*a2[currentvoice][0]) * phi
+		+ 16.0f * a0[currentvoice][0] * a2[currentvoice][0] * phi * phi;
+	if (gainNumerator < gainDenominator){
+		// Beware of generating NaN
+		gain = gainNumerator / gainDenominator;
+		// Gain looks too big, use above value for 2 stages and sqrt for 1 stage ??
+		if (isnan(gain)) gain = 0.0f;
+	}
+#ifdef _DEBUG
+	gainDb=log(gain) * 10 / log(10); // nan for gain=0
+	if (firstTime && index==0) //  && currentvoice<2)
+		printf("voice %u tf1=%f phi=%f gain=%f/%f=%f=%f dB\n", currentvoice, tf1, phi, gainNumerator, gainDenominator, gain, gainDb);
+#endif
+
 	// #1 bandpass
 	K[1] = tan(f[currentvoice][1]);
 	norm[1] = 1 / (1 + K[1] * q[currentvoice][1] + K[1] * K[1]);
@@ -1372,28 +1455,40 @@ if (choi[19]>1){ // Bi-quad
 	__m128 a24 = _mm_load_ps(a2[currentvoice]); // Will reuse for 2nd stage
 	__m128 b24 = _mm_load_ps(b2[currentvoice]); // Will reuse for 2nd stage
 	temp4 = _mm_mul_ps(to_filter4, a24); // to_filter * a2
-	__m128 v4 = _mm_load_ps(v[currentvoice]); // Will use after 2nd stage
+	// __m128 v4 = _mm_load_ps(v[currentvoice]); // Will use after 2nd stage
 	temp4 = _mm_sub_ps(temp4, _mm_mul_ps(b24, from_filter14)); // - (b2 * from_filter )
 	_mm_store_ps(z2[currentvoice], temp4);
 
 	// 2nd bi-quad cascade stage for 4-pole
+	// ?? level is much higher, even bandpass overloads, only with SSE
 	if (choi[19]==3){ // 4-pole
+		// a04 = _mm_load_ps(a0[currentvoice]);
 		__m128 from_filter24 = _mm_mul_ps(from_filter14, a04); // from_filter1 * a0
-		from_filter24 = _mm_add_ps(from_filter14, _mm_load_ps(z3[currentvoice])); // + z3
+		from_filter24 = _mm_add_ps(from_filter24, _mm_load_ps(z3[currentvoice])); // + z3
 		
+		// a14 = _mm_load_ps(a1[currentvoice]);
 		temp4 = _mm_mul_ps(from_filter14, a14); // from_filter1 * a1
+		// b14 = _mm_load_ps(b1[currentvoice]);
 		temp4 = _mm_add_ps(temp4, _mm_load_ps(z4[currentvoice])); // + z4
 		temp4 = _mm_sub_ps(temp4, _mm_mul_ps(b14, from_filter24)); // - (b1 * from_filter2)
 		_mm_store_ps(z3[currentvoice], temp4);
 
+		// a24 = _mm_load_ps(a2[currentvoice]);
+		// b24 = _mm_load_ps(b2[currentvoice]);
 		temp4 = _mm_mul_ps(from_filter14, a24); // from_filter1 * a2
 		temp4 = _mm_sub_ps(temp4, _mm_mul_ps(b24, from_filter24)); // - (b2 * from_filter2)
 		_mm_store_ps(z4[currentvoice], temp4);
 
-		from_filter14 = from_filter24; // Faster than else, no jump
+		// from_filter14 = from_filter24; // Faster than else, no jump
+		__m128 v4 = _mm_load_ps(v[currentvoice]);
+		_mm_store_ps(from_filter, _mm_mul_ps(from_filter24, v4));
+	}else{
+		gain = sqrt(fabsf(gain)); // Half gain reduction for 2-pole
+		__m128 v4 = _mm_load_ps(v[currentvoice]);
+		_mm_store_ps(from_filter, _mm_mul_ps(from_filter14, v4));
 	}
-	_mm_store_ps(from_filter, _mm_mul_ps(from_filter14, v4));
-	mod[7] = from_filter[0]+from_filter[1]+from_filter[2];
+	mod[7] = from_filter[0]*gain + from_filter[1] + from_filter[2];
+
 #else
 	// First bi-quad stage
 	from_filter[0] = to_filter * a0[currentvoice][0] + z1[currentvoice][0];
@@ -1416,13 +1511,12 @@ if (choi[19]>1){ // Bi-quad
 		z4[currentvoice][0] = from_filter[0] * a2[currentvoice][0] - b2[currentvoice][0] * from_filter2[0];
 		z4[currentvoice][1] = from_filter[1] * a2[currentvoice][1] - b2[currentvoice][1] * from_filter2[1];
 		z4[currentvoice][2] = from_filter[2] * a2[currentvoice][2] - b2[currentvoice][2] * from_filter2[2];
-		mod[7] = from_filter2[0]*v[currentvoice][0]+from_filter2[1]*v[currentvoice][1]+from_filter2[2]*v[currentvoice][2];
+		mod[7] = from_filter2[0]*v[currentvoice][0]*gain+from_filter2[1]*v[currentvoice][1]+from_filter2[2]*v[currentvoice][2];
 	}else{ // 2-pole
-		mod[7] = from_filter[0]*v[currentvoice][0]+from_filter[1]*v[currentvoice][1]+from_filter[2]*v[currentvoice][2];
+		mod[7] = from_filter[0]*v[currentvoice][0]*sqrt(fabsf(gain))+from_filter[1]*v[currentvoice][1]+from_filter[2]*v[currentvoice][2];
 	}
 #endif
-}else{ // State variable
-			// filters
+}else{ // State variable filters
 			// see http://www.earlevel.com/main/2003/03/02/the-digital-state-variable-filter/
 #ifdef __SSE2__
 			// Could compute a 4th filter without penalty
@@ -1504,6 +1598,8 @@ if (choi[19]>1){ // Bi-quad
 } // End of filter type
 // #endif // End of work in progress
 		} // End of if filter bypass
+		peakPositive[currentvoice] = fmaxf(peakPositive[currentvoice], mod[7]);
+		peakNegative[currentvoice] = fminf(peakNegative[currentvoice], mod[7]);
 	//---------------------------------- amplitude shaping
 			final_mix = 1.0f-mod[choi[13]]*param[100];
 			final_mix *= mod[7];
@@ -1735,9 +1831,16 @@ void init ()
 		d2 = 0;*/
 
 	// miditable for notes to frequency
-	for (i = 0;i<128;++i){
+	for (i=0; i<128; ++i){
 		midi2freq0[i] = 8.1758f * pow(2,(i/12.f));
 		midi2freq[i] = midi2freq0[i]; // No detune yet
+	}
+	// filters don't like initial frequency to be 0
+	for (i=0; i<_MULTITEMP; ++i){
+		midif[i]=midi2freq[69]; // Oscillator frequency (unless fixed freq.)
+		// ? filter frequency
+		// f[i][0]=;
+		// parm 30, 33, 40, 43, 50, 53 + morph + tracking
 	}
 	// f_offset=midi2freq0[0];
 	// f_scale=1/(midi2freq0[127]-f_offset);
@@ -1984,14 +2087,14 @@ static inline void doNoteOn(int voice, int note, int velocity){
 	#endif
 					}
 
-					midif[voice]=midi2freq[note];// lookup the frequency
+					midif[voice]=midi2freq[note]; // lookup the frequency
 					// 1/127=0,007874015748...
-					modulator[voice][17]=note*0.007874f;// fill the value in as normalized modulator
-					modulator[voice][1]=(float)1.0f-(velocity*0.007874f);// fill in the velocity as modulator
+					modulator[voice][17]=note*0.007874f; // fill the value in as normalized modulator
+					modulator[voice][1]=(float)1.0f-(velocity*0.007874f); // fill in the velocity as modulator
 					// why is velocity inverted??
 					// Parameter 139 is legato, don't retrigger unless released (0) or idle (4)
 					if(EGstate[voice][0]==4 || EGstate[voice][0]==0 || parameter[voice][139]==0){
-						egStart(voice, 0);// start the engines!
+						egStart(voice, 0); // start the engines!
 						// Maybe optionally restart repeatable envelopes too, i.e free-run button?
 						if (EGrepeat[voice][1] == 0) egStart(voice, 1);
 						if (EGrepeat[voice][2] == 0) egStart(voice, 2);
@@ -2022,38 +2125,50 @@ static inline void doNoteOn(int voice, int note, int velocity){
  */
 void doReset(unsigned int voice){
 	if (voice <_MULTITEMP){
-		low[voice][0] = 0.f;
-		high[voice][0] = 0.f;
-		band[voice][0] = 0.f;
-		z1[voice][0] = 0.f;
-		z2[voice][0] = 0.f;
-		z3[voice][0] = 0.f;
-		z4[voice][0] = 0.f;
-		low[voice][1] = 0.f;
-		high[voice][1] = 0.f;
-		band[voice][1] = 0.f;
-		z1[voice][1] = 0.f;
-		z2[voice][1] = 0.f;
-		z3[voice][1] = 0.f;
-		z4[voice][1] = 0.f;
-		low[voice][2] = 0.f;
-		high[voice][2] = 0.f;
-		band[voice][2] = 0.f;
-		z1[voice][2] = 0.f;
-		z2[voice][2] = 0.f;
-		z3[voice][2] = 0.f;
-		z4[voice][2] = 0.f;
+		// This assumes 0.0f is represented as 0x00000000
+		memset(low[voice], 0, sizeof(low[voice]));
+		memset(high[voice], 0, sizeof(high[voice]));
+		memset(band[voice], 0, sizeof(band[voice]));
+		memset(z1[voice], 0, sizeof(z1[voice]));
+		memset(z2[voice], 0, sizeof(z2[voice]));
+		memset(z3[voice], 0, sizeof(z3[voice]));
+		memset(z4[voice], 0, sizeof(z4[voice]));
 
-		phase[voice][1] = 0.f;
-		phase[voice][2] = 0.f;
-		phase[voice][3] = 0.f;
-
-		memset(delayBuffer[voice],0,sizeof(delayBuffer[voice]));
+		memset(phase[voice], 0, sizeof(phase[voice]));
+		memset(delayBuffer[voice], 0, sizeof(delayBuffer[voice]));
 	}
 	firstTime=1; // Helps with debugging
 #ifdef _DEBUG
 	printf("doReset: voice %u filters and delay buffer reset\n", voice);
 #endif
+/*
+	printf("peak max %f %f %f %f %f %f %f %f\n",
+		peakPositive[0], peakPositive[1], peakPositive[2], peakPositive[3],
+		peakPositive[4], peakPositive[5], peakPositive[6], peakPositive[7]);
+	printf("peak min %f %f %f %f %f %f %f %f\n",
+		peakNegative[0], peakNegative[1], peakNegative[2], peakNegative[3],
+		peakNegative[4], peakNegative[5], peakNegative[6], peakNegative[7]);
+*/
+	printf("peak db %f %f %f %f %f %f %f %f\n",
+		log(fmaxf(peakPositive[0], -peakNegative[0])) * 10 / log(10),
+		log(fmaxf(peakPositive[1], -peakNegative[1])) * 10 / log(10),
+		log(fmaxf(peakPositive[2], -peakNegative[2])) * 10 / log(10),
+		log(fmaxf(peakPositive[3], -peakNegative[3])) * 10 / log(10),
+		log(fmaxf(peakPositive[4], -peakNegative[4])) * 10 / log(10),
+		log(fmaxf(peakPositive[5], -peakNegative[5])) * 10 / log(10),
+		log(fmaxf(peakPositive[6], -peakNegative[6])) * 10 / log(10),
+		log(fmaxf(peakPositive[7], -peakNegative[7])) * 10 / log(10));
+	// peakPositive[0]=0.0f; peakNegative[0]=0.0f;
+	// peakPositive[1]=0.0f; peakNegative[1]=0.0f;
+	// peakPositive[2]=0.0f; peakNegative[2]=0.0f;
+	// peakPositive[3]=0.0f; peakNegative[3]=0.0f;
+	// peakPositive[4]=0.0f; peakNegative[4]=0.0f;
+	// peakPositive[5]=0.0f; peakNegative[5]=0.0f;
+	// peakPositive[6]=0.0f; peakNegative[6]=0.0f;
+	// peakPositive[7]=0.0f; peakNegative[7]=0.0f;
+	memset(peakPositive, 0, sizeof(peakPositive));
+	memset(peakNegative, 0, sizeof(peakNegative));
+	// printf("size %u * %u\n", sizeof(peakPositive), sizeof(float));
 }
 
 #ifdef _USE_ALSA_MIDI
@@ -2391,10 +2506,10 @@ int i;
 	// handling the sampling frequency
 	sampleRate = (float) jack_get_sample_rate (client); 
 	tabX = _TABLE_SIZE_FLOAT / sampleRate;
-	sampleCoeff = 3.145f/ sampleRate;
+	sampleCoeff = 3.14159f / sampleRate;
 	srDivisor = 1.0f / sampleRate * 100000.f;
     // printf("srDivisor: %f\n", srDivisor);
-	glide_a = 48000.0f/sampleRate;
+	glide_a = 48000.0f / sampleRate;
 	glide_b = 1.0f-glide_a;
 	// depending on it the delaybuffer
 	maxDelayTime = (int)sampleRate;
