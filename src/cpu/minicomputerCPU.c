@@ -439,7 +439,7 @@ static inline float egCalc (const unsigned int voice, const unsigned int number,
 			}
 			else // Sustain level reached (may be 0)
 			{
-				if (EGrepeat[voice][number]==0)
+				if (EGrepeat[master][number]==0)
 				{
 					EGstate[voice][number]=3; // stay on sustain
 #ifdef _UPDATE_GUI
@@ -456,7 +456,7 @@ static inline float egCalc (const unsigned int voice, const unsigned int number,
 			if (EG[voice][number][6]<0.0f) 
 			{	
 				EG[voice][number][6]=0.0f;
-				if (EGrepeat[voice][number]==0)
+				if (EGrepeat[master][number]==0)
 				{
 					EGstate[voice][number]=4; // released
 #ifdef _UPDATE_GUI
@@ -477,7 +477,7 @@ static inline float egCalc (const unsigned int voice, const unsigned int number,
 			if (EG[voice][number][6]<0.0f) 
 			{	
 				EG[voice][number][6]=0.0f;
-				if (EGrepeat[voice][number]==0)
+				if (EGrepeat[master][number]==0)
 				{
 					EGstate[voice][number]=4; // released
 #ifdef _UPDATE_GUI
@@ -1297,8 +1297,6 @@ if (firstTime && index==0 && currentvoice==0)
 // #if 1
 // 			mod[7] = to_filter; // Pass input unchanged
 // #else
-double norm[4];
-double K[4];
 double phi, gainNumerator, gainDenominator, gain, gainDb;
 if (choi[19]>1){ // Bi-quad - still not OK
 	// Biquad filtering
@@ -1340,7 +1338,7 @@ if (choi[19]>1){ // Bi-quad - still not OK
 	// The bandpasses are about 20db less than SVF??
 	// The lowpass clips
 	// according to graphs, bandpass peaks at 0 db, lowpass at +10 db for Q=3 dbU or db?
-	// Test 20180715
+	// Test 20180715 before bugfix from_filter24 +z3
 	//					LP at 1KHz, q=0.01		BP at 1KHz, q=0.01
 	//			off		svf		2p		4p		svf		2p		4p
 	// C		-10		-20		-10		-10		-18		-10		-10
@@ -1368,26 +1366,74 @@ if (choi[19]>1){ // Bi-quad - still not OK
 		if (y == -Infinity)
 			y = -200;
 	// w=0..Fs/2 maps to 0..pi
-	// the correct w (0 to pi) value is 2*tf1
+	// the correct w (0 to pi) value is 2*tf1 ??
 	// tf1 = F * pi / Fs, F/Fs is 0..1, tf1 0..Fs is 0..pi
 	// 2*tf1 0..Fs/2 is 0..pi
 	*/
 
 	// 1 - Compute coefficients a0, a1, a2, b1 and b2
-	
-	// #0 lowpass
-	K[0] = tan(f[currentvoice][0]); // Must never reach pi/2, <1 for f<pi/4 !?
-	norm[0] = 1 / (1 + K[0] * q[currentvoice][0] + K[0] * K[0]);
-#ifdef _DEBUG
-	if (firstTime && index==0 && currentvoice==0)
-		printf("K[0]=%f norm[0]=%f q=%f\n", K[0], norm[0], q[currentvoice][0]);
+#ifdef __SSE2__
+	float norm[4], K[4];
+#else
+	double norm[4], K[4];
 #endif
+	K[0] = tan(f[currentvoice][0]); // Must never reach pi/2, <1 for f<pi/4 !?
+	K[1] = tan(f[currentvoice][1]);
+	K[2] = tan(f[currentvoice][2]);
+	K[3] = 0; // norm[3]=1, reciprocal exists (and is 1)
+#ifdef __SSE2__
+{
+	__m128 q4 = _mm_load_ps(q[currentvoice]);
+	__m128 k4 = _mm_load_ps(K);
+	__m128 temp4b = _mm_set_ps1(1.0f); // 1
+	__m128 ks4 =  _mm_mul_ps(k4, k4); // K*K
+	__m128 temp4 = _mm_add_ps(temp4b, ks4); // 1 + K*K
+	temp4 = _mm_add_ps(temp4, _mm_mul_ps(k4, q4)); // 1 + K*K + K*q
+	temp4 = _mm_rcp_ps(temp4); // Can 1 + K*K + K*q be 0?
+	_mm_store_ps(norm, temp4); // norm remains in temp4 too
+
+	temp4b = _mm_sub_ps(temp4b, _mm_mul_ps(k4, q4)); // 1 - K*q
+	temp4b = _mm_add_ps(temp4b, ks4); //  1 - K*q + K*K
+	_mm_store_ps(b2[currentvoice], _mm_mul_ps(temp4b, temp4));
+
+	temp4b = _mm_set_ps1(-1.0f); // -1
+	temp4b = _mm_add_ps(temp4b, ks4); // K*K - 1
+	temp4b = _mm_add_ps(temp4b, temp4b); // 2 * (K*K - 1)
+	_mm_store_ps(b1[currentvoice], _mm_mul_ps(temp4b, temp4));
+}
+#else
+	norm[0] = 1 / (1 + K[0] * q[currentvoice][0] + K[0] * K[0]);
+	norm[1] = 1 / (1 + K[1] * q[currentvoice][1] + K[1] * K[1]);
+	norm[2] = 1 / (1 + K[2] * q[currentvoice][2] + K[2] * K[2]);
+
+	b1[currentvoice][0] = 2 * (K[0] * K[0] - 1) * norm[0];
+	b1[currentvoice][1] = 2 * (K[1] * K[1] - 1) * norm[1];
+	b1[currentvoice][2] = 2 * (K[2] * K[2] - 1) * norm[2];
+
+	b2[currentvoice][0] = (1 - K[0] * q[currentvoice][0] + K[0] * K[0]) * norm[0];
+	b2[currentvoice][1] = (1 - K[1] * q[currentvoice][1] + K[1] * K[1]) * norm[1];
+	b2[currentvoice][2] = (1 - K[2] * q[currentvoice][2] + K[2] * K[2]) * norm[2];
+#endif
+
+	// #0 lowpass
+// #ifdef _DEBUG
+	if (firstTime && index==0) // && currentvoice==0)
+		printf("voice %u K[0]=%f norm[0]=%f q=%f\n", currentvoice, K[0], norm[0], q[currentvoice][0]);
+// #endif
 	a0[currentvoice][0] = K[0] * K[0] * norm[0];
 	a1[currentvoice][0] = 2 * a0[currentvoice][0];
 	a2[currentvoice][0] = a0[currentvoice][0];
-	b1[currentvoice][0] = 2 * (K[0] * K[0] - 1) * norm[0];
-	b2[currentvoice][0] = (1 - K[0] * q[currentvoice][0] + K[0] * K[0]) * norm[0];
 	
+	// #1 bandpass
+	a0[currentvoice][1] = K[1] * q[currentvoice][1] * norm[1];
+	a1[currentvoice][1] = 0;
+	a2[currentvoice][1] = -a0[currentvoice][1];
+	
+	// #2 bandpass
+	a0[currentvoice][2] = K[2] * q[currentvoice][2] * norm[2];
+	a1[currentvoice][2] = 0;
+	a2[currentvoice][2] = -a0[currentvoice][2];
+
 	// Gain compensation (lowpass only!)
 	// phi = pow(sin(f[currentvoice][0]/2.0f),2); // mult may be faster
 	gain = 1.0f; // default value
@@ -1407,7 +1453,7 @@ if (choi[19]>1){ // Bi-quad - still not OK
 	if (gainNumerator < gainDenominator){
 		// Beware of generating NaN
 		gain = gainNumerator / gainDenominator;
-		// Gain looks too big, use above value for 2 stages and sqrt for 1 stage ??
+		// Use above value for 2 stages and its sqrt for 1 stage
 		if (isnan(gain)) gain = 0.0f;
 	}
 #ifdef _DEBUG
@@ -1416,31 +1462,13 @@ if (choi[19]>1){ // Bi-quad - still not OK
 		printf("voice %u tf1=%f phi=%f gain=%f/%f=%f=%f dB\n", currentvoice, tf1, phi, gainNumerator, gainDenominator, gain, gainDb);
 #endif
 
-	// #1 bandpass
-	K[1] = tan(f[currentvoice][1]);
-	norm[1] = 1 / (1 + K[1] * q[currentvoice][1] + K[1] * K[1]);
-	a0[currentvoice][1] = K[1] * q[currentvoice][1] * norm[1];
-	a1[currentvoice][1] = 0;
-	a2[currentvoice][1] = -a0[currentvoice][1];
-	b1[currentvoice][1] = 2 * (K[1] * K[1] - 1) * norm[1];
-	b2[currentvoice][1] = (1 - K[1] * q[currentvoice][1] + K[1] * K[1]) * norm[1];
-	
-	// #2 bandpass
-	K[2] = tan(f[currentvoice][2]);
-	norm[2] = 1 / (1 + K[2] * q[currentvoice][2] + K[2] * K[2]);
-	a0[currentvoice][2] = K[2] * q[currentvoice][2] * norm[2];
-	a1[currentvoice][2] = 0;
-	a2[currentvoice][2] = -a0[currentvoice][2];
-	b1[currentvoice][2] = 2 * (K[2] * K[2] - 1) * norm[2];
-	b2[currentvoice][2] = (1 - K[2] * q[currentvoice][2] + K[2] * K[2]) * norm[2];
-
 	// 2 - Compute values
 	// out = in * a0 + z1;
 	// z1 = in * a1 + z2 - b1 * out;
 	// z2 = in * a2 - b2 * out;
 	float from_filter[4], from_filter2[4];
 #ifdef __SSE2__
-	// First bi-quad stage
+	{ // First bi-quad stage
 	__m128 a04 = _mm_load_ps(a0[currentvoice]); // Will reuse for 2nd stage
 	__m128 to_filter4 = _mm_load_ps1(&to_filter);
 	__m128 from_filter14 = _mm_add_ps(_mm_mul_ps(to_filter4, a04), _mm_load_ps(z1[currentvoice])); // to_filter * a0 + z1
@@ -1455,7 +1483,7 @@ if (choi[19]>1){ // Bi-quad - still not OK
 	__m128 a24 = _mm_load_ps(a2[currentvoice]); // Will reuse for 2nd stage
 	__m128 b24 = _mm_load_ps(b2[currentvoice]); // Will reuse for 2nd stage
 	temp4 = _mm_mul_ps(to_filter4, a24); // to_filter * a2
-	// __m128 v4 = _mm_load_ps(v[currentvoice]); // Will use after 2nd stage
+	__m128 v4 = _mm_load_ps(v[currentvoice]); // Will use after 2nd stage
 	temp4 = _mm_sub_ps(temp4, _mm_mul_ps(b24, from_filter14)); // - (b2 * from_filter )
 	_mm_store_ps(z2[currentvoice], temp4);
 
@@ -1480,15 +1508,15 @@ if (choi[19]>1){ // Bi-quad - still not OK
 		_mm_store_ps(z4[currentvoice], temp4);
 
 		// from_filter14 = from_filter24; // Faster than else, no jump
-		__m128 v4 = _mm_load_ps(v[currentvoice]);
+		// __m128 v4 = _mm_load_ps(v[currentvoice]);
 		_mm_store_ps(from_filter, _mm_mul_ps(from_filter24, v4));
 	}else{
 		gain = sqrt(fabsf(gain)); // Half gain reduction for 2-pole
-		__m128 v4 = _mm_load_ps(v[currentvoice]);
+		// __m128 v4 = _mm_load_ps(v[currentvoice]);
 		_mm_store_ps(from_filter, _mm_mul_ps(from_filter14, v4));
 	}
 	mod[7] = from_filter[0]*gain + from_filter[1] + from_filter[2];
-
+	}
 #else
 	// First bi-quad stage
 	from_filter[0] = to_filter * a0[currentvoice][0] + z1[currentvoice][0];
@@ -2140,7 +2168,6 @@ void doReset(unsigned int voice){
 	firstTime=1; // Helps with debugging
 #ifdef _DEBUG
 	printf("doReset: voice %u filters and delay buffer reset\n", voice);
-#endif
 /*
 	printf("peak max %f %f %f %f %f %f %f %f\n",
 		peakPositive[0], peakPositive[1], peakPositive[2], peakPositive[3],
@@ -2149,6 +2176,7 @@ void doReset(unsigned int voice){
 		peakNegative[0], peakNegative[1], peakNegative[2], peakNegative[3],
 		peakNegative[4], peakNegative[5], peakNegative[6], peakNegative[7]);
 */
+#endif
 	printf("peak db %f %f %f %f %f %f %f %f\n",
 		log(fmaxf(peakPositive[0], -peakNegative[0])) * 10 / log(10),
 		log(fmaxf(peakPositive[1], -peakNegative[1])) * 10 / log(10),
