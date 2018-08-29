@@ -1046,7 +1046,7 @@ int jackProcess(jack_nframes_t nframes, void *arg) {
 				if(choi[5]){
 					if(param[140]){ // Mult
 						mf = 0.125f*param[38]*mf1*param[48]*mf2; // -0.5..0.5
-						modmax = 0.125*fabs(param[38])*fabs(param[48]); // 0..0.5
+						modmax = 0.125*fabs(param[38]*param[48]); // 0..0.5
 					}else{ // Add
 						mf = 0.125f*(param[38]*mf1+param[48]*mf2); // -0.5..0.5
 						modmax = 0.125*(fabs(param[38])+fabs(param[48])); // 0..0.5
@@ -1298,7 +1298,7 @@ if (firstTime && index==0 && currentvoice==0)
 // 			mod[7] = to_filter; // Pass input unchanged
 // #else
 double phi, gainNumerator, gainDenominator, gain, gainDb;
-if (choi[19]>1){ // Bi-quad - still not OK
+if (choi[19]>1){ // Bi-quad - still not OK?
 	// Biquad filtering
 	// Bilinear Transform from http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
 	// Nigel Redmon:
